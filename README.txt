@@ -1,7 +1,46 @@
 ================================================
-  MIAPOS v2.5.1 — HEADER RAPI + EMERALD TERANG
+  MIAPOS v2.6 — 3 TEMA WARNA + CHIP KASIR/CABANG
         + AUTO-UPDATE + SIAP PLAY STORE
 ================================================
+
+APA YANG BARU DI v2.6 (tema warna + perapihan header)
+-----------------------------------------------------
+1. 3 TEMA WARNA — GANTI GANTI SESUKA HATI:
+   • EMERALD & SLATE (default): hijau emerald #10B981
+     ala dashboard favorit — fokus & kesuksesan transaksi.
+   • ROYAL & ORANGE: biru royal #2563EB + tombol bayar
+     oranye #F97316 — kepercayaan & fokus pengguna.
+   • CHARCOAL DARK: gelap #121212 + aksen neon #D1FF1A —
+     minimalis & ideal, mata nggak silau malam hari.
+   • Cara ganti: Pengaturan → "Tema Warna" → muncul
+     pop up berisi 3 KARTU PREVIEW (kayak setelan dark
+     mode di HP) → ketuk salah satu → SELURUH app
+     langsung berubah: header, tombol, FAB, grafik,
+     laporan, toggle — dan PILIHAN TERSIMPAN OTOMATIS
+     (buka ulang tetap ingat).
+2. CHIP "GANTI KASIR" BALIK & LEBIH GAMPANG:
+   • Fitur cepat ganti kasir TIDAK dihapus — sekarang
+     malah selalu keliatan di HP: jadi chip HITAM
+     (avatar + nama kasir) di baris kedua header.
+     Ketuk → langsung pilih kasir aktif.
+   • Chip CABANG/OUTLET dibikin PUTIH garis HITAM,
+     kontras jelas di sampingnya. Dua-duanya hitam
+     putih biar beda dari tombol warna tema.
+   • Chip-kip ini punya BARIS SENDIRI di bawah judul →
+     judul, chip kasir & logo cabang NGGAK PERNAH
+     sempit-sempitan/nabrak lagi.
+3. HEADER PUTIH BERSIH — HABIS "BLEND" IJO-IJO:
+   • Header sekarang putih (mengikuti tema terang),
+     warna bilah status Android ikut putih tulang —
+     rapi kayak aplikasi beneran. Warna tema tetap
+     nempel di tombol, FAB, tab & grafik.
+   • Charcoal Dark = gelap total, bilah status ikut
+     #121212. Splash screen tetap keren gelap.
+4. TOMBOL BAYAR IKUT WARNA AKSEN TEMA:
+   • Royal & Orange → tombol Bayar/Konfirmasi oranye.
+   • Charcoal Dark → tombol Bayar neon green.
+   • Emerald & Slate → tetap hijau emerald.
+5. LABEL VERSI: "Miapos F&B Suite v2.6".
 
 APA YANG BARU DI v2.5.1 (perbaikan tampilan)
 --------------------------------------------
@@ -145,4 +184,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.5
+SELAMAT PAKAI! — Miapos v2.6

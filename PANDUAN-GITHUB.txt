@@ -22,7 +22,7 @@ pengguna update sendiri lewat service worker (sw.js).
       PANDUAN-GITHUB.txt     (opsional)
       PANDUAN-PLAYSTORE.txt  (opsional)
    File lama yang namanya sama OTOMATIS KETIMPA.
-5. Klik "Commit changes" (pesan bebas, mis. "update v2.5").
+5. Klik "Commit changes" (pesan bebas, mis. "update v2.6").
 6. Tunggu ±1 menit → Vercel deploy ulang sendiri. Cek: buka
    app → Setelan → Mesin Lokal → tertulis versi baru.
 
@@ -34,9 +34,9 @@ pengguna update sendiri lewat service worker (sw.js).
 Simpan zip Miapos ke HP, lalu di Termux:
 
    cd ~/miapos
-   unzip -o ~/storage/downloads/miapos-v2.5.zip
+   unzip -o ~/storage/downloads/miapos-v2.6.zip
    git add -A
-   git commit -m "Miapos v2.5"
+   git commit -m "Miapos v2.6"
    git push
 
    (-o = timpa semua file lama langsung di tempat. Zip
@@ -98,7 +98,7 @@ UPDATE BERIKUTNYA (tinggal 3 perintah)
    App di HP semua pengguna AKAN UPDATE SENDIRI (auto-update
    via service worker) — mereka cukup buka/tutup aplikasinya,
    tanpa perlu apa-apa. Cek versi di: Setelan → Mesin Lokal
-   (tertulis "Miapos F&B Suite v2.5").
+   (tertulis "Miapos F(tertulis "Miapos F&B Suite v2.5")B Suite v2.6").
 
 BONUS 1 — JADIKAN WEB LIVE (GitHub Pages)
 -----------------------------------------
@@ -132,7 +132,7 @@ index.html-nya pakai versi terbaru, lalu push ulang:
     terbaru dari zip Miapos yang lu download — JANGAN
     lupa sw.js, file kecil ini yang bikin app auto-update)
    git add -A
-   git commit -m "Miapos v2.5 - fix conflict"
+   git commit -m "Miapos v2.6 - tema warna"
    git push
 
 Kalau Terminal masih bilang "All conflicts fixed but you
@@ -153,7 +153,7 @@ Mulai v2.5, Miapos pakai SERVICE WORKER (file sw.js):
 - Lu cukup push/timpa file ke GitHub. Selesai. Semua HP
   pengguna otomatis ke-update dalam ±1 menit.
 - Kalau mau pasti-in versi sudah masuk: buka app → Setelan
-  → bagian bawah tertulis "Miapos F&B Suite v2.5".
+  → bagian bawah tertulis "Miapos F→ bagian bawah tertulis "Miapos F&B Suite v2.5".B Suite v2.6".
 
 Mau rilis ke PLAY STORE? Ikuti file PANDUAN-PLAYSTORE.txt
 (tinggal isi URL Vercel ini ke PWABuilder).
