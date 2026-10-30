@@ -1,0 +1,90 @@
+================================================
+  CARA PUSH MIAPOS KE GITHUB (dari Termux)
+================================================
+
+SEKALI SAJA — PERSIAPAN
+----------------------
+   pkg install git -y
+
+Buat akun di github.com kalau belum punya, lalu buat
+repository baru lewat website:
+   1. Login ke github.com → klik tombol "+" → New repository
+   2. Nama repo: miapos (bebas)
+   3. Pilih Private kalau mau rahasia
+   4. KLIK "Create repository" (JANGAN centang README)
+
+SEKALI SAJA — LOGIN GITHUB DI TERMUX
+------------------------------------
+   git config --global user.name "Nama Kamu"
+   git config --global user.email "email@kamu.com"
+   git config --global credential.helper store
+
+(Gunakan Personal Access Token sebagai password, bukan
+password akun: github.com → Settings → Developer settings →
+Personal access tokens → Generate new token (classic) →
+centang "repo" → copy token-nya)
+
+PUSH PERTAMA KALI (jalankan di folder miapos)
+---------------------------------------------
+   cd ~/miapos
+   git init
+   git add .
+   git commit -m "Miapos v2.1 - full offline"
+   git branch -M main
+   git remote add origin https://github.com/USERNAME/miapos.git
+   git push -u origin main
+   (nanti diminta Username + Password → paste TOKEN tadi)
+
+UPDATE BERIKUTNYA (tinggal 3 perintah)
+--------------------------------------
+   cd ~/miapos
+   git add .
+   git commit -m "update"
+   git push
+
+BONUS 1 — JADIKAN WEB LIVE (GitHub Pages)
+-----------------------------------------
+   Repo → Settings → Pages → Source: main branch → Save.
+   Web kamu jadi online di:
+   https://USERNAME.github.io/miapos/
+   (otomatis buka index.html)
+   Cocok buat test dari HP lain / share ke teman.
+
+BONUS 2 — DEPLOY KE VERCEL
+--------------------------
+   1. Buka vercel.com → login pakai akun GitHub
+   2. Add New → Project → pilih repo "miapos"
+   3. Framework Preset: OTHER (biarkan default, tanpa build)
+   4. Deploy → selesai!
+   Karena file utamanya sudah bernama index.html, Vercel
+   otomatis mendeteksi & menampilkannya di URL root:
+   https://miapos-kamu.vercel.app
+   Setiap git push baru → Vercel auto-deploy ulang sendiri.
+
+PENTING — FIX "MERGE CONFLICT" (web tampil tulisan
+<<<<<<< HEAD ======= >>>>>>> bukan aplikasinya)
+-----------------------------------------------------
+Ini terjadi kalau file index.html di GitHub berisi TANDA
+CONFLICT yang belum diresolve (biasanya gara-gara merge /
+pull yang bentrok). Solusi paling gampang: TIMPA aja
+index.html-nya pakai versi terbaru, lalu push ulang:
+
+   cd ~/miapos
+   (timpa index.html + seluruh isi folder dengan versi
+    terbaru dari zip Miapos yang lu download)
+   git add -A
+   git commit -m "Miapos v2.3 - fix conflict + tema biru"
+   git push
+
+Kalau Terminal masih bilang "All conflicts fixed but you
+are still merging" → perintah di atas sudah benar, commit
+itu juga yang menyelesaikan merge-nya.
+Setelah push, Vercel otomatis deploy ulang (tunggu ±1 menit).
+
+Jangan pernah edit index.html pakai aplikasi yang bisa
+nyisipin tulisan <<<<<<< di file — kalau ragu, selalu timpa
+pakai file asli dari zip Miapos.
+
+CATATAN: di Vercel/GitHub Pages yang jalan hanya bagian web
+(HTML). Fitur Python + C++ (backup & Insight) aktif kalau app
+dijalankan lewat Termux: python main.py

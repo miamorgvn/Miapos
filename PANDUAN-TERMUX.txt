@@ -1,0 +1,133 @@
+╔══════════════════════════════════════════════════════════════╗
+║        🍴  MIAPOS v2 — PANDUAN JADI APLIKASI DI TERMUX       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Paket ini berisi:
+  • miapos.html          → Aplikasi Miapos UI baru (v2, tema emerald)
+  • main.py              → Server Python (launcher aplikasi)
+  • install.sh           → Installer otomatis (jalankan SEKALI saja)
+  • start.sh             → Launcher 1-klik (untuk Termux:Widget)
+  • manifest.json        → Data PWA (supaya bisa di-install jadi app)
+  • icon-192.png / icon-512.png → Ikon aplikasi
+  • README.txt           → Ringkasan singkat
+
+Catatan: Python di sini dipakai sebagai "mesin server" yang
+menjalankan Miapos di HP kamu + membuka browser otomatis.
+Animasi & tampilan sendiri memakai CSS/JS modern yang lebih
+ringan dan mulus di webview/browser Android.
+
+
+═══════════════════════════════════════════════════════════
+  LANGKAH 1 — Install Termux & Python (sekali saja)
+═══════════════════════════════════════════════════════════
+
+1. Install Termux (disarankan versi F-Droid / GitHub, bukan
+   Play Store yang versi lama):
+   https://f-droid.org/packages/com.termux/
+
+2. Buka Termux, lalu update dulu:
+       pkg update -y && pkg upgrade -y
+
+3. Izinkan Termux akses storage HP (untuk salin file dari
+   Download):
+       termux-setup-storage
+   (klik IZINKAN / ALLOW saat muncul popup)
+
+
+═══════════════════════════════════════════════════════════
+  LANGKAH 2 — Salin folder miapos-v2 ke Termux
+═══════════════════════════════════════════════════════════
+
+Ekstrak zip ini dulu (misalnya lewat aplikasi Files ke folder
+Download), lalu di Termux jalankan:
+
+       cp -r /sdcard/Download/miapos-v2 ~/
+       cd ~/miapos-v2
+
+( kalau ekstraknya ke folder lain, sesuaikan path-nya )
+
+
+═══════════════════════════════════════════════════════════
+  LANGKAH 3 — Install (sekali saja)
+═══════════════════════════════════════════════════════════
+
+       bash install.sh
+
+Ini akan memasang Python otomatis. Tunggu sampai muncul
+"SELESAI!".
+
+
+═══════════════════════════════════════════════════════════
+  LANGKAH 4 — Jalankan aplikasinya
+═══════════════════════════════════════════════════════════
+
+       python main.py
+
+Maka:
+  • Server Miapos jalan di localhost:8080
+  • Browser langsung terbuka ke aplikasi
+  • Splash animation "M🍴AP☕S" muncul → aplikasi siap dipakai
+
+Pilihan tambahan:
+       python main.py --port 9000   (ganti port)
+       python main.py --no-open     (tanpa buka browser otomatis)
+       python main.py --lan         (lihat alamat WiFi lokal —
+                                     berguna kalau mau buka Miapos
+                                     dari HP/tablet lain di WiFi yang sama)
+
+
+═══════════════════════════════════════════════════════════
+  LANGKAH 5 — Jadikan APP fullscreen di layar utama (PWA)
+═══════════════════════════════════════════════════════════
+
+1. Buka http://localhost:8080/index.html di Chrome
+2. Klik menu ⋮ (titik tiga) → "Tambahkan ke Layar utama"
+   / "Install app"
+3. Sekarang Miapos muncul di layar utama HP dengan ikon
+   emerald, jalan fullscreen tanpa bar browser — persis app
+   asli!
+4. Data penjualan tersimpan otomatis (localStorage) dan aman
+   meski server dimatikan.
+
+
+═══════════════════════════════════════════════════════════
+  BONUS — Tombol 1-klik pakai Termux:Widget
+═══════════════════════════════════════════════════════════
+
+1. Install "Termux:Widget" dari F-Droid
+2. Jalankan:
+       mkdir -p ~/.shortcuts
+       cp ~/miapos-v2/start.sh ~/.shortcuts/miapos.sh
+       chmod +x ~/.shortcuts/miapos.sh
+3. Tambahkan widget "Termux:Widget" di layar utama
+4. Klik "miapos" → aplikasi langsung jalan, tanpa ngetik
+   apa-apa lagi!
+
+
+═══════════════════════════════════════════════════════════
+  PRINTER BLUETOOTH (ESC/POS)
+═══════════════════════════════════════════════════════════
+
+• Web Bluetooth butuh koneksi "aman" (HTTPS atau localhost).
+  Karena server ini jalan di localhost → printer Bluetooth
+  TETAP BISA dipakai lewat Chrome Android.
+• Pilih printer di: Pengaturan → Printer Bluetooth
+• Pastikan server main.py sedang jalan saat mau print.
+
+
+═══════════════════════════════════════════════════════════
+  TROUBLESHOOT
+═══════════════════════════════════════════════════════════
+
+• "python: not found"          → jalankan bash install.sh lagi
+• Port 8080 dipakai app lain   → python main.py --port 9090
+• Browser tidak terbuka        → buka manual di Chrome:
+                                 http://localhost:8080/index.html
+• Halaman putih / error CDN    → v2.1 TIDAK butuh internet lagi!
+                                 Semua library ada di folder lib/.
+                                 Pastikan folder lib/ ada di sefolder
+                                 index.html dan tidak terhapus.
+• Data hilang?                 → data tersimpan per alamat
+                                 browser. Selalu buka lewat
+                                 http://localhost:8080/index.html supaya
+                                 datanya sama terus.
