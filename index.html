@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <title>Miapos - POS & Manajemen Restoran</title>
 <meta name="description" content="Sistem POS, KDS, Inventory, dan Multi-Outlet untuk restoran modern" />
-<meta name="theme-color" content="#059669" />
+<meta name="theme-color" content="#10b981" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -36,6 +36,12 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 /* Mode layar penuh runtime (saklar "Layar Penuh Sempurna"): header otomatis turun supaya
    judul TIDAK tertutup punch-hole / lensa kamera (mis. Oppo A54, iPhone Dynamic Island) */
 html.is-fs .safe-top { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); }
+/* Header bar ala APK: grid dikontrol CSS biar responsif.
+   HP: kolom tengah dibatasi 1.6fr → subjudul panjang otomatis dipotong (...)
+   dan TIDAK PERNAH nabrak tombol kiri (back) / kanan (aksi).
+   Desktop (md+): kolom tengah auto → lega. */
+.app-header { grid-template-columns: minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr); }
+@media (min-width:768px) { .app-header { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide-in-right { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -58,7 +64,7 @@ input[type=number] { -moz-appearance: textfield; }
 @keyframes mp-fade-scale { from { opacity:0; transform:scale(.86) rotate(-8deg); } to { opacity:1; transform:scale(1) rotate(0deg); } }
 @keyframes mp-nav-pop { 0% { transform:scale(.65); } 55% { transform:scale(1.15); } 100% { transform:scale(1); } }
 @keyframes mp-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
-@keyframes mp-ring-pulse { 0% { box-shadow:0 0 0 0 rgba(5,150,105,.35); } 70% { box-shadow:0 0 0 14px rgba(5,150,105,0); } 100% { box-shadow:0 0 0 0 rgba(5,150,105,0); } }
+@keyframes mp-ring-pulse { 0% { box-shadow:0 0 0 0 rgba(16,185,129,.35); } 70% { box-shadow:0 0 0 14px rgba(16,185,129,0); } 100% { box-shadow:0 0 0 0 rgba(16,185,129,0); } }
 @keyframes mp-rise { from { opacity:0; transform:translateY(16px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
 @keyframes mp-fade-down { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }
 @keyframes mp-stagger-in { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
@@ -96,7 +102,7 @@ button:not(:disabled):active { transform: scale(.96); }
 @keyframes mp-spl-letter { 0%{ opacity:0; transform:translateY(26px) scale(.5); } 60%{ opacity:1; transform:translateY(-4px) scale(1.08); } 100%{ opacity:1; transform:translateY(0) scale(1); } }
 @keyframes mp-spl-fadeup { from{ opacity:0; transform:translateY(14px);} to{ opacity:1; transform:translateY(0);} }
 @keyframes mp-spl-shine { 0%{ transform:translateX(-100%);} 100%{ transform:translateX(220%);} }
-@keyframes mp-spl-glow { 0%,100%{ box-shadow:0 0 0 0 rgba(5,150,105,.32), 0 18px 50px -12px rgba(5,150,105,.55);} 50%{ box-shadow:0 0 0 16px rgba(5,150,105,0), 0 18px 60px -8px rgba(5,150,105,.75);} }
+@keyframes mp-spl-glow { 0%,100%{ box-shadow:0 0 0 0 rgba(16,185,129,.32), 0 18px 50px -12px rgba(16,185,129,.55);} 50%{ box-shadow:0 0 0 16px rgba(16,185,129,0), 0 18px 60px -8px rgba(16,185,129,.75);} }
 .mp-spl-logo-tile { animation: mp-spl-logo .7s cubic-bezier(.34,1.56,.64,1) both, mp-spl-glow 2.4s ease-in-out .7s infinite; }
 .mp-spl-ring-svg { animation: mp-spl-ring 1.6s cubic-bezier(.65,0,.35,1) .25s both; }
 .mp-spl-letter { display:inline-block; animation: mp-spl-letter .55s cubic-bezier(.34,1.56,.64,1) both; }
@@ -115,7 +121,7 @@ tailwind.config = {
   theme: { extend: { colors: {
     primary: { DEFAULT:'#0f172a', foreground:'#f8fafc' },
     muted: { DEFAULT:'#f1f5f9', foreground:'#64748b' },
-    border:'#e2e8f0', input:'#e2e8f0', ring:'#059669',
+    border:'#e2e8f0', input:'#e2e8f0', ring:'#10b981',
     destructive: { DEFAULT:'#dc2626', foreground:'#fca5a5' },
   } } }
 };
@@ -495,7 +501,7 @@ function AppProvider({ children }) {
 const Button = ({ variant='default', size='default', className='', children, ...props }) => {
   const base = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-150 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.96]';
   const variants = {
-    default: 'bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25 hover:shadow-lg hover:shadow-emerald-600/35 hover:brightness-110',
+    default: 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25 hover:shadow-lg hover:shadow-emerald-500/35 hover:brightness-110',
     destructive: 'bg-gradient-to-br from-red-600 to-rose-600 text-white shadow-md shadow-red-600/25 hover:brightness-110',
     outline: 'border border-slate-200 bg-white hover:bg-emerald-50/50 hover:border-emerald-400 text-slate-800',
     secondary: 'bg-slate-100 text-slate-900 hover:bg-slate-200',
@@ -505,9 +511,9 @@ const Button = ({ variant='default', size='default', className='', children, ...
   const sizes = { default:'h-10 px-4 py-2', sm:'h-9 px-3', lg:'h-11 px-8', icon:'h-10 w-10' };
   return React.createElement('button', { className: cn(base, variants[variant], sizes[size], className), ...props }, children);
 };
-const Card = ({ className='', children, ...props }) => React.createElement('div', { className: cn('rounded-3xl border border-emerald-900/5 bg-white text-slate-900 shadow-[0_2px_6px_rgba(15,23,42,0.04),0_18px_44px_-26px_rgba(5,150,105,0.30)]', className), ...props }, children);
+const Card = ({ className='', children, ...props }) => React.createElement('div', { className: cn('rounded-3xl border border-emerald-900/5 bg-white text-slate-900 shadow-[0_2px_6px_rgba(15,23,42,0.04),0_18px_44px_-26px_rgba(16,185,129,0.30)]', className), ...props }, children);
 const Badge = ({ variant='default', className='', children }) => {
-  const variants = { default:'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 text-white', secondary:'bg-slate-100 text-slate-700', outline:'border border-slate-200 text-slate-700', destructive:'bg-red-100 text-red-700' };
+  const variants = { default:'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white', secondary:'bg-slate-100 text-slate-700', outline:'border border-slate-200 text-slate-700', destructive:'bg-red-100 text-red-700' };
   return React.createElement('span', { className: cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', variants[variant], className) }, children);
 };
 const Input = ({ className='', ...props }) => React.createElement('input', { className: cn('flex h-10 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500', className), ...props });
@@ -543,7 +549,7 @@ const ToastCtx = React.createContext({ show: () => {} });
 const useToast = () => React.useContext(ToastCtx);
 const Toast = ({ message, type='success', onClose }) => {
   React.useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
-  var colors = { success:'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700', error:'bg-gradient-to-r from-red-600 to-rose-600', info:'bg-slate-800' };
+  var colors = { success:'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600', error:'bg-gradient-to-r from-red-600 to-rose-600', info:'bg-slate-800' };
   var icons = { success:'\u2713', error:'\u2717', info:'\u2139' };
   return React.createElement('div', { className: cn('fixed top-4 right-4 left-4 sm:left-auto z-[9999] px-4 py-3 rounded-2xl text-white shadow-2xl text-sm flex items-center gap-2', colors[type], 'animate-slide-in-right') },
     React.createElement('span', { className:'text-lg font-bold shrink-0' }, icons[type] || ''),
@@ -567,11 +573,12 @@ function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
   const [outletEdit, setOutletEdit] = React.useState(null);
   const [outletNew, setOutletNew] = React.useState(false);
   const { show } = useToast();
-  var isGrad = tone !== 'plain'; // default = gradient emerald (app bar ala APK); 'plain' tetap tersedia
+  var isGrad = tone !== 'plain'; // default = solid emerald (app bar ala APK); 'plain' tetap tersedia
   var chipCls = isGrad ? 'border-white/30 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 hover:border-emerald-500';
-  // GRID '1fr auto 1fr' → judul selalu PERSIS di tengah layar di SEMUA halaman (ala titlebar APK),
-  // zona kiri (tombol back) & kanan (aksi) tidak menggeser posisi judul.
-  return React.createElement('header', { className: cn('app-header grid items-center gap-1.5 border-b px-2 py-2 md:px-4 md:py-2.5 safe-top animate-mp-fade-down', isGrad ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 border-emerald-700/40 text-white' : 'border-slate-200/70 bg-white/90 backdrop-blur-md'), style: { gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)' } },
+  // GRID diatur via CSS (.app-header, responsif): judul selalu PERSIS di tengah layar
+  // (ala titlebar APK), kolom tengah dibatasi → subjudul panjang otomatis dipotong (...),
+  // tidak pernah nabrak tombol kiri (back) / kanan (aksi).
+  return React.createElement('header', { className: cn('app-header grid items-center gap-1.5 border-b px-2 py-2 md:px-4 md:py-2.5 safe-top animate-mp-fade-down', isGrad ? 'bg-emerald-500 border-emerald-600/40 text-white' : 'border-slate-200/70 bg-white/90 backdrop-blur-md') },
     React.createElement('div', { className:'flex items-center justify-self-start min-w-0' },
       onBack && React.createElement('button', { onClick: onBack, className: cn('grid h-9 w-9 place-items-center rounded-xl transition-colors md:hidden', isGrad ? 'bg-white/10 text-white hover:bg-white/20' : 'hover:bg-slate-100 text-slate-700'), title:'Kembali' },
         React.createElement(Icon, { name:'arrow-left', className:'w-5 h-5' })
@@ -585,8 +592,8 @@ function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
     React.createElement('div', { className:'flex items-center justify-self-end gap-1.5 md:gap-2 min-w-0' },
       rightSlot,
       // Quick cashier switcher (badge clickable)
-      React.createElement('button', { onClick: () => setCashierOpen(true), className: cn('flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors', chipCls), title:'Ganti Kasir' },
-        React.createElement('div', { className:'grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 text-white text-[10px] font-bold shrink-0 shadow-md shadow-emerald-600/25' }, (cashier?.name || '?').charAt(0)),
+      React.createElement('button', { onClick: () => setCashierOpen(true), className: cn('hidden sm:flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors', chipCls), title:'Ganti Kasir' },
+        React.createElement('div', { className:'grid h-6 w-6 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white text-[10px] font-bold shrink-0 shadow-md shadow-emerald-500/25' }, (cashier?.name || '?').charAt(0)),
         React.createElement('span', { className:'hidden sm:inline font-medium truncate max-w-[80px]' }, cashier?.name || 'Belum login')
       ),
       // Outlet selector — single display dengan icon pensil + hapus
@@ -629,7 +636,7 @@ function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
       React.createElement('div', { className:'p-4' },
         React.createElement('div', { className:'flex items-center justify-between mb-3' },
           React.createElement('h2', { className:'text-lg font-bold' }, 'Outlet'),
-          React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700', onClick: () => setOutletNew(true) },
+          React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => setOutletNew(true) },
             React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), 'Tambah'
           )
         ),
@@ -645,7 +652,7 @@ function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
               React.createElement('p', { className:'font-medium text-sm' }, o.name),
               React.createElement('p', { className:'text-xs text-slate-500 truncate' }, o.address || '-')
             ),
-            o.id === outlet?.id && React.createElement(Badge, { variant:'default', className:'bg-emerald-600 shrink-0' }, 'Aktif'),
+            o.id === outlet?.id && React.createElement(Badge, { variant:'default', className:'bg-emerald-500 shrink-0' }, 'Aktif'),
             o.id !== outlet?.id && React.createElement(Button, { size:'sm', variant:'outline', className:'h-7 text-xs shrink-0', onClick: () => { setOutlet(o.id); setOutletOpen(false); show('Outlet: ' + o.name); } }, 'Pilih'),
             React.createElement('button', { onClick: () => setOutletEdit(o), className:'p-1.5 rounded text-slate-400 hover:text-slate-900 hover:bg-slate-100 shrink-0', title:'Edit outlet' },
               React.createElement(Icon, { name:'pencil', className:'w-3.5 h-3.5' })
@@ -696,7 +703,7 @@ function OutletEditDialog({ outlet, onClose, onSave }) {
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
-        React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), address: address.trim(), phone: phone.trim(), active: true }) },
+        React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), address: address.trim(), phone: phone.trim(), active: true }) },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
         )
       )
@@ -734,19 +741,19 @@ function Sidebar({ active, onChange }) {
   return React.createElement(React.Fragment, null,
     React.createElement('aside', { className:'hidden md:flex flex-col w-64 border-r-0 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-800 p-3 gap-1 shadow-2xl overflow-y-auto no-scrollbar' },
       React.createElement('div', { className:'flex items-center gap-2 px-2 py-3 mb-2 border-b border-white/10' },
-        React.createElement('div', { className:'grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/30 animate-mp-float' },
+        React.createElement('div', { className:'grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 animate-mp-float' },
           React.createElement(Icon, { name:'store', className:'w-5 h-5' })
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.5')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.5.1')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
         item.divider && React.createElement('p', { className:'text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1' }, 'Menu Lainnya'),
         React.createElement('button', {
           onClick: () => onChange(item.key),
-          className: cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.97]', active === item.key ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-300 hover:bg-white/10 hover:text-white')
+          className: cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.97]', active === item.key ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-300 hover:bg-white/10 hover:text-white')
         },
           React.createElement(Icon, { name: item.icon, className:'w-4 h-4 shrink-0' }),
           React.createElement('span', null, item.label)
@@ -758,7 +765,7 @@ function Sidebar({ active, onChange }) {
         mobTab('dashboard', 'Home', 'house'),
         mobTab('orders', 'Pesanan', 'clipboard-list'),
         React.createElement('div', { key:'fab', className:'flex-1 flex justify-center' },
-          React.createElement('button', { onClick: function() { onChange('pos'); }, 'aria-label':'Tambah Pesanan', title:'Tambah Pesanan', className:'grid h-16 w-16 -mt-9 place-items-center rounded-full bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-700 text-white shadow-xl shadow-emerald-700/40 border-4 border-white transition-transform active:scale-95' },
+          React.createElement('button', { onClick: function() { onChange('pos'); }, 'aria-label':'Tambah Pesanan', title:'Tambah Pesanan', className:'grid h-16 w-16 -mt-9 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-xl shadow-emerald-600/40 border-4 border-white transition-transform active:scale-95' },
             React.createElement(Icon, { name:'plus', className:'w-7 h-7' })
           )
         ),
@@ -820,7 +827,7 @@ function DashboardView({ onNavigate }) {
           React.createElement('div', { className:'p-4' },
             React.createElement('h3', { className:'text-base font-semibold' }, 'Tren Omzet 7 Hari'),
             React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Total pendapatan harian'),
-            React.createElement(BarChartSimple, { data: revenueTrend, xKey:'day', yKey:'revenue', color:'#059669' })
+            React.createElement(BarChartSimple, { data: revenueTrend, xKey:'day', yKey:'revenue', color:'#10b981' })
           )
         ),
         React.createElement(Card, null,
@@ -845,7 +852,7 @@ function DashboardView({ onNavigate }) {
             React.createElement('div', { className:'space-y-2' },
               bestSellers.length === 0 && React.createElement('p', { className:'text-sm text-slate-500 text-center py-4' }, 'Belum ada penjualan'),
               bestSellers.map((b, i) => React.createElement('div', { key: i, className:'flex items-center gap-3 rounded-lg border p-2.5' },
-                React.createElement('div', { className:'grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25' }, i+1),
+                React.createElement('div', { className:'grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white text-xs font-bold shadow-md shadow-emerald-500/25' }, i+1),
                 React.createElement('div', { className:'flex-1 min-w-0' },
                   React.createElement('p', { className:'font-medium text-sm truncate' }, b.name),
                   React.createElement('p', { className:'text-xs text-slate-500' }, b.qty + ' porsi terjual')
@@ -902,7 +909,7 @@ function DashboardView({ onNavigate }) {
 
 const KpiCard = ({ label, value, sub, icon, color }) => {
   const grads = {
-    blue:'from-emerald-500 via-emerald-500 to-emerald-700 shadow-emerald-500/30',
+    blue:'from-emerald-500 via-emerald-500 to-emerald-600 shadow-emerald-500/30',
     amber:'from-amber-500 to-orange-600 shadow-amber-500/30',
     red:'from-red-500 to-rose-600 shadow-red-500/30',
     violet:'from-violet-500 to-purple-600 shadow-violet-500/30'
@@ -968,7 +975,7 @@ const BarChartSimple = ({ data, xKey, yKey, color='#0f172a' }) => {
 
 const PieChartSimple = ({ data }) => {
   if (!data || data.length === 0) return React.createElement('div', { className:'h-[200px] grid place-items-center text-slate-400 text-sm' }, 'No data');
-  const colors = ['#059669','#f59e0b','#10b981','#8b5cf6','#06b6d4','#ec4899'];
+  const colors = ['#10b981','#f59e0b','#10b981','#8b5cf6','#06b6d4','#ec4899'];
   const total = data.reduce((s,d) => s + d.value, 0);
   let cum = 0;
   return React.createElement('div', { className:'flex flex-col items-center' },
@@ -1099,7 +1106,7 @@ function POSView({ onBack }) {
             React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
             React.createElement(Input, { placeholder:'Cari menu...', value: search, onChange: e => setSearch(e.target.value), className:'pl-8 h-8' })
           ),
-          React.createElement(Button, { size:'sm', variant:'default', onClick: () => setAddMenuOpen(true), className:'h-9 shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700' },
+          React.createElement(Button, { size:'sm', variant:'default', onClick: () => setAddMenuOpen(true), className:'h-9 shrink-0 gap-1.5 bg-emerald-500 hover:bg-emerald-600' },
             React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
             React.createElement('span', { className:'hidden sm:inline' }, 'Tambah Menu')
           ),
@@ -1108,7 +1115,7 @@ function POSView({ onBack }) {
             [{mode:'grid', icon:'layout-grid', label:'Tampilan Kotak'},{mode:'list', icon:'list', label:'Tampilan List'}].map(function(item) {
               return React.createElement('button', {
                 key: item.mode, onClick: function() { setViewMode(item.mode); }, title: item.label,
-                className: cn('grid h-7 w-7 place-items-center rounded-md text-xs transition-all', viewMode === item.mode ? 'bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100')
+                className: cn('grid h-7 w-7 place-items-center rounded-md text-xs transition-all', viewMode === item.mode ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100')
               }, React.createElement(Icon, { name: item.icon, className: 'w-3.5 h-3.5' }));
             })
           ),
@@ -1141,7 +1148,7 @@ function POSView({ onBack }) {
                     )
                   ),
                   qty === 0
-                    ? React.createElement('button', { onClick: () => handleClick(p.id), title:'Tambah ke pesanan', className:'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-700 text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-90' },
+                    ? React.createElement('button', { onClick: () => handleClick(p.id), title:'Tambah ke pesanan', className:'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-md shadow-emerald-500/30 transition-transform active:scale-90' },
                         React.createElement(Icon, { name:'plus', className:'w-4 h-4' })
                       )
                     : React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
@@ -1149,7 +1156,7 @@ function POSView({ onBack }) {
                           React.createElement(Icon, { name:'minus', className:'w-3.5 h-3.5' })
                         ),
                         React.createElement('span', { className:'w-7 text-center text-sm font-extrabold' }, qty),
-                        React.createElement('button', { onClick: () => handleClick(p.id), title:'Tambah', className:'grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-700 text-white shadow-sm transition-transform active:scale-90' },
+                        React.createElement('button', { onClick: () => handleClick(p.id), title:'Tambah', className:'grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-sm transition-transform active:scale-90' },
                           React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' })
                         )
                       )
@@ -1188,10 +1195,10 @@ function POSView({ onBack }) {
       React.createElement('button', { onClick: () => setCartOpen(true), className:'w-full h-14 text-base font-semibold gap-3 rounded-2xl bg-slate-900 text-white flex items-center px-4 shadow-xl shadow-slate-900/40 animate-mp-ring' },
         React.createElement('div', { className:'relative' },
           React.createElement(Icon, { name:'shopping-cart', className:'w-5 h-5' }),
-          React.createElement('span', { className:'absolute -top-2 -right-2 bg-emerald-600 text-white text-[10px] font-bold rounded-full h-4 w-4 grid place-items-center border-2 border-slate-900' }, cartCount)
+          React.createElement('span', { className:'absolute -top-2 -right-2 bg-emerald-500 text-white text-[10px] font-bold rounded-full h-4 w-4 grid place-items-center border-2 border-slate-900' }, cartCount)
         ),
         React.createElement('span', { className:'flex-1 text-left' }, cartCount + ' item \u2022 ' + formatRupiah(total)),
-        React.createElement('span', { className:'text-sm bg-emerald-600 rounded-xl px-3 py-1.5' }, 'Lanjut \u2192')
+        React.createElement('span', { className:'text-sm bg-emerald-500 rounded-xl px-3 py-1.5' }, 'Lanjut \u2192')
       )
     ),
     // Mobile cart drawer
@@ -1331,7 +1338,7 @@ const ItemNotesEditor = ({ item, onClose, onSave }) => {
     React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:'cth: pahit / tanpa es / extra pedas', autoFocus: true, className:'h-10' }),
     React.createElement('div', { className:'flex gap-2 mt-4' },
       React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
-      React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', onClick: () => onSave(item.id, notes) }, 'Simpan')
+      React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: () => onSave(item.id, notes) }, 'Simpan')
     )
   );
 };
@@ -1436,7 +1443,7 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => { reset(); onClose(); } }, 'Batal'),
-        React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', onClick: save },
+        React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: save },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan Perubahan' : 'Simpan Menu'
         )
       )
@@ -1764,7 +1771,7 @@ function ReceiptPreview({ ver }) {
           [{ k:'kasir', l:'Nota Kasir' }, { k:'dapur', l:'Nota Dapur' }].map(t =>
             React.createElement('button', { key: t.k, onClick: function() { setTab(t.k); },
               className: cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
-                tab === t.k ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }, t.l)),
+                tab === t.k ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }, t.l)),
           React.createElement('button', { onClick: function() { setEdit(!edit); },
             className: cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1', edit ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') },
             React.createElement(Icon, { name: edit ? 'x' : 'pencil', className:'w-3 h-3' }), edit ? 'Tutup' : 'Edit Contoh')
@@ -1871,7 +1878,7 @@ const CartActions = ({ total, onPay, onSaveLater, onCetakStruk, onCetakDapur }) 
       )
     ),
     // Row 2: Bayar (primary)
-    React.createElement(Button, { className:'w-full h-12 text-base font-semibold gap-2 bg-emerald-600 hover:bg-emerald-700', onClick: onPay },
+    React.createElement(Button, { className:'w-full h-12 text-base font-semibold gap-2 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
       React.createElement(Icon, { name:'banknote', className:'w-5 h-5' }), 'Bayar ', formatRupiah(total)
     ),
     // Row 3: Bayar Nanti
@@ -2015,8 +2022,8 @@ function OrdersView({ onNavigate, onBack }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, {
-      title:'Pesanan', subtitle:'Hari ini · ' + outletOrders.length + ' pesanan · ' + unpaidCount + ' belum bayar · lama otomatis diarsip', onBack: onBack,
-      rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700', onClick: () => onNavigate('pos') },
+      title:'Pesanan', subtitle:'Hari ini · ' + outletOrders.length + ' pesanan' + (unpaidCount > 0 ? ' · ' + unpaidCount + ' belum bayar' : ''), onBack: onBack,
+      rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => onNavigate('pos') },
         React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
         React.createElement('span', { className:'hidden sm:inline' }, 'Pesanan Baru')
       )
@@ -2031,15 +2038,15 @@ function OrdersView({ onNavigate, onBack }) {
       React.createElement('div', { className:'flex gap-2 mb-4 overflow-x-auto no-scrollbar' },
         React.createElement('button', {
           onClick: () => setFilter('all'),
-          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all', filter === 'all' ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 text-white shadow-md shadow-emerald-600/25' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-400')
+          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all', filter === 'all' ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-400')
         }, 'Semua Status'),
         React.createElement('button', {
           onClick: () => setFilter('unpaid'),
-          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5', filter === 'unpaid' ? 'bg-emerald-600 text-white' : 'bg-white border border-emerald-200 text-emerald-600 hover:border-emerald-300')
+          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5', filter === 'unpaid' ? 'bg-emerald-500 text-white' : 'bg-white border border-emerald-200 text-emerald-600 hover:border-emerald-300')
         }, 'Belum Bayar', unpaidCount > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', filter === 'unpaid' ? 'bg-white/30' : 'bg-red-100') }, unpaidCount)),
         React.createElement('button', {
           onClick: () => setFilter('paid'),
-          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors', filter === 'paid' ? 'bg-emerald-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')
+          className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors', filter === 'paid' ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')
         }, 'Sudah Bayar')
       ),
       // Order list
@@ -2190,7 +2197,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
             ))
           ),
           // Confirm button
-          React.createElement(Button, { className:'w-full mt-2 bg-emerald-600 hover:bg-emerald-700', onClick: () => { setShowAddItem(false); show('Item ditambahkan ke pesanan'); } },
+          React.createElement(Button, { className:'w-full mt-2 bg-emerald-500 hover:bg-emerald-600', onClick: () => { setShowAddItem(false); show('Item ditambahkan ke pesanan'); } },
             React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Konfirmasi'
           )
         ),
@@ -2213,7 +2220,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
         ))
       ),
       // Total
-      React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-800 text-white p-3 mb-3 shadow-lg shadow-emerald-600/20' },
+      React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between text-sm' },
           React.createElement('span', { className:'text-emerald-100' }, 'Subtotal'),
           React.createElement('span', null, formatRupiah(currentOrder.subtotal || currentOrder.items.reduce(function(s,it){return s+(it.quantity*it.price);},0)))
@@ -2255,7 +2262,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       // Action buttons
       React.createElement('div', { className:'flex gap-2' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onCancel }, 'Tutup'),
-        isUnpaid && React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', onClick: onPay },
+        isUnpaid && React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
           React.createElement(Icon, { name:'banknote', className:'w-4 h-4' }), 'Bayar Sekarang'
         )
       ),
@@ -2286,7 +2293,7 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
     React.createElement('div', { className:'p-4' },
       React.createElement('h2', { className:'text-lg font-bold mb-1' }, 'Bayar Pesanan #' + order.number),
       React.createElement('p', { className:'text-sm text-slate-500 mb-3' }, order.customerName ? 'Pelanggan: ' + order.customerName : 'Tanpa nama pelanggan'),
-      React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-800 text-white p-3 mb-3 shadow-lg shadow-emerald-600/20' },
+      React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between font-bold text-lg' },
           React.createElement('span', null, 'Total Tagihan'),
           React.createElement('span', null, formatRupiah(total))
@@ -2365,7 +2372,7 @@ function KDSView({ onBack }) {
       React.createElement('div', { className:'md:hidden flex gap-1 mb-2 bg-slate-100 rounded-lg p-1' },
         COLUMNS.map(col => React.createElement('button', { key: col.key, onClick: () => setActiveTab(col.key), className: cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold min-h-[36px]', activeTab === col.key ? 'bg-white shadow-sm' : 'text-slate-500') },
           React.createElement(Icon, { name: col.icon, className:'w-3.5 h-3.5' }), col.title,
-          grouped[col.key].length > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', activeTab === col.key ? 'bg-gradient-to-br from-emerald-600 via-emerald-600 to-emerald-700 text-white' : 'bg-slate-200') }, grouped[col.key].length)
+          grouped[col.key].length > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', activeTab === col.key ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white' : 'bg-slate-200') }, grouped[col.key].length)
         ))
       ),
       React.createElement('div', { className:'flex-1 grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 min-h-0 overflow-hidden' },
@@ -2468,7 +2475,7 @@ function InventoryView({ onBack }) {
             React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
             React.createElement(Input, { placeholder:'Cari bahan baku...', value: search, onChange: e => setSearch(e.target.value), className:'pl-9' })
           ),
-          React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700 shrink-0', onClick: () => setNewMaterialOpen(true) },
+          React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600 shrink-0', onClick: () => setNewMaterialOpen(true) },
             React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), 'Tambah'
           )
         ),
@@ -2512,7 +2519,7 @@ function InventoryView({ onBack }) {
         React.createElement('div', { className:'p-4' },
           React.createElement('div', { className:'flex items-center justify-between mb-3' },
             React.createElement('p', { className:'text-sm text-slate-500' }, 'Total ' + outletProducts.length + ' menu'),
-            React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700 shrink-0', onClick: () => { setEditProduct(null); setProdDialogOpen(true); } },
+            React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600 shrink-0', onClick: () => { setEditProduct(null); setProdDialogOpen(true); } },
               React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), 'Tambah Menu')
           ),
           React.createElement('div', { className:'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3' },
@@ -2613,7 +2620,7 @@ function MaterialEditDialog({ material, onClose, onSave }) {
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
-        React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), unit, stock: parseFloat(stock) || 0, minStock: parseFloat(minStock) || 0, cost: parseFloat(cost) || 0 }) },
+        React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), unit, stock: parseFloat(stock) || 0, minStock: parseFloat(minStock) || 0, cost: parseFloat(cost) || 0 }) },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
         )
       )
@@ -2774,7 +2781,7 @@ function ReportsView({ onBack }) {
     }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 space-y-4 min-h-full' },
       // ===== NAVIGATOR TANGGAL + MODE (ala aplikasi kasir) =====
-      React.createElement('div', { className:'flex gap-1 bg-emerald-700/95 rounded-xl p-1' },
+      React.createElement('div', { className:'flex gap-1 bg-emerald-600/95 rounded-xl p-1' },
         [['day','Harian'],['7d','7 Hari'],['30d','30 Hari']].map(function([r, label]) {
           return React.createElement('button', { key: r, onClick: () => setMode(r), className: cn('flex-1 py-2 rounded-lg text-xs font-bold transition-all', mode === r ? 'bg-white text-emerald-700 shadow-sm' : 'text-emerald-100 hover:bg-white/10') }, label);
         })
@@ -2867,7 +2874,7 @@ function ReportsView({ onBack }) {
       tab === 'overview' && React.createElement('div', { className:'space-y-4' },
         React.createElement(Card, null, React.createElement('div', { className:'p-4' },
           React.createElement('h3', { className:'text-base font-semibold mb-3' }, hpp ? 'Tren Omzet vs HPP' : 'Tren Omzet'),
-          React.createElement(GroupedBarChart, { data: daily, xKey:'day', series: hpp ? [{key:'revenue', label:'Omzet', color:'#059669'},{key:'cost', label:'HPP', color:'#f59e0b'}] : [{key:'revenue', label:'Omzet', color:'#059669'}] })
+          React.createElement(GroupedBarChart, { data: daily, xKey:'day', series: hpp ? [{key:'revenue', label:'Omzet', color:'#10b981'},{key:'cost', label:'HPP', color:'#f59e0b'}] : [{key:'revenue', label:'Omzet', color:'#10b981'}] })
         )),
         React.createElement(Card, null, React.createElement('div', { className:'p-4' },
           React.createElement('h3', { className:'text-base font-semibold mb-3' }, 'Metode Pembayaran'),
@@ -3126,7 +3133,7 @@ function ProductsView({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, {
       title:'Produk', subtitle: outletProducts.length + ' menu · ' + outletProducts.filter(p => !p.available).length + ' habis', onBack: onBack,
-      rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700', onClick: () => setAddOpen(true) },
+      rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => setAddOpen(true) },
         React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
         React.createElement('span', { className:'hidden sm:inline' }, 'Tambah')
       )
@@ -3223,7 +3230,7 @@ function MoreView({ onNavigate }) {
           React.createElement(Icon, { name:'chevron-right', className:'w-4 h-4 text-slate-300 shrink-0' })
         ))
       ),
-      React.createElement('div', { className:'max-w-2xl mt-5 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white p-4' },
+      React.createElement('div', { className:'max-w-2xl mt-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-4' },
         React.createElement('p', { className:'text-sm font-bold' }, 'Tips Full Screen'),
         React.createElement('p', { className:'text-xs text-emerald-100 mt-1 leading-relaxed' },
           'Buka di Chrome > menu titik tiga > "Tambahkan ke layar utama". App terpasang sebagai PWA mode fullscreen \u2014 bilah status & navigasi Android ikut tersembunyi, rasanya seperti APK beneran.')
@@ -3384,7 +3391,7 @@ function FullscreenRow() {
         React.createElement('p', { className:'text-xs text-slate-500' }, 'Bilah notif menghilang — judul otomatis turun, aman dari lensa kamera')
       )
     ),
-    React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', fsOn ? 'bg-emerald-600' : 'bg-slate-300') },
+    React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', fsOn ? 'bg-emerald-500' : 'bg-slate-300') },
       React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', fsOn && 'translate-x-5') })
     )
   );
@@ -3403,7 +3410,7 @@ function HPPToggleRow() {
         React.createElement('p', { className:'text-xs text-slate-500' }, on ? 'Aktif — laba, margin & HPP tampil di menu & laporan' : 'Mati — laba, margin & HPP disembunyikan')
       )
     ),
-    React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', on ? 'bg-emerald-600' : 'bg-slate-300') },
+    React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', on ? 'bg-emerald-500' : 'bg-slate-300') },
       React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', on && 'translate-x-5') })
     )
   );
@@ -3517,7 +3524,7 @@ function SettingsView({ onBack }) {
                 React.createElement('p', { className:'text-xs text-slate-500' }, settings.online ? 'Pesanan tersinkron real-time' : 'Pesanan tersimpan lokal')
               )
             ),
-            React.createElement('button', { onClick: toggleOnline, className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', settings.online ? 'bg-emerald-600' : 'bg-slate-300') },
+            React.createElement('button', { onClick: toggleOnline, className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', settings.online ? 'bg-emerald-500' : 'bg-slate-300') },
               React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', settings.online && 'translate-x-5') })
             )
           )
@@ -3539,7 +3546,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.5 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.5.1 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
         React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
       )
@@ -3565,19 +3572,19 @@ function CashierManagerCard() {
         React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2' },
           React.createElement(Icon, { name:'users', className:'w-4 h-4' }), 'Manajemen Kasir'
         ),
-        React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-600 hover:bg-emerald-700', onClick: () => setNewOpen(true) },
+        React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => setNewOpen(true) },
           React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), 'Tambah Kasir'
         )
       ),
       React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Kelola daftar kasir. Klik ✏️ untuk edit, 🗑 untuk hapus. Kasir aktif ditandai dengan badge hijau.'),
       // Cashier aktif saat ini
       cashier && React.createElement('div', { className:'rounded-lg bg-emerald-50 border border-emerald-200 p-3 mb-3 flex items-center gap-3' },
-        React.createElement('div', { className:'grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-white font-bold shrink-0' }, cashier.name.charAt(0)),
+        React.createElement('div', { className:'grid h-10 w-10 place-items-center rounded-full bg-emerald-500 text-white font-bold shrink-0' }, cashier.name.charAt(0)),
         React.createElement('div', { className:'flex-1 min-w-0' },
           React.createElement('p', { className:'font-semibold text-sm' }, cashier.name),
           React.createElement('p', { className:'text-xs text-slate-600' }, cashier.email || 'Tanpa email')
         ),
-        React.createElement(Badge, { variant:'default', className:'bg-emerald-600' }, 'AKTIF')
+        React.createElement(Badge, { variant:'default', className:'bg-emerald-500' }, 'AKTIF')
       ),
       // Daftar semua kasir
       React.createElement('div', { className:'space-y-2' },
@@ -3594,7 +3601,7 @@ function CashierManagerCard() {
             !isActive && React.createElement(Button, { size:'sm', variant:'outline', className:'h-8 text-xs shrink-0', onClick: () => { setCashier(e.id); show('Kasir aktif: ' + e.name); } },
               'Jadikan Aktif'
             ),
-            isActive && React.createElement(Badge, { variant:'default', className:'bg-emerald-600 shrink-0' }, 'Aktif'),
+            isActive && React.createElement(Badge, { variant:'default', className:'bg-emerald-500 shrink-0' }, 'Aktif'),
             // Tombol edit (pensil)
             React.createElement('button', { onClick: () => setEditEmp(e), className:'p-1.5 rounded text-slate-400 hover:text-slate-900 hover:bg-slate-100 shrink-0', title:'Edit kasir' },
               React.createElement(Icon, { name:'pencil', className:'w-4 h-4' })
@@ -3648,7 +3655,7 @@ function CashierEditDialog({ employee, onClose, onSave }) {
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
-        React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', disabled: !name.trim() || pin.length < 4, onClick: () => onSave({ name: name.trim(), email: email.trim(), pin }) },
+        React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim() || pin.length < 4, onClick: () => onSave({ name: name.trim(), email: email.trim(), pin }) },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
         )
       )
@@ -3749,7 +3756,7 @@ function RestoInfoCard({ onSaved }) {
             ),
             React.createElement('div', { className:'flex gap-2 pt-2' },
               React.createElement(Button, { variant:'outline', className:'flex-1', onClick: cancel }, 'Batal'),
-              React.createElement(Button, { className:'flex-1 bg-emerald-600 hover:bg-emerald-700', onClick: save }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan')
+              React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: save }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan')
             )
           )
     )
@@ -3818,7 +3825,7 @@ function PrinterManager() {
             )
           ),
           connected
-            ? React.createElement(Badge, { variant:'default', className:'bg-emerald-600 shrink-0' }, 'Tersambung')
+            ? React.createElement(Badge, { variant:'default', className:'bg-emerald-500 shrink-0' }, 'Tersambung')
             : React.createElement(Badge, { variant:'secondary', className:'shrink-0' }, 'Belum dipilih')
         ),
         React.createElement('div', { className:'flex gap-2' },
@@ -4047,9 +4054,9 @@ function SplashScreen({ fadeOut }) {
     className: 'fixed inset-0 z-[9999] overflow-hidden bg-slate-950 grid place-items-center select-none',
     style: { opacity: fadeOut ? 0 : 1, transform: fadeOut ? 'scale(1.08)' : 'scale(1)', transition: 'opacity 0.5s ease-out, transform 0.55s cubic-bezier(.4,0,.2,1)' }
   },
-    React.createElement('div', { key:'a1', className:'mp-spl-aurora w-[55vmax] h-[55vmax] -top-[18vmax] -left-[15vmax] bg-emerald-600/50', style:{ animation:'mp-spl-drift1 9s ease-in-out infinite' } }),
+    React.createElement('div', { key:'a1', className:'mp-spl-aurora w-[55vmax] h-[55vmax] -top-[18vmax] -left-[15vmax] bg-emerald-500/50', style:{ animation:'mp-spl-drift1 9s ease-in-out infinite' } }),
     React.createElement('div', { key:'a2', className:'mp-spl-aurora w-[50vmax] h-[50vmax] -bottom-[16vmax] -right-[12vmax] bg-emerald-500/40', style:{ animation:'mp-spl-drift2 11s ease-in-out infinite' } }),
-    React.createElement('div', { key:'a3', className:'mp-spl-aurora w-[38vmax] h-[38vmax] top-[30%] right-[20%] bg-emerald-700/35', style:{ animation:'mp-spl-drift3 10s ease-in-out infinite' } }),
+    React.createElement('div', { key:'a3', className:'mp-spl-aurora w-[38vmax] h-[38vmax] top-[30%] right-[20%] bg-emerald-600/35', style:{ animation:'mp-spl-drift3 10s ease-in-out infinite' } }),
     emojis.map(function(f, i) {
       return React.createElement('span', { key:'e'+i, className:'absolute bottom-[-8vh] ' + f.size + ' opacity-0 blur-[1px] pointer-events-none', style:{ left:f.left, animation:'mp-spl-floatup ' + f.dur + ' linear ' + f.delay + ' infinite' } }, f.e);
     }),
@@ -4065,7 +4072,7 @@ function SplashScreen({ fadeOut }) {
             )
           )
         ),
-        React.createElement('div', { className:'mp-spl-logo-tile relative w-[92px] h-[92px] rounded-[28px] grid place-items-center bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-700 overflow-hidden' },
+        React.createElement('div', { className:'mp-spl-logo-tile relative w-[92px] h-[92px] rounded-[28px] grid place-items-center bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 overflow-hidden' },
           React.createElement(Icon, { name:'chef-hat', className:'w-11 h-11 text-white' }),
           React.createElement('div', { className:'absolute top-0 left-0 right-0 h-[46%] bg-gradient-to-b from-white/25 to-transparent pointer-events-none' })
         )
@@ -4134,14 +4141,13 @@ function App() {
     var t2 = setTimeout(function() { setLoading(false); }, 2500);
     return function() { clearTimeout(t1); clearTimeout(t2); };
   }, []);
-  // Full screen ala APK: warna bilah status/notif Android mengikuti warna atas halaman.
-  // Kasir & Laporan = hijau emerald gradient, halaman lain = putih. (Splash = gelap.)
+  // Warna bilah status/notif Android = PERSIS warna header app (solid emerald)
+  // → nyatu mulus ala APK beneran, nggak ada Seam/batang aneh. (Splash = gelap.)
   React.useEffect(function() {
     var meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) return;
-    var gradViews = ['pos', 'reports'];
-    meta.setAttribute('content', loading ? '#020617' : (gradViews.indexOf(active) >= 0 ? '#059669' : '#ffffff'));
-  }, [active, loading]);
+    meta.setAttribute('content', loading ? '#020617' : '#10b981');
+  }, [loading]);
   var toastApi = React.useMemo(function() { return { show: function(msg, type) { setToast({ msg: msg, type: type || 'success', id: Date.now() }); } }; }, []);
   if (loading || !mounted) return React.createElement(SplashScreen, { fadeOut: fadeOut });
   var goMore = function() { setActive('more'); };

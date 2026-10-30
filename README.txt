@@ -1,7 +1,30 @@
 ================================================
-  MIAPOS v2.5 — JUDUL TENGAH + BILAH NOTIF AMAN
-               + AUTO-UPDATE + SIAP PLAY STORE
+  MIAPOS v2.5.1 — HEADER RAPI + EMERALD TERANG
+        + AUTO-UPDATE + SIAP PLAY STORE
 ================================================
+
+APA YANG BARU DI v2.5.1 (perbaikan tampilan)
+--------------------------------------------
+1. TEKS HEADER NGGAK NABRAK LAGI:
+   • Subjudul header panjang (statistik layar Pesanan)
+     sekarang OTOMATIS DIPOTONG (...) sebelum menyentuh
+     tombol kanan/kiri. Nggak ada lagi teks nimpa tombol
+     swapper kasir / logo cabang.
+   • Chip "Ganti Kasir" (huruf C) hanya tampil di layar
+     lebar (tablet/desktop) — di HP header jadi lega.
+     Ganti kasir tetap bisa dari layar Kasir & Pengaturan.
+   • Subjudul Pesanan diringkas: "Hari ini · 3 pesanan"
+     (+ " · 1 belum bayar" hanya kalau ada).
+2. HEADER SOLID, NGGAK "BLEND" JELEK LAGI:
+   • Header hijau sekarang SOLID (bukan gradasi) dan
+     warnanya PERSIS sama dengan warna bilah status
+     Android (theme-color #10b981) → nyatu mulus ala APK
+     asli: di web, PWA, maupun Layar Penuh Sempurna.
+3. WARNA LEBIH "EMERALD" BENERAN:
+   • Skala hijau naik satu tingkat ke emerald-500
+     (#10b981): header, tombol, FAB, toggle — semuanya
+     lebih terang & fresh, nggak gelap muram lagi.
+4. LABEL VERSI: "Miapos F&B Suite v2.5.1".
 
 APA YANG BARU DI v2.5
 ---------------------
