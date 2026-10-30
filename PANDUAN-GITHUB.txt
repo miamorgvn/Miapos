@@ -1,6 +1,58 @@
 ================================================
-  CARA PUSH MIAPOS KE GITHUB (dari Termux)
+  MIAPOS — PANDUAN GITHUB & UPDATE APLIKASI
 ================================================
+
+NIMPA FILE BARU KE REPO (cara update aplikasi)
+----------------------------------------------
+Web kamu live di Vercel karena tersambung ke repo GitHub.
+Jadi update aplikasi = TIMPA FILE DI REPO, selesai. Vercel
+otomatis deploy ulang (±1 menit), lalu app di semua HP
+pengguna update sendiri lewat service worker (sw.js).
+
+== CARA A — LEWAT WEBSITE GITHUB (paling gampang, tanpa Termux) ==
+1. Extract zip Miapos terbaru di HP/PC kamu.
+2. Buka github.com → masuk repo miapos kamu.
+3. Klik "Add file" → "Upload files".
+4. Pilih / tarik file-file ini (yang berubah tiap versi —
+   semuanya di root, tanpa folder):
+      index.html             (WAJIB)
+      sw.js                  (WAJIB — mesin auto-update)
+      manifest.json          (WAJIB)
+      README.txt             (opsional)
+      PANDUAN-GITHUB.txt     (opsional)
+      PANDUAN-PLAYSTORE.txt  (opsional)
+   File lama yang namanya sama OTOMATIS KETIMPA.
+5. Klik "Commit changes" (pesan bebas, mis. "update v2.5").
+6. Tunggu ±1 menit → Vercel deploy ulang sendiri. Cek: buka
+   app → Setelan → Mesin Lokal → tertulis versi baru.
+
+   Catatan: kalau repo kamu belum ada folder lib/ atau ragu
+   isinya, upload juga SEMUA isi zip termasuk folder lib/
+   (paling gampang drag folder lib sekaligus dari PC).
+
+== CARA B — LEWAT TERMUX (4 perintah) ==
+Simpan zip Miapos ke HP, lalu di Termux:
+
+   cd ~/miapos
+   unzip -o ~/storage/downloads/miapos-v2.5.zip
+   git add -A
+   git commit -m "Miapos v2.5"
+   git push
+
+   (-o = timpa semua file lama langsung di tempat. Zip
+   Miapos sekarang TANPA folder pembungkus, jadi extract
+   langsung nimpa dengan benar.)
+   Kalau push ditolak "rejected" → pakai: git push --force
+
+SETELAH NIMPA — AUTO-UPDATE JALAN SENDIRI
+-----------------------------------------
+- Vercel deploy ulang otomatis (±1 menit).
+- App di HP pengguna: begitu dibuka pakai internet, service
+  worker ambil versi terbaru lalu reload sendiri. Tanpa
+  internet tetap jalan dari cache (masih bisa dipakai).
+- Kalau repo lagi kena merge conflict (web tampil <<<<<<<),
+  cara nimpa di atas sekalian menyembuhkannya — index.html
+  yang bersih menimpa yang conflict.
 
 SEKALI SAJA — PERSIAPAN
 ----------------------
@@ -42,6 +94,12 @@ UPDATE BERIKUTNYA (tinggal 3 perintah)
    git commit -m "update"
    git push
 
+   Setelah push → Vercel deploy ulang otomatis (±1 menit).
+   App di HP semua pengguna AKAN UPDATE SENDIRI (auto-update
+   via service worker) — mereka cukup buka/tutup aplikasinya,
+   tanpa perlu apa-apa. Cek versi di: Setelan → Mesin Lokal
+   (tertulis "Miapos F&B Suite v2.5").
+
 BONUS 1 — JADIKAN WEB LIVE (GitHub Pages)
 -----------------------------------------
    Repo → Settings → Pages → Source: main branch → Save.
@@ -71,9 +129,10 @@ index.html-nya pakai versi terbaru, lalu push ulang:
 
    cd ~/miapos
    (timpa index.html + seluruh isi folder dengan versi
-    terbaru dari zip Miapos yang lu download)
+    terbaru dari zip Miapos yang lu download — JANGAN
+    lupa sw.js, file kecil ini yang bikin app auto-update)
    git add -A
-   git commit -m "Miapos v2.3 - fix conflict + tema biru"
+   git commit -m "Miapos v2.5 - fix conflict"
    git push
 
 Kalau Terminal masih bilang "All conflicts fixed but you
@@ -84,6 +143,20 @@ Setelah push, Vercel otomatis deploy ulang (tunggu ±1 menit).
 Jangan pernah edit index.html pakai aplikasi yang bisa
 nyisipin tulisan <<<<<<< di file — kalau ragu, selalu timpa
 pakai file asli dari zip Miapos.
+
+BONUS 3 — AUTO-UPDATE (sudah aktif, tanpa setting)
+--------------------------------------------------
+Mulai v2.5, Miapos pakai SERVICE WORKER (file sw.js):
+- Setiap app dibuka dengan internet → otomatis ambil versi
+  terbaru dari Vercel, lalu reload sendiri.
+- Tanpa internet → jalan dari cache, tetap bisa dipakai.
+- Lu cukup push/timpa file ke GitHub. Selesai. Semua HP
+  pengguna otomatis ke-update dalam ±1 menit.
+- Kalau mau pasti-in versi sudah masuk: buka app → Setelan
+  → bagian bawah tertulis "Miapos F&B Suite v2.5".
+
+Mau rilis ke PLAY STORE? Ikuti file PANDUAN-PLAYSTORE.txt
+(tinggal isi URL Vercel ini ke PWABuilder).
 
 CATATAN: di Vercel/GitHub Pages yang jalan hanya bagian web
 (HTML). Fitur Python + C++ (backup & Insight) aktif kalau app

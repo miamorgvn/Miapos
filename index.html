@@ -33,6 +33,9 @@ input, textarea, select, [contenteditable] { -webkit-user-select: text; user-sel
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Mode layar penuh runtime (saklar "Layar Penuh Sempurna"): header otomatis turun supaya
+   judul TIDAK tertutup punch-hole / lensa kamera (mis. Oppo A54, iPhone Dynamic Island) */
+html.is-fs .safe-top { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide-in-right { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -554,7 +557,7 @@ console.log('Miapos: core ready');
 
 <script type="text/babel" data-presets="react">
 // ===== LAYOUT: TOPBAR + SIDEBAR =====
-function Topbar({ title, subtitle, rightSlot, tone, onBack }) {
+function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
   const { state, setOutlet, setCashier, addOutlet, updateOutlet, toggleOnline, resetDemo } = useAppStore();
   const { outlets, settings, employees } = state;
   const outlet = outlets.find(o => o.id === settings.outletId);
@@ -564,17 +567,22 @@ function Topbar({ title, subtitle, rightSlot, tone, onBack }) {
   const [outletEdit, setOutletEdit] = React.useState(null);
   const [outletNew, setOutletNew] = React.useState(false);
   const { show } = useToast();
-  var isGrad = tone !== 'plain'; // default = gradient merah (app bar ala APK); 'plain' tetap tersedia
+  var isGrad = tone !== 'plain'; // default = gradient emerald (app bar ala APK); 'plain' tetap tersedia
   var chipCls = isGrad ? 'border-white/30 bg-white/10 text-white hover:bg-white/20' : 'border-slate-200 hover:border-emerald-500';
-  return React.createElement('header', { className: cn('flex items-center gap-2 border-b px-2 py-2 md:px-4 md:py-2.5 safe-top animate-mp-fade-down', isGrad ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 border-emerald-700/40 text-white' : 'border-slate-200/70 bg-white/90 backdrop-blur-md') },
-    onBack && React.createElement('button', { onClick: onBack, className: cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl transition-colors md:hidden', isGrad ? 'bg-white/10 text-white hover:bg-white/20' : 'hover:bg-slate-100 text-slate-700'), title:'Kembali' },
-      React.createElement(Icon, { name:'arrow-left', className:'w-5 h-5' })
+  // GRID '1fr auto 1fr' → judul selalu PERSIS di tengah layar di SEMUA halaman (ala titlebar APK),
+  // zona kiri (tombol back) & kanan (aksi) tidak menggeser posisi judul.
+  return React.createElement('header', { className: cn('app-header grid items-center gap-1.5 border-b px-2 py-2 md:px-4 md:py-2.5 safe-top animate-mp-fade-down', isGrad ? 'bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-700 border-emerald-700/40 text-white' : 'border-slate-200/70 bg-white/90 backdrop-blur-md'), style: { gridTemplateColumns: 'minmax(0,1fr) auto minmax(0,1fr)' } },
+    React.createElement('div', { className:'flex items-center justify-self-start min-w-0' },
+      onBack && React.createElement('button', { onClick: onBack, className: cn('grid h-9 w-9 place-items-center rounded-xl transition-colors md:hidden', isGrad ? 'bg-white/10 text-white hover:bg-white/20' : 'hover:bg-slate-100 text-slate-700'), title:'Kembali' },
+        React.createElement(Icon, { name:'arrow-left', className:'w-5 h-5' })
+      ),
+      leftSlot || null
     ),
-    React.createElement('div', { className:'flex-1 min-w-0' },
+    React.createElement('div', { className:'text-center min-w-0 px-1' },
       React.createElement('h1', { className:'text-base md:text-xl font-extrabold tracking-tight truncate' }, title),
       subtitle && React.createElement('p', { className: cn('text-[11px] md:text-sm truncate', isGrad ? 'text-emerald-50/90' : 'text-slate-500') }, subtitle)
     ),
-    React.createElement('div', { className:'flex items-center gap-1.5 md:gap-2 shrink-0' },
+    React.createElement('div', { className:'flex items-center justify-self-end gap-1.5 md:gap-2 min-w-0' },
       rightSlot,
       // Quick cashier switcher (badge clickable)
       React.createElement('button', { onClick: () => setCashierOpen(true), className: cn('flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors', chipCls), title:'Ganti Kasir' },
@@ -584,7 +592,7 @@ function Topbar({ title, subtitle, rightSlot, tone, onBack }) {
       // Outlet selector — single display dengan icon pensil + hapus
       React.createElement('button', { onClick: () => setOutletOpen(true), className: cn('flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors shrink-0', chipCls) },
         React.createElement(Icon, { name:'store', className:'w-3.5 h-3.5' }),
-        React.createElement('span', { className:'truncate max-w-[100px] font-medium' }, outlet?.name || 'Pilih Outlet')
+        React.createElement('span', { className:'hidden sm:inline truncate max-w-[100px] font-medium' }, outlet?.name || 'Pilih Outlet')
       ),
       // Toggle online + reset disembunyikan di layar kecil biar judul muat
       React.createElement('div', { className:'hidden sm:flex items-center gap-1.5 md:gap-2 shrink-0' },
@@ -731,7 +739,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.4')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.5')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -3373,7 +3381,7 @@ function FullscreenRow() {
       ),
       React.createElement('div', { className:'min-w-0' },
         React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Layar Penuh Sempurna'),
-        React.createElement('p', { className:'text-xs text-slate-500' }, 'Sembunyikan bilah notifikasi agar tampil seperti APK asli')
+        React.createElement('p', { className:'text-xs text-slate-500' }, 'Bilah notif menghilang — judul otomatis turun, aman dari lensa kamera')
       )
     ),
     React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', fsOn ? 'bg-emerald-600' : 'bg-slate-300') },
@@ -3531,7 +3539,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.4 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.5 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
         React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
       )
@@ -4106,6 +4114,19 @@ function App() {
       }
     } catch (e) {}
   }, []);
+  // Sinkron class html.is-fs saat fullscreen masuk/keluar → header turun aman dari punch-hole kamera
+  React.useEffect(function() {
+    var sync = function() {
+      try { document.documentElement.classList.toggle('is-fs', !!(document.fullscreenElement || document.webkitFullscreenElement)); } catch (e) {}
+    };
+    document.addEventListener('fullscreenchange', sync);
+    document.addEventListener('webkitfullscreenchange', sync);
+    sync();
+    return function() {
+      document.removeEventListener('fullscreenchange', sync);
+      document.removeEventListener('webkitfullscreenchange', sync);
+    };
+  }, []);
   var [loading, setLoading] = React.useState(true);
   var [fadeOut, setFadeOut] = React.useState(false);
   React.useEffect(function() {
@@ -4114,7 +4135,7 @@ function App() {
     return function() { clearTimeout(t1); clearTimeout(t2); };
   }, []);
   // Full screen ala APK: warna bilah status/notif Android mengikuti warna atas halaman.
-  // Kasir & Laporan = biru gradient, halaman lain = putih. (Splash = gelap.)
+  // Kasir & Laporan = hijau emerald gradient, halaman lain = putih. (Splash = gelap.)
   React.useEffect(function() {
     var meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) return;
@@ -4148,6 +4169,27 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(AppProvider, null, React.createElement(App, null)));
 
 console.log('Miapos: App rendered');
+</script>
+
+<script>
+/* ===== MIAPOS AUTO-UPDATE (Service Worker) =====
+   - Aktif hanya di https (Vercel) / localhost: tiap aplikasi dibuka, versi terbaru otomatis diambil.
+   - file:// (Termux/offline) otomatis dilewati → tetap 100% offline, tanpa error.
+   - Ada versi baru? Aplikasi reload sendiri. Cukup timpa file di GitHub → semua pengguna ke-update. */
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+  var ok = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!ok) return;
+  var refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (refreshing) return;
+    refreshing = true;
+    try { window.location.reload(); } catch (e) {}
+  });
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(function () {});
+  });
+})();
 </script>
 
 </body>

@@ -1,9 +1,44 @@
 ================================================
-  MIAPOS v2.4 — NOTA DIPISAH + PREVIEW BISA DIEDIT
+  MIAPOS v2.5 — JUDUL TENGAH + BILAH NOTIF AMAN
+               + AUTO-UPDATE + SIAP PLAY STORE
 ================================================
 
-APA YANG BARU DI v2.4
+APA YANG BARU DI v2.5
 ---------------------
+1. JUDUL TIAP LAYAR DI TENGAH:
+   • Header semua halaman (Dashboard, Pesanan, Kasir,
+     Laporan, Pengaturan, dst) judulnya sekarang PERSIS
+     di tengah, ala titlebar aplikasi asli.
+   • Tombol kembali & tombol aksi di kiri/kanan tidak
+     menggeser posisi judul.
+2. BILAH NOTIFIKASI TETEP KELIATAN, WARNA NGIKUT:
+   • Mode PWA diganti dari "fullscreen" ke "standalone" →
+     jam, sinyal & baterai di bilah atas tetap terlihat,
+     warnanya mengikuti tema emerald app.
+   • Aman dari lensa kamera! HP dengan punch-hole (mis.
+     Oppo A54) atau Dynamic Island (iPhone) tidak lagi
+     nutup judul.
+   • Saklar "Layar Penuh Sempurna" tetap ada (opsional).
+     Kalau dinyalakan, judul otomatis turun 30px biar
+     tidak ketutup lensa kamera.
+3. AUTO-UPDATE (SERVICE WORKER — baru!):
+   • Aplikasi cek versi terbaru tiap dibuka saat online.
+     Ada versi baru? Langsung reload sendiri. Pengguna
+     tidak perlu ngapa-ngapain.
+   • Lu cukup timpa/push file ke GitHub → Vercel deploy →
+     semua HP pengguna otomatis ke-update ±1 menit.
+   • Offline tetap jalan (cache). Buka dari file:// juga
+     aman (fitur ini otomatis nonaktif, nol error).
+4. SIAP RILIS KE PLAY STORE:
+   • Panduan lengkap gratis di PANDUAN-PLAYSTORE.txt
+     (via PWABuilder, $25 sekali bayar; setelah live,
+     update tetap otomatis lewat push GitHub).
+5. LABEL VERSI: "Miapos F&B Suite v2.5" (Setelan → Mesin
+   Lokal) buat mastiin update sudah masuk.
+
+============================== RIWAYAT ==============================
+
+v2.4 — NOTA DIPISAH + PREVIEW BISA DIEDIT:
 1. NOTA KASIR vs NOTA DAPUR BENER-BENER DIPISAH:
    • NOTA KASIR (buat customer): header resto (nama,
      alamat, telepon) + rincian bayar + ucapan terima
@@ -59,16 +94,19 @@ v2.1 — DATA BERSIH + MESIN LOKAL:
 ISI FOLDER
 ----------
    index.html            aplikasi utama (buat Vercel/GitHub Pages)
+   sw.js                 service worker AUTO-UPDATE (WAJIB ada
+                         di repo biar app bisa update sendiri)
    miapos.html           redirect otomatis ke index.html (link lama aman)
    lib/                  library offline (WAJIB ADA)
    main.py               server Python + API + auto-backup
    engine/               C++ native analytics engine (source)
    install.sh            installer Termux
    start.sh              launcher 1-klik (Termux:Widget)
-   manifest.json         data PWA
+   manifest.json         data PWA (mode standalone: bilah notif terlihat)
    icon-192/512.png      ikon aplikasi
    PANDUAN-TERMUX.txt    panduan lengkap Termux
    PANDUAN-GITHUB.txt    cara push ke GitHub + fix merge conflict
+   PANDUAN-PLAYSTORE.txt cara rilis ke Play Store (PWABuilder)
 
 CARA PAKAI DI TERMUX
 --------------------
@@ -76,7 +114,12 @@ CARA PAKAI DI TERMUX
    python main.py      (jalanin app — TANPA internet)
 
 Lalu buka http://localhost:8080/miapos.html — atau lebih
-enak: "Tambahkan ke layar utama" di Chrome → app fullscreen
-dengan ikon sendiri, persis aplikasi beneran.
+enak: "Tambahkan ke layar utama" di Chrome → app jadi
+kayak APK dengan ikon sendiri (judul di tengah, bilah
+notifikasi tetap kelihatan, warnanya ngikut tema).
 
-SELAMAT PAKAI! — Miapos v2.4
+UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
+app auto-update sendiri di semua HP (sw.js). Tanpa
+internet tetap jalan dari cache.
+
+SELAMAT PAKAI! — Miapos v2.5

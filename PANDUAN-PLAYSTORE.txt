@@ -1,0 +1,107 @@
+================================================
+  MIAPOS — CARA RILIS KE PLAY STORE
+  (pakai PWABuilder — gratis, tanpa ngoding)
+================================================
+
+KENAPA BISA?
+------------
+Miapos v2.5 sudah PWA lengkap (manifest.json + sw.js).
+Aplikasi web yang sudah PWA bisa dibungkus jadi aplikasi
+Android asli (format TWA / Trusted Web Activity) terus
+diupload ke Play Store. Isinya tetap Miapos kamu yang
+live di Vercel.
+
+BONUS TERBESARNYA:
+Setelah rilis di Play Store, setiap kali lu push versi baru
+ke GitHub → Vercel deploy → SEMUA pengguna yang install dari
+Play Store langsung ke-update sendiri dalam ±1 menit.
+TIDAK PERLU upload ulang APK/AAB tiap update (untuk update
+biasa). mantep kan.
+
+YANG DIPERSIAPIN
+----------------
+1. URL Vercel yang udah jalan, contoh:
+   https://miapos-kamu.vercel.app
+2. Kartu debit/kredit untuk bayar akun Google Play Console
+   (US$25 SEKALI aja, bayar seumur hidup, bukan langganan)
+3. Email Gmail untuk daftar Play Console
+
+LANGKAH 1 — BUAT AKUN PLAY CONSOLE
+----------------------------------
+   1. Buka play.google.com/console
+   2. Daftar pakai Gmail → bayar $25 (sekali saja)
+   3. Selesaikan identitas & verifikasi
+
+LANGKAH 2 — PAKET APLIKASI VIA PWABUILDER (gratis)
+--------------------------------------------------
+   1. Buka https://www.pwabuilder.com
+   2. Paste URL Vercel lu → klik Start
+   3. Tunggu analisis selesai (skor manifest & service
+      worker Miapos sudah bagus, aman)
+   4. Klik "Package for stores" → pilih ANDROID
+   5. Isi form:
+      - Package ID   : com.miapos.app (atau com.namalu.miapos)
+      - App name     : Miapos
+      - Version      : 1.0.0.0
+      - Start URL    : biarkan default (otomatis /index.html)
+      - Theme/color  : #059669
+      - Manifest URL : otomatis terisi
+   6. Klik Generate → download ZIP berisi:
+      - app-release-signed.aab  ← INI YANG DIUPLOAD KE PLAY
+      - assetlinks.json         ← langkah 4 di bawah
+      - signing key             ← SIMPAN AMAN! jangan hilang,
+        jangan share. Kalau hilang = tidak bisa update app.
+
+LANGKAH 3 — UPLOAD assetlinks.json KE REPO
+------------------------------------------
+Supaya app tampil full tanpa address bar Chrome:
+   1. Dalam ZIP tadi ada folder .well-known → assetlinks.json
+   2. Upload ke repo GitHub lu di folder:
+      .well-known/assetlinks.json
+      (tepat di root repo, persis sejajar index.html)
+   3. git add . && git commit -m "assetlinks" && git push
+   4. Cek: buka https://URL-VERCEL-LU/.well-known/assetlinks.json
+      harus muncul isi JSON-nya (Vercel otomatis serve).
+
+LANGKAH 4 — UPLOAD KE PLAY CONSOLE
+----------------------------------
+   1. Play Console → Create app
+      - Nama app  : Miapos
+      - Default   : Indonesia, Free
+   2. Isi form wajib (semua gratis, cuma njawab form):
+      - App content: privacy policy, content rating,
+        target audience, iklan (pilih "no ads"), dll.
+      - Privacy policy URL: wajib punya halaman web. Trik
+        gampang: buat file privacy.html sederhana di repo
+        lu, jadi URL-nya https://url-vercel-lu/privacy.html
+        (isi: nama app, data disimpan di HP sendiri, tidak
+        dikirim ke server mana pun — memang itu faktanya)
+   3. Production → Create new release → upload file
+      app-release-signed.aab
+   4. Isi store listing: nama, deskripsi singkat, screenshot
+      HP (screenshot aja app Miapos lu), ikon 512x512
+      (pakai icon-512.png dari folder Miapos)
+   5. Submit for review. Review Google biasanya 1-7 hari.
+   6. Setelah APPROVED → app live, semua orang bisa install!
+
+BIAYA TOTAL
+-----------
+   - PWABuilder      : GRATIS
+   - Play Console    : $25 (sekali, seumur hidup)
+   - Vercel + GitHub : GRATIS (untuk skala ini)
+   - Update berkala  : GRATIS (tinggal push ke GitHub)
+
+PERLU DIINGAT
+-------------
+   - JANGAN sampai kehilangan signing key dari PWABuilder.
+     Simpan di 2 tempat (HP + Google Drive).
+   - Update versi BESAR (ganti package ID dll) = upload AAB
+     baru. Update biasa (isi/fitur web) = cukup push GitHub,
+     auto-update menangani semuanya.
+   - Play Store minta aplikasi "punya perilaku minim" untuk
+     TWA — Miapos aman karena ini app bisnis biasa, bukan
+     game/sistem file.
+   - Alternatif TANPA Play Store (juga gratis): bagikan URL
+     Vercel lu → orang buka di Chrome → menu ⋮ →
+     "Tambahkan ke layar utama" → jadi ikon app sendiri,
+     tampilannya sama persis kayak APK.
