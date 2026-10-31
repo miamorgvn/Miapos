@@ -1,10 +1,11 @@
 ================================================
   MIAPOS v2.10 — SCAN BARCODE + LAPORAN MENU + QRIS
-     + NOTIF WALAU APP DITUTUP + OWNER ZONE + CUACA
+     + TAMBAH MENU & CETAK TAMBAHAN + OWNER ZONE + CUACA
      + BACKUP CLOUD + 3 TEMA + SIAP PLAY STORE
+     (REVISI: fitur notifikasi DICABUT total — hapus aja)
 ================================================
 
-APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
+APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + cetak tambahan)
 ------------------------------------------------------------
 1. SCAN BARCODE BUAT INPUT MENU:
    • Pengaturan → Kelola Menu → tombol SCAN (ikon barcode)
@@ -28,21 +29,25 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
      (screenshot QRIS dari bank/e-wallet).
    • Otomatis muncul di layar pembayaran saat kasir pilih
      metode QRIS — customer tinggal scan.
-4. NOTIF WALAU APP DITUTUP (PUSH SERVER):
-   • Server Miapos ngirim notif buka (08.00 WIB) & tutup
-     (21.00 WIB) langsung ke HP walau app-nya ditutup total
-     — kayak notif WA. Yang jalan di HP cuma sistem
-     notifikasi Android-nya (bukan app), baterai aman.
-   • Butuh deploy: api/push-subscribe.js + api/push-send.js +
-     vercel.json + package.json (sudah ada di zip ini) —
-     langkahnya di PANDUAN-NOTIF.txt.
+4. FITUR NOTIFIKASI DICABUT TOTAL (revisi v2.10):
+   • Semua yang berbau notif DIHAPUS dari app: popup izin,
+     banner dashboard, saklar & tombol tes, seksi notif di
+     Owner Zone, push server + cron, sampai file api/push-*.
+     Alasannya simpel: permintaan owner — "hapus aja deh".
+   • Akibatnya app jalan BERSIH: buka app gak ada popup
+     izin nanya-nanya, gak ada banner, kasir fokus jualan.
+   • File yang ikut dihapus dari zip: PANDUAN-NOTIF.txt,
+     api/push-subscribe.js, api/push-send.js, api/_pushlib.js.
+     vercel.json & package.json dikosongin (cron + web-push
+     ikut dicabut). Kalau di repo masih ada sisa file itu,
+     hapus manual biar bersih.
 5. FIX BUG LAYAR PUTIH:
    • Stok & Bahan → tab Produk kadang blank putih (data
      lama/backup tanpa varian) — sudah dibaliki lapis
      normalisasi otomatis. Gak blank lagi.
 6. OWNER ZONE MAKIN RAPIH:
-   • Isinya sekarang SEKSI GULUNG: Notifikasi / Push Server /
-     QRIS / Keamanan — klik baru layarnya kebuka, gak numpuk
+   • Isinya sekarang SEKSI GULUNG: QRIS / Keamanan — klik
+     baru layarnya kebuka, gak numpuk
      panjang ke bawah. (Setelan teks kartu cuaca DIHAPUS —
      teksnya sekarang diatur app sendiri.)
    • Kartu cuaca NAIK ke paling atas Dashboard (di atas
@@ -55,18 +60,6 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
    • Isinya dikontrol app: kalimat kenyamanan buat kasir
      (semangat, jam makan, rehat) — TANPA kata teknis kaya
      "data aman semua" yang bikin kasir bingung.
-8. IZIN NOTIFIKASI DIJAMIN MUNCUL (BARU — perbaikan):
-   • Begitu app dibuka, popup izin notifikasi BENERAN
-     muncul di ketukan pertama di mana aja (dulu Chrome
-     butuh ketukan tapi app gak pernah nimpa — makanya
-     kaya "diblokir").
-   • Banner "Aktifkan Notifikasi Resto" MUNCUL LAGI tiap
-     app dibuka selama izin belum diizinkan (dulu sekali
-     ketuk "Nanti" = hilang 3 hari).
-   • Kalau izinnya diblokir di browser, banner berubah
-     jadi kartu MERAH berisi panduan buka blokir + tombol
-     "Cek Lagi". Tombol Tes Notifikasi juga tetap minta
-     izin. Detail: PANDUAN-NOTIF.txt.
 8. SHEET "TAMBAH MENU" DI DETAIL PESANAN:
    • Buka pesanan (menu Pesanan) → "+ Tambah Menu" → muncul
      KOTAK BAWAH (drag-handle) yang tampilannya sama persis
@@ -112,6 +105,9 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
 
 APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
 ------------------------------------------------------------
+   (CATATAN v2.10 revisi: seluruh fitur notifikasi dari
+    v2.9 SUDAH DIHAPUS — lihat seksi 4 di atas. Sisanya —
+    Owner Zone, tema, backup cloud — tetap jalan normal.)
 1. CHECKLIST SERVICE WORKER PWABUILDER — 6/6 LOLOS:
    • Sebelumnya 3 lolos (Has SW, Has Logic, Offline).
    • Sekarang tambar 3 yang kurang, kodenya beneran ada:
@@ -148,6 +144,8 @@ APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
 5. LABEL VERSI: "Miapos F&B Suite v2.9".
 
 APA YANG BARU DI v2.8 (kartu cuaca + notifikasi salam pagi)
+   (CATATAN v2.10 revisi: notifikasi salam pagi ikut dicabut;
+    kartu cuaca tetap ada + teks salamnya sekarang random.)
 ------------------------------------------------------------
 1. KARTU CUACA DI DASHBOARD:
    • Suhu hari ini + kelembapan + gambar cuaca: matahari

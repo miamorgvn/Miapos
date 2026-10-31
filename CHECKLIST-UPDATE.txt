@@ -1,12 +1,35 @@
 ================================================
-  MIAPOS v2.10 — CHECKLIST (permintaan lu, semua)
+  MIAPOS v2.10 — CHECKLIST (revisi: notif dicabut)
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. BARU DI v2.10 — SCAN BARCODE, LAPORAN MENU, QRIS,
-   NOTIF WALAU APP DITUTUP
+0. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
+=====================================================
+[x] 1. SEMUA NOTIF DIHAPUS (permintaan owner: "hapus
+       aja deh"):
+       • Popup izin notifikasi pas buka app → HILANG.
+       • Banner "Aktifkan Notifikasi Resto" di
+         Dashboard → HILANG.
+       • Saklar "Notifikasi Resto" + "Kirim Notifikasi
+         Tes" di Pengaturan → HILANG.
+       • Seksi "Notifikasi Buka & Tutup" + "Notif Walau
+         App Ditutup" di Owner Zone → HILANG.
+       • Push server (Vercel cron 08.00 & 21.00 WIB) →
+         HAPUS. Cron di vercel.json kosong, web-push di
+         package.json dicabut.
+       • File pendukung ikut dihapus dari zip:
+         PANDUAN-NOTIF.txt, api/push-subscribe.js,
+         api/push-send.js, api/_pushlib.js.
+       • Handler 'push' & 'notificationclick' di sw.js
+         → diangkat.
+       Akibatnya: buka app LANGSUNG BERSIH — gak ada
+       popup nanya-nanya, gak ada banner. Kasir fokus
+       jualan. App malah lebih enteng.
+
+=====================================================
+A. FITUR v2.10 — SEMUA SUDAH DIKERJAIN
 =====================================================
 [x] 1. SCAN BARCODE (Pengaturan → Kelola Menu, di
        samping tombol +)
@@ -15,156 +38,114 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
        100% (BarcodeDetector Chrome). Ada fallback
        ketik manual. Barcode tersimpan di menu —
        scan ulang dikenali, gak dobel.
-[x] 2. LAPORAN MENU (ganti layar Dapur/KDS)
+[x] 2. SCAN DARI GALERI
+       Layar scan ada tombol "Galeri" di samping KIRI
+       kamera → pilih gambar/screenshot QR/barcode
+       dari galeri HP → kebaca sama kaya scan kamera.
+[x] 3. LAPORAN MENU (ganti layar Dapur/KDS)
        Terjual hari ini, per item per qty, auto
        sortir terbanyak → tersedikit. Ada omzet per
        menu + medali 3 besar + ringkasan item/omzet.
-[x] 3. QRIS RESTO (di Owner Zone → seksi QRIS)
+[x] 4. QRIS RESTO (Owner Zone → seksi QRIS)
        Upload gambar QRIS → otomatis tampil di layar
        pembayaran metode QRIS.
-[x] 4. NOTIF WALAU APP DITUTUP
-       Server kirim notif jam 08.00 & 21.00 WIB via
-       web-push (FCM) — HP gak diperas baterai.
-       File pendukung: api/push-subscribe.js,
-       api/push-send.js, api/_pushlib.js,
-       vercel.json (cron 2x sehari), package.json.
-       [ ] Aktifinnya: ikut PANDUAN-NOTIF.txt
-           (deploy sudah otomatis pas push zip ini;
-           pastikan env GITHUB_TOKEN sudah di-set
-           seperti panduan backup cloud).
-[x] 5. FIX blank putih (Stok & Bahan → Produk)
-[x] 6. Owner Zone: judul polos, isi jadi seksi
-       gulung (klik buka), ada QRIS di dalamnya
-       (teks kartu cuaca dihapus — sekarang random).
-[x] 7. Kartu cuaca pindah ke paling atas Dashboard.
-[x] 8. Tombol Tes Notif sekarang minta izin
-       langsung + panduan buka blokir izin.
-
-=====================================================
-A. FITUR BARU — SUDAH DIKERJAIN SEMUA
-=====================================================
-[x] 1. CHECKLIST SERVICE WORKER PWABUILDER — 6/6
-       Kartu "Service Worker" di PWABuilder ada 6 ceklis.
-       Semua sekarang LOLOS karena kodenya beneran ada:
-       [x] Has Service Worker   (sw.js terpasang)
-       [x] Has Logic            (network-first + auto-update)
-       [x] Offline Support      (cache core, jalan offline)
-       [x] Push Notifications   → BARU: handler 'push' di sw.js
-       [x] Background Sync      → BARU: handler 'sync' + daftar
-                                   otomatis pas app dibuka
-       [x] Periodic Sync        → BARU: handler 'periodicsync' +
-                                   daftar otomatis (12 jam sekali)
-       Caranya cek: buka pwabuilder.com → masukin URL Vercel
-       lu → Analyze → kartu Service Worker tampil +3 (total
-       6/6). Re-analyze ABIS push zip ini ya, jangan yang lama.
-[x] 2. NOTIFIKASI JADWAL BUKA & TUTUP RESTO
-       - JAM 08.00 (buka) → notif muncul:
-         judul: "☀️ Miapos · Buka Resto"
-         isi  : "morgvn: Selamat pagi, saatnya memulai kembali
-                 bisnis yaaa! Semangat ya hari ini! ☀️"
-       - JAM 21.00 (tutup) → notif muncul + GETAR PENDEK
-         (bentar doang, gak lama):
-         judul: "🌙 Miapos · Waktunya Tutup"
-         isi  : "morgvn: Sudah jam 9 malam, waktunya tutup.
-                 Capek kan? Rest dulu, besok gas lagi! 😴"
-       - Maksimal 1x sehari per jenis — gak nyerang terus.
-       - App dibuka telat? Tetap dikejar (selama masih dalam
-         1 jam dari jadwal).
-       - Notif diketuk → app Miapos langsung kebuka.
-[x] 3. OWNER ZONE — ATUR NOTIFNYA (KHUSUS OWNER, PAKAI PW)
-       - Pengaturan → grup "KHUSUS OWNER" → "Owner Zone 🔒"
-       - Password default: morgvn → GANTI dari bagian
-         "Keamanan" di dalam (lu sendiri yang pegang).
-       - Yang bisa diatur di dalam:
-         • Jam buka & jam tutup (kalau jam resto berubah)
-         • Teks notif buka & tutup (terserah lu mau nulis apa)
-         • Nama pengirim: default "morgvn" — isi notif jadi
-           "morgvn: <teks ucapan>"
-         • Saklar getar notif tutup (kalau males getar)
-         • Ganti password + tombol TES notif buka/tutup
-       - Ada pratinjau isi notif sebelum disimpan.
-       - Catat: pengaturannya disimpan di HP tempat app
-         jalan (notif itu per-HP anyway). App-nya sendiri
-         tetap dihosting Vercel — gak ada yang diubah di
-         Vercel buat fitur ini.
-[x] 4. SALAM DI DASHBOARD (DI BAWAH 4 KOTAK) MAKIN PINTAR
-       - Ikut KASIR AKTIF: ganti kasir lewat switcher atas
-         → salamnya ikut ganti nama. "Selamat pagi, Chelsa!"
-         beda sama "Selamat pagi, Dimas!" — otomatis.
-       - Ikut JAM: pagi/siang/sore/malam teksnya beda, dan
-         sekarang dicek TIAP MENIT — app dibuka jam 9 terus
-         dipake sampe sore? Salamnya ganti sendiri jadi
-         "Selamat sore". Lu gak perlu buka-ulang app.
-[x] 5. KARTU CUACA (v2.8) TETEP UTUH
-       - Suhu + kelembapan + gambar matahari/mendung/hujan/
-         petir. Refresh ±30 menit. Offline = data terakhir.
-[x] 6. BACKUP CLOUD (v2.7) TETEP UTUH
-       - api/backup.js + api/ping.js di Vercel, backup
-         otomatis ke GitHub, restore dari HP mana pun.
+[x] 5. SHEET "TAMBAH MENU" DI DETAIL PESANAN
+       Buka pesanan → "+ Tambah Menu" → kotak bawah
+       (drag-handle) tampilannya sama kaya layar
+       Tambah Pesanan: search + chip kategori + tombol
+       + hijau. Ketuk menu → langsung nambah.
+[x] 6. LABEL "TAMBAHAN" CUMA DI APP
+       Menu yang ditambahin belakangan dikasih label
+       kecil "Tambahan" DI APLIKASI aja — di nota
+       cetakan GAK ada (nota tetap bersih).
+[x] 7. CETAK DAPUR & CETAK TAMBAHAN (menu buka ke
+       ATAS)
+       Tombol Cetak Dapur sekarang ada tanda panah ke
+       atas. Diklik muncul menu ke atas:
+       • CETAK DAPUR → semua item kecetak.
+       • CETAK TAMBAHAN → cuma menu tambahan yang
+         kecetak (kepala nota: "DAPUR - TAMBAHAN").
+       Nota tambahan pakai printer dapur yang sama.
+[x] 8. KATEGORI BISA DIBUAT & DIHAPUS
+       Form menu → tile "+ Kategori" (nama + emoji).
+       Kategori buatan sendiri ada tombol x merah;
+       menu di dalamnya otomatis pindah ke Makanan.
+       Kategori bawaan gak bisa dihapus.
+[x] 9. KARTU CUACA PALING ATAS DASHBOARD
+       Di atas 4 kotak ringkasan, sesuai permintaan.
+[x] 10. TEKS SALAM KARTU CUACA RANDOM
+       Kalimat santai kaya teman, ganti tiap app
+       dibuka + diacak tiap 5 menit. NOL istilah
+       teknis (gak ada "data" segala) — aman dibaca
+       kasir. Diatur app sendiri, gak ada setelan.
+[x] 11. FIX blank putih (Stok & Bahan → Produk)
+[x] 12. FIX RpNaN (diskon aneh dari "Bayar Nanti")
+[x] 13. BACKUP CLOUD (v2.7) TETEP UTUH
+       api/backup.js + api/ping.js tetap ada di zip —
+       backup otomatis ke GitHub, restore dari HP
+       mana pun. Env GITHUB_TOKEN + BACKUP_KEY tetap
+       dipakai buat ini (murni backup, bukan notif).
 
 =====================================================
 B. LANGKAH LU (TINGGAL DIKLIK/KETIK)
 =====================================================
-[ ] 1. Push SEMUA isi zip v2.9 ini ke repo GitHub
-       (pilih 1 cara — detail lengkap di PANDUAN-GITHUB.txt):
-       - WEB: github.com → repo → Add file → Upload files
-         → drag semua isi zip → Commit changes
+[ ] 1. Push SEMUA isi zip ini ke repo GitHub
+       (pilih 1 cara — detail lengkap di
+       PANDUAN-GITHUB.txt):
+       - WEB: github.com → repo → Add file → Upload
+         files → drag semua isi zip → Commit changes
        - TERMUX: cd ~/miapos
-         unzip -o ~/storage/downloads/miapos-v2.9.zip
+         unzip -o ~/storage/downloads/miapos-v2.10.zip
          git add -A
-         git commit -m "Miapos v2.9"
+         git commit -m "Miapos v2.10"
          git push
-[ ] 2. Cek Vercel: deployment baru muncul & status Ready
-       (±1 menit setelah push)
-[ ] 3. Buka app (JANGAN di-uninstall!) → cek versi di
-       Pengaturan paling bawah: "v2.9"
-[ ] 4. Ceklis PWABuilder: pwabuilder.com → Analyze URL
-       Vercel lu → kartu Service Worker = 6/6 ✅
-[ ] 5. Aktifin notifnya: Dashboard → banner "Aktifkan
-       Notifikasi" → IZINKAN. Tes: Pengaturan → Owner
-       Zone (pw: morgvn) → "Tes Notif Buka"/"Tes Notif Tutup"
-[ ] 6. GANTI PASSWORD OWNER dari bagian Keamanan biar
-       cuma lu yang bisa buka Owner Zone
+[ ] 2. BEBERSIH REPO (sekali aja): hapus sisa file
+       notif yang lama kalau masih ada di repo —
+       api/push-subscribe.js, api/push-send.js,
+       api/_pushlib.js, PANDUAN-NOTIF.txt.
+       (Buka file di github.com → ikon sampah →
+       Commit. Zip ini udah gak nyertain file itu.)
+[ ] 3. Cek Vercel: deployment baru muncul & status
+       Ready (±1 menit setelah push).
+[ ] 4. Buka app (JANGAN di-uninstall!) → cek versi di
+       Pengaturan paling bawah: "v2.10". Buka app
+       lagi → PASTI GAK ADA popup izin notif lagi.
+[ ] 5. Cek fitur: Pesanan → detail → "+ Tambah Menu"
+       & tombol Cetak Dapur (panah atas) → Cetak
+       Tambahan. Kelola Menu → scan barcode + galeri.
+[ ] 6. GANTI PASSWORD OWNER (Owner Zone → Keamanan)
+       biar cuma lu yang bisa buka.
 
 =====================================================
 C. RANGKUMAN JAWABAN (yang sering ditanyain)
 =====================================================
-Q: Checklist PWABuilder udah bener semua?
-A: UDAH 6/6. 3 yang tadinya gagal (Periodic Sync, Background
-   Sync, Push Notifications) sekarang ada kodenya di sw.js
-   + didaftarin otomatis pas app dibuka. Re-analyze di
-   PWABuilder setelah push v2.9 ini.
+Q: Kok gak ada izin notif pas buka app?
+A: MEMANG SENGAJA — fitur notifikasinya dihapus total
+   atas permintaan lu sendiri. App gak minta izin apa-
+   apa lagi, gak nge-banner, gak nge-spam. Bersih.
 
-Q: Salam di dashboard bisa ganti tiap kasir & tiap jam?
-A: BISA DUA-DUANYA. Nama ikut kasir aktif (switcher atas),
-   teksnya ikut jam (pagi/siang/sore/malam) dan dicek ulang
-   tiap menit — jadi ganti sendiri tanpa buka-ulang app.
+Q: Notifnya balik lagi gak?
+A: Bilang aja kalau mau balik — tapi dari sisi kode
+   sekarang udah dibersihin 100% (client, sw.js, api,
+   cron). Balikin = bikin lagi dari nol.
 
-Q: Notif buka/tutup bisa diatur sendiri?
-A: BISA — di Owner Zone (Pengaturan → Owner Zone 🔒).
-   Jam, teks, nama pengirim ("morgvn: ..."), getar, semua.
-   Khusus owner, diproteksi password (default: morgvn,
-   buruan ganti).
+Q: Checklist PWABuilder masih 6/6?
+A: Sekarang 5/6 — yang hilang cuma "Push Notifications"
+   (karena fiturnya memang dicabut). Yang penting
+   tetap LOLOS: Has Service Worker, Logic, Offline
+   Support, Background Sync, Periodic Sync. Install &
+   Play Store tetap aman.
 
 Q: Kalau folder api/ gak dipush, backup jalan gak?
-A: GAK. Backup cloud butuh api/backup.js hidup di Vercel.
-   Zip v2.9 ini udah termasuk api/ — push semuanya sekali
-   jalan. (Set env GITHUB_TOKEN + BACKUP_KEY: lihat
+A: GAK. Backup cloud butuh api/backup.js hidup di
+   Vercel. Zip ini udah termasuk api/ (backup.js +
+   ping.js) — push semuanya sekali jalan. (Set env
+   GITHUB_TOKEN + BACKUP_KEY: lihat
    PANDUAN-BACKUP-CLOUD.txt.)
 
 Q: Perlu uninstall aplikasinya lagi?
 A: GAK PERLU. Sekali install. Push → Vercel deploy →
-   app update sendiri (sw.js network-first + skipWaiting).
-   Cuma kalau mau update APLIKASI DI PLAY STORE baru perlu
-   bikin APK/AAB baru di PWABuilder — dan install di HP
-   tetap gak perlu uninstall dulu.
-
-Q: Notif jalan gak kalau app ditutup total?
-A: Selama app Miapos masih jalan di HP (dibuka atau baru
-   di-background — kayak biasanya orang tinggal app POS),
-   notif muncul TEPAT di jamnya. Kalau HP dimatiin total /
-   app di-swap habis, notif muncul pas app dibuka lagi
-   (dikejar otomatis kalau masih dalam 1 jam dari jadwal).
-   Nanti kalau lu mau notif jalan walau app mati total,
-   itu butuh server pengirim (Vercel cron) — bisa jadi
-   fitur langganan/premium kayak yang lu bilang 😎
+   app update sendiri (sw.js network-first +
+   skipWaiting). Cuma kalau mau update APLIKASI DI
+   PLAY STORE baru perlu bikin APK/AAB baru di
+   PWABuilder.

@@ -49,15 +49,9 @@ Gampangnya gini — ikut tabel ini:
            lagi kecuali gua bilang filenya berubah.
   backups/ → JANGAN dibikin manual, JANGAN dihapus. Folder
            ini dibikin otomatis oleh api/backup.js pas
-           backup pertama jalan. Isinya data backup kamu +
-           file miapos-push.json (daftar HP penerima notif).
+           backup pertama jalan. Isinya data backup kamu.
 
-  FILE BARU v2.10 — WAJIB IKUT DIPUSH (semuanya di zip):
-    api/push-subscribe.js  → mesin daftar HP penerima notif
-    api/push-send.js       → mesin kirim notif jam buka/tutup
-    api/_pushlib.js        → helper bareng (wajib ada!)
-    package.json           → biar Vercel pasang web-push
-    vercel.json            → jadwal cron notif 08.00 & 21.00 WIB
+  FILE v2.10 — IKUT DIPUSH (semuanya di zip):
     .well-known/assetlinks.json → biar app Play Store full
         screen (tanpa topbar Chrome). FOLDER TITIK (diawali
         titik) kadang kelewat pas upload web — makanya
@@ -75,7 +69,7 @@ ada otomatis kebikin. Aman 100%.
       index.html, sw.js, manifest.json, favicon.ico,
       icon-192.png, icon-512.png, README.txt,
       PANDUAN-GITHUB.txt, PANDUAN-PLAYSTORE.txt,
-      PANDUAN-BACKUP-CLOUD.txt, PANDUAN-NOTIF.txt,
+      PANDUAN-BACKUP-CLOUD.txt,
       CHECKLIST-UPDATE.txt, main.py, install.sh, start.sh,
       package.json, vercel.json
    File lama yang namanya sama OTOMATIS KETIMPA.
@@ -297,19 +291,15 @@ YANG BARU DI v2.9 (biar nggak bingung pas buka app)
   offline kartu tetap nampilin data terakhir. Kalau diminta
   izin lokasi → cuaca sesuai lokasi cabang; ditolak juga
   nggak papa (pakai lokasi default).
-- NOTIFIKASI SALAM PAGI: muncul di bilah notifikasi HP
-  (kayak notif WA) berisi "Selamat pagi, [nama]! Saatnya
-  buka lapak..." saat app dibuka jam 04.00–10.00, maksimal
-  1x sehari. Tekan "Izinkan" di banner Dashboard ATAU di
-  Pengaturan → Notifikasi Salam Pagi. Ada tombol
-  "Kirim Notifikasi Tes" buat mastiin notifikasinya jalan.
-- Jujur-juragan: notifikasi ini dikirim oleh HP sendiri pas
-  app dibuka pagi. Karena Miapos 100% offline & tanpa server,
-  UPDATE v2.10: notif walau app ditutup SUDAH ADA —
-  pakai push server (Vercel cron 08.00 & 21.00 WIB → FCM).
-  Tinggal push file zip ini (api/ + vercel.json +
-  package.json ikut) dan pastikan env GITHUB_TOKEN terpasang
-  (sama dengan backup cloud). Detail: PANDUAN-NOTIF.txt.
+- UPDATE v2.10 (revisi): SEMUA FITUR NOTIFIKASI DIHAPUS
+  (permintaan owner). Buka app sekarang BERSIH — gak ada
+  popup izin, gak ada banner, gak ada tombol tes notif.
+- BEBERSIH REPO: kalau di repo masih ada sisa file
+  api/push-subscribe.js, api/push-send.js, api/_pushlib.js,
+  atau PANDUAN-NOTIF.txt → hapus manual di GitHub (Add file
+  nggak bisa ngehapus; pakai tombol sampah di halaman file).
+  Isi vercel.json & package.json baru tinggal timpa (udah
+  kosong — cron & web-push ikut dicabut).
 
 Mau rilis ke PLAY STORE? Ikuti file PANDUAN-PLAYSTORE.txt
 (tinggal isi URL Vercel ke PWABuilder).

@@ -3,11 +3,9 @@
   (tanpa Termux · tanpa jaga server · gratis)
 ================================================
 
-UPDATE v2.10: env GITHUB_TOKEN yang lu set buat backup
-cloud ini SEKALIGUS dipakai buat NOTIF WALAU APP DITUTUP
-(api/push-send.js baca daftar HP dari folder backups/ yang
-sama). Jadi sekali setup backup cloud → push notif otomatis
-ikut nyala. Detail: PANDUAN-NOTIF.txt.
+UPDATE v2.10 (revisi): fitur notifikasi & push server
+SUDAH DICABUT dari app (permintaan owner). Env GITHUB_TOKEN
+& BACKUP_KEY sekarang murni dipakai buat BACKUP CLOUD saja.
 
 APA INI?
 --------

@@ -386,25 +386,13 @@ function generateSeed() {
   const orders = [];
   return {
     outlets, employees, tables, products, materials, orders, movements: [],
-    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, ...NOTIF_DEFAULTS },
+    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', qrisImage:'' },
   };
 }
 
 // ===== STORE (Context API based) =====
 const STORAGE_KEY = 'miapos-store-v4';
 const LEGACY_STORAGE_KEY = 'miapos-store-v3';
-// v2.9→v2.10: default notifikasi buka/tutup resto — teks & jamnya bisa diubah owner
-// lewat Owner Zone (Pengaturan → Owner Zone, pakai password).
-const NOTIF_DEFAULTS = {
-  notifOpenTime: '08:00',  // jam buka resto → notif salam pagi
-  notifCloseTime: '21:00', // jam tutup → notif pengingat tutup (+getar pendek)
-  notifOwnerName: 'morgvn', // nama pengirim di isi notif: "morgvn: <teks>"
-  notifMorningText: 'Selamat pagi, saatnya memulai kembali bisnis yaaa! Semangat ya hari ini! ☀️',
-  notifNightText: 'Sudah jam 9 malam, waktunya tutup. Capek kan? Rest dulu, besok gas lagi! 😴',
-  notifNightVibrate: true, // getar pendek di notif jam tutup
-  pushServer: true,        // v2.10: push dari server (notif muncul walau app ditutup)
-  qrisImage: ''            // v2.10: gambar QRIS resto (dataURL) — tampil saat pembayaran
-};
 const AppContext = React.createContext(null);
 const useAppStore = () => React.useContext(AppContext);
 
@@ -446,7 +434,7 @@ function AppProvider({ children }) {
     }
     if (!loaded) loaded = generateSeed();
     // Normalisasi settings: field baru (mis. theme) dapat default aman utk data lama
-    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, pushServer:true, qrisImage:'' }, NOTIF_DEFAULTS, loaded.settings || {});
+    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', qrisImage:'' }, loaded.settings || {});
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     loaded.archivedOrders = loaded.archivedOrders || [];
     // v2.10 NORMALISASI DATA — perbaiki layar blank putih di Stok & Bahan → tab
@@ -557,9 +545,7 @@ function AppProvider({ children }) {
     setCashier: (cashierId) => setState(s => ({ ...s, settings: { ...s.settings, cashierId } })),
     toggleOnline: () => setState(s => ({ ...s, settings: { ...s.settings, online: !s.settings.online } })),
     toggleHPP: () => setState(s => ({ ...s, settings: { ...s.settings, fiturHPP: !s.settings.fiturHPP } })),
-    // v2.8: saklar notifikasi salam pagi (default ON)
-    toggleMorningNotif: () => setState(s => ({ ...s, settings: { ...s.settings, morningNotif: !(s.settings.morningNotif !== false) } })),
-    // v2.9: setter umum utk Owner Zone (jam buka/tutup, teks notif, nama pengirim, dll)
+    // setter umum utk Owner Zone (QRIS, dll)
     updateSettings: (patch) => setState(s => ({ ...s, settings: { ...s.settings, ...(patch || {}) } })),
     setTheme: (t) => setState(s => (MD_THEME_KEYS.indexOf(t) === -1 || t === s.settings.theme) ? s : ({ ...s, settings: { ...s.settings, theme: t } })),
     addToCart: (productId, variantId) => {
@@ -1160,184 +1146,6 @@ function salamRandom(h) {
   var arr = SALAM_POOL[p] || SALAM_POOL.pagi;
   return arr[Math.floor(Math.random() * arr.length)];
 }
-// ===== v2.8→v2.9: NOTIFIKASI BUKA & TUTUP RESTO (notifikasi sistem beneran) =====
-// • Notif BUKA  : muncul jam buka (default 08.00)  → isi: "morgvn: Selamat pagi, ..."
-// • Notif TUTUP : muncul jam tutup (default 21.00) → isi: "morgvn: Sudah jam 9 malam, ..."
-//                 + GETAR PENDEK (bentar aja, gak lama)
-// • Jam & teksnya diatur owner di Owner Zone (Pengaturan → Owner Zone, pakai password)
-// • Jadwal jalan selama app Miapos jalan di HP (dibuka / di background), cek tiap 20 detik,
-//   maksimal 1x per hari per jenis — gak nyerang terus. Data dibaca langsung dari localStorage
-//   tiap tick, jadi perubahan di Owner Zone langsung kepakai tanpa buka-ulang app.
-var Notif = {
-  perm: function() { try { return ('Notification' in window) ? Notification.permission : 'unsupported'; } catch (e) { return 'unsupported'; } },
-  fire: function(title, body, tag, vibrate) {
-    try {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-      var opts = { body: body, tag: tag || 'miapos', icon: './icon-192.png', badge: './icon-192.png',
-        vibrate: vibrate || [80, 40, 80], dir: 'id', renotify: true, requireInteraction: false, data: { url: './' } };
-      // v2.10: pakai serviceWorker.ready (reg aktif YAKIN ADA) — bukan getRegistration()
-      // yang bisa null saat SW belum aktif. Ada TIMEOUT fallback 1,2 detik biar
-      // notif tetap keluar walau SW-nya lama/nggak aktif (mis. browser aneh).
-      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        var fired = false;
-        var fallbackNotify = function() {
-          if (fired) return; fired = true;
-          try { new Notification(title, opts); } catch (e) {}
-        };
-        var ft = setTimeout(fallbackNotify, 1200);
-        navigator.serviceWorker.ready.then(function(reg) {
-          if (fired) return; fired = true; clearTimeout(ft);
-          if (reg && reg.showNotification) { try { reg.showNotification(title, opts); } catch (e) { try { new Notification(title, opts); } catch (e2) {} } }
-          else fallbackNotify();
-        }).catch(function() { clearTimeout(ft); fallbackNotify(); });
-      } else { try { new Notification(title, opts); } catch (e) {} }
-      return true;
-    } catch (e) { return false; }
-  },
-  // ---- v2.9: mesin jadwal ----
-  readSettings: function() {
-    try { var raw = JSON.parse(localStorage.getItem('miapos-store-v4') || 'null'); return (raw && raw.settings) || {}; } catch (e) { return {}; }
-  },
-  todayKey: function() {
-    var d = new Date(); var p = function(n) { return (n < 10 ? '0' : '') + n; };
-    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
-  },
-  parseHM: function(hm) {
-    var a = String(hm || '').split(':'); var h = parseInt(a[0], 10) || 0; var m = parseInt(a[1], 10) || 0;
-    return h * 60 + m;
-  },
-  // Kirim notif dari owner — format isi: "<nama owner>: <teks ucapan>"
-  sendOwner: function(kind, s) {
-    s = s || this.readSettings();
-    var owner = String(s.notifOwnerName || 'morgvn').trim() || 'morgvn';
-    var text = kind === 'buka' ? (s.notifMorningText || NOTIF_DEFAULTS.notifMorningText) : (s.notifNightText || NOTIF_DEFAULTS.notifNightText);
-    var title = kind === 'buka' ? '☀️ Miapos · Buka Resto' : '🌙 Miapos · Waktunya Tutup';
-    // notif tutup = getar PENDEK (bentar aja); kalau dimatikan owner → getar super halus
-    var vib = kind === 'tutup' ? (s.notifNightVibrate === false ? [60, 40, 60] : [220, 130, 220]) : [80, 40, 80];
-    return this.fire(title, owner + ': ' + text, 'miapos-' + kind, vib);
-  },
-  // Dipanggil tiap ±20 detik + tiap app dibuka/kembali aktif.
-  tick: function() {
-    try {
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
-      var s = this.readSettings();
-      if (s.morningNotif === false) return; // saklar utama di Pengaturan
-      var now = new Date();
-      var cur = now.getHours() * 60 + now.getMinutes();
-      var dkey = this.todayKey();
-      var openM = this.parseHM(s.notifOpenTime || '08:00');
-      var closeM = this.parseHM(s.notifCloseTime || '21:00');
-      // jendela 60 menit: app baru dibuka agak telat tetap kejar notifnya (maks 1x/hari)
-      if (cur >= openM && cur - openM <= 60 && (localStorage.getItem('miapos-notif-buka') || '') !== dkey) {
-        localStorage.setItem('miapos-notif-buka', dkey);
-        this.sendOwner('buka', s);
-        return;
-      }
-      if (cur >= closeM && cur - closeM <= 60 && (localStorage.getItem('miapos-notif-tutup') || '') !== dkey) {
-        localStorage.setItem('miapos-notif-tutup', dkey);
-        this.sendOwner('tutup', s);
-      }
-    } catch (e) {}
-  },
-  // nama lama yang dipakai beberapa tempat — sekarang delegasi ke mesin jadwal v2.9
-  maybeMorning: function() { return this.tick(); },
-
-  // ===== v2.10: PUSH DARI SERVER — notif muncul WALAU APP DITUTUP =====
-  // Cara kerjanya: HP daftar ke layanan push Chrome (FCM) sekali, lalu server
-  // (Vercel cron jam 08.00 & 21.00 WIB) ngirim notif ke HP lewat internet.
-  // Yang jalan terus di HP cuma sistem notifikasi Android-nya — bukan app
-  // Miapos — jadi baterai & kuota aman (inilah cara WA/notif bank bekerja).
-  PUSH_KEY: 'BOvogKOEW16o1CBz_kntLf7-RV0CRPsQe_A_6LmjOeh5VaZZoPfIRNd12EcUkfeJJBhYpt0xzt2jth_dBTysD7k',
-  pushFlagKey: 'miapos-push-ok',
-  pushSyncPending: 'miapos-push-sync-pending',
-  urlB64ToUint8: function(b64) {
-    try {
-      var pad = '='.repeat((4 - (b64.length % 4)) % 4);
-      var s = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
-      var raw = atob(s); var out = new Uint8Array(raw.length);
-      for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-      return out;
-    } catch (e) { return null; }
-  },
-  pushSupported: function() {
-  try { return 'serviceWorker' in navigator && 'PushManager' in window && ('Notification' in window); } catch (e) { return false; }
-  },
-  pushOk: function() { try { return localStorage.getItem(this.pushFlagKey) === '1'; } catch (e) { return false; } },
-  // Daftarkan HP ini ke server (subscribe push + unggah config terbaru).
-  // Panggil tiap app dibuka (kalau izin sudah granted) — idempoten & aman offline.
-  pushEnsure: function() {
-    var self = this;
-    try {
-      if (!this.pushSupported()) return Promise.resolve(false);
-      if (Notification.permission !== 'granted') return Promise.resolve(false);
-      if (!(ServerBridge && ServerBridge.isHttp && ServerBridge.isHttp())) return Promise.resolve(false);
-      return navigator.serviceWorker.ready.then(function(reg) {
-        return reg.pushManager.getSubscription().then(function(sub) {
-          if (!sub) {
-            var k = self.urlB64ToUint8(self.PUSH_KEY);
-            if (!k) return null;
-            return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: k });
-          }
-          return sub;
-        });
-      }).then(function(sub) {
-        if (!sub) return false;
-        var j = sub.toJSON();
-        if (!j.endpoint || !j.keys) return false;
-        return fetch('/api/push-subscribe', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sub: { endpoint: j.endpoint, keys: j.keys } })
-        }).then(function(r) { return r.json().catch(function() { return null; }); })
-          .then(function(res) {
-            if (res && res.ok) {
-              try { localStorage.setItem(self.pushFlagKey, '1'); localStorage.removeItem(self.pushSyncPending); } catch (e) {}
-              // sekalian unggah config notif terakhir biar server pakai teks terbaru
-              self.pushUploadConfig(null, true);
-              return true;
-            }
-            return false;
-          }).catch(function() { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} return false; });
-      }).catch(function() { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} return false; });
-    } catch (e) { return Promise.resolve(false); }
-  },
-  // Kirim teks/jam notif versi owner ke server (dipakai cron push).
-  // cfg null → baca dari localStorage; silent=true → tanpa rekam pending.
-  pushUploadConfig: function(cfg, silent) {
-    var self = this;
-    try {
-      if (!(ServerBridge && ServerBridge.isHttp && ServerBridge.isHttp())) return Promise.resolve(false);
-      var s = cfg || this.readSettings();
-      var body = { config: {
-        notifOwnerName: String(s.notifOwnerName || 'morgvn').slice(0, 24),
-        notifMorningText: String(s.notifMorningText || NOTIF_DEFAULTS.notifMorningText).slice(0, 200),
-        notifNightText: String(s.notifNightText || NOTIF_DEFAULTS.notifNightText).slice(0, 200),
-        notifNightVibrate: s.notifNightVibrate !== false,
-        notifOpenTime: String(s.notifOpenTime || '08:00').slice(0, 5),
-        notifCloseTime: String(s.notifCloseTime || '21:00').slice(0, 5),
-        pushServer: s.pushServer !== false
-      } };
-      return fetch('/api/push-subscribe', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-      }).then(function(r) { return r.json().catch(function() { return null; }); })
-        .then(function(res) {
-          if (res && res.ok && !silent) { try { localStorage.removeItem(self.pushSyncPending); } catch (e) {} }
-          if (res && res.ok && silent) { try { localStorage.removeItem(self.pushSyncPending); } catch (e) {} }
-          return !!(res && res.ok);
-        }).catch(function() { if (!silent) { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} } return false; });
-    } catch (e) { return Promise.resolve(false); }
-  },
-  // Tes notif dari server (sirkuit penuh: server → FCM → HP walau app ditutup nanti)
-  pushTestFromServer: function(kind) {
-    try {
-      var key = (ServerBridge && CloudStore && CloudStore.getKey()) || '';
-      if (!key) return Promise.resolve({ ok: false, error: 'NO_KEY' });
-      return fetch('/api/push-send?kind=' + (kind === 'tutup' ? 'tutup' : 'buka'), { headers: { 'x-backup-key': key } })
-        .then(function(r) { return r.json().catch(function() { return { ok: false, error: 'BAD_RESPONSE' }; }); })
-        .catch(function() { return { ok: false, error: 'OFFLINE' }; });
-    } catch (e) { return Promise.resolve({ ok: false, error: 'ERROR' }); }
-  }
-};
-
 // Kartu cuaca — dipasang di Dashboard (kompak: gambar cuaca + suhu + salam)
 function WeatherCard() {
   const { state } = useAppStore();
@@ -1398,112 +1206,6 @@ function WeatherCard() {
   );
 }
 
-// ===== v2.10: MINTA IZIN NOTIF LANGSUNG SAAT APP DIBUKA =====
-// Keluhan owner: "pas buka aplikasi gak ada izin notif" — karena Chrome cuma mau
-// nampilin popup izin SETELAH ada ketukan (user gesture). Solusinya: begitu app
-// dibuka & izin masih "default", KETUKAN PERTAMA di mana aja langsung memunculkan
-// popup izin notifikasi beneran dari browser — gak perlu nyari-nyari tombol lagi.
-// Gak nanya ulang kalau udah granted/denied, dan gak nembak pas baru ngetuk tombol
-// di banner (biar gak dobel popup).
-function NotifAutoAsk() {
-  const { show } = useToast();
-  React.useEffect(function() {
-    var done = false;
-    function cleanup() {
-      if (done) return; done = true;
-      document.removeEventListener('pointerdown', onTap, true);
-    }
-    function onTap(e) {
-      // ketukan di banner izin → biarkan tombolnya sendiri yang minta izin
-      try { if (e.target && e.target.closest && e.target.closest('[data-notif-banner]')) return; } catch (er) {}
-      if (Notif.perm() !== 'default') { cleanup(); return; }
-      cleanup();
-      try {
-        Notification.requestPermission().then(function(p) {
-          try { window.dispatchEvent(new Event('miapos-perm-changed')); } catch (e2) {}
-          if (p === 'granted') {
-            show('🔔 Notifikasi aktif — salam buka & tutup resto siap muncul');
-            try { Notif.pushEnsure(); } catch (e) {}
-            try { Notif.tick(); } catch (e) {}
-          }
-        }).catch(function() {});
-      } catch (e) {}
-    }
-    document.addEventListener('pointerdown', onTap, true);
-    return cleanup;
-  }, []);
-  return null;
-}
-
-// Banner izin notifikasi di Dashboard — v2.10:
-// • "Nanti" cuma nyembunyiin banner SELAMA app ini jalan. Besok buka app → banner
-//   nongol lagi + popup izin nanya lagi (dulu kena "Nanti" = hilang 3 hari, makanya
-//   owner kira popupnya keblokir karena gak pernah nongol lagi).
-// • Izin DIBLOKIR di browser? Banner berubah jadi panduan buka blokir + tombol cek ulang.
-var NOTIF_SNOOZE_SESSION = false;
-function NotifPromptCard() {
-  const { state } = useAppStore();
-  const { show } = useToast();
-  const [perm, setPerm] = React.useState(function() { return Notif.perm(); });
-  const [hidden, setHidden] = React.useState(NOTIF_SNOOZE_SESSION);
-  // balik dari setelan browser → cek ulang izinnya otomatis
-  React.useEffect(function() {
-    var onVis = function() { if (!document.hidden) setPerm(Notif.perm()); };
-    var onChg = function() { setPerm(Notif.perm()); }; // popup izin dari ketukan pertama baru selesai
-    document.addEventListener('visibilitychange', onVis);
-    window.addEventListener('miapos-perm-changed', onChg);
-    return function() { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('miapos-perm-changed', onChg); };
-  }, []);
-  function allow() {
-    try {
-      Notification.requestPermission().then(function(p) {
-        setPerm(p);
-        if (p === 'granted') {
-          show('🔔 Notifikasi aktif — salam buka & tutup resto siap muncul');
-          var cash = state.employees.find(function(e) { return e.id === state.settings.cashierId; });
-          Notif.maybeMorning(cash ? cash.name : '', state.settings.morningNotif !== false);
-          // v2.10: sekalian daftarkan push server (notif walau app ditutup)
-          Notif.pushEnsure();
-        } else if (p === 'denied') {
-          show('Izin notif diblokir — ikuti panduan buka blokirnya', 'error');
-        }
-      }).catch(function() {});
-    } catch (e) {}
-  }
-  function cekLagi() {
-    var p = Notif.perm(); setPerm(p);
-    if (p === 'granted') { show('🔔 Notifikasi sudah aktif!'); try { Notif.pushEnsure(); } catch (e) {} }
-    else show('Masih diblokir — coba lagi langkah buka blokirnya ya', 'error');
-  }
-  function later() { NOTIF_SNOOZE_SESSION = true; setHidden(true); }
-  if (perm === 'granted' || perm === 'unsupported' || hidden) return null;
-  // ---- izin diblokir: panduan buka blokir ----
-  if (perm === 'denied') return React.createElement(Card, { className:'border-red-200 bg-red-50/60 animate-mp-pop' },
-    React.createElement('div', { className:'flex items-start gap-3 p-3 md:p-4' },
-      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-500 text-white shadow-md shadow-red-500/30' },
-        React.createElement(Icon, { name:'bell-off', className:'w-5 h-5' })),
-      React.createElement('div', { className:'flex-1 min-w-0' },
-        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Notifikasi Diblokir di Browser 🔕'),
-        React.createElement('p', { className:'text-xs text-slate-600 mt-0.5 leading-relaxed' }, 'Buka blokir: ketuk ikon 🔒 / ⋮ di address bar → Setelan situs → Notifikasi → Izinkan → buka ulang app Miapos.'),
-        React.createElement('p', { className:'text-[10px] text-slate-500 mt-1 leading-relaxed' }, 'Pakai app Play Store? Setelan HP → Aplikasi → Miapos → Notifikasi → nyalakan "Semua notifikasi".')),
-      React.createElement(Button, { size:'sm', onClick: cekLagi, className:'shrink-0' }, 'Cek Lagi')
-    )
-  );
-  // ---- izin belum diminta: banner ajakan (popup asli muncul di ketukan pertama) ----
-  return React.createElement(Card, { className:'border-emerald-200 bg-emerald-50/60 animate-mp-pop', 'data-notif-banner': true },
-    React.createElement('div', { className:'flex items-center gap-3 p-3 md:p-4' },
-      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30' },
-        React.createElement(Icon, { name:'bell', className:'w-5 h-5' })),
-      React.createElement('div', { className:'flex-1 min-w-0' },
-        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Aktifkan Notifikasi Resto ☀️'),
-        React.createElement('p', { className:'text-xs text-slate-600' }, 'Ketuk IZINKAN — popup izin dari browser bakal muncul. Notif salam jam buka & tutup dari owner kamu bakal masuk.')),
-      React.createElement('div', { className:'flex gap-1.5 shrink-0' },
-        React.createElement(Button, { size:'sm', onClick: allow }, 'Izinkan'),
-        React.createElement(Button, { size:'sm', variant:'outline', onClick: later }, 'Nanti'))
-    )
-  );
-}
-
 // ===== DASHBOARD =====
 function DashboardView({ onNavigate }) {
   const { state } = useAppStore();
@@ -1552,8 +1254,6 @@ function DashboardView({ onNavigate }) {
         React.createElement(KpiCard, { label:'Stok Menipis', value: String(lowStock.length), sub:'bahan baku restock', icon:'triangle-alert', color:'red' }),
         React.createElement(KpiCard, { label:'Staf Aktif', value: String(outletEmployees.filter(e => e.active).length), sub:'karyawan outlet', icon:'users', color:'violet' })
       ),
-      // v2.10: banner izin notifikasi tetap setelah kotak-kotak ringkasan
-      React.createElement(NotifPromptCard, null),
       React.createElement('div', { className:'grid grid-cols-1 lg:grid-cols-3 gap-4 mp-stagger' },
         React.createElement(Card, { className:'lg:col-span-2' },
           React.createElement('div', { className:'p-4' },
@@ -4449,98 +4149,16 @@ function HPPToggleRow() {
   );
 }
 
-// ===== v2.8: NOTIFIKASI SALAM PAGI — saklar + tes di Pengaturan =====
-function NotifToggleRow() {
-  const { state, toggleMorningNotif } = useAppStore();
-  const { show } = useToast();
-  const on = state.settings.morningNotif !== false;
-  const perm = Notif.perm();
-  var desc;
-  if (perm === 'unsupported') desc = 'Browser tidak mendukung notifikasi (jalan di Chrome/app HP)';
-  else if (perm === 'denied') desc = 'Izin diblokir — ketuk di sini utk cara membuka blokirnya';
-  else if (perm === 'default') desc = 'Ketuk untuk izinkan notifikasi dulu';
-  else desc = on ? 'Aktif — notif buka jam ' + (state.settings.notifOpenTime || '08:00') + ' & tutup jam ' + (state.settings.notifCloseTime || '21:00') + (Notif.pushOk() ? ' · push server ✅ (walau app ditutup)' : ' (atur di Owner Zone)') : 'Mati — semua notif buka/tutup tidak dikirim';
-  function klik() {
-    if (perm === 'default') {
-      try {
-        Notification.requestPermission().then(function(p) {
-          if (p === 'granted') { show('🔔 Izin notifikasi diberikan — salam pagi aktif'); Notif.maybeMorning(); Notif.pushEnsure(); }
-          else if (p === 'denied') { show('Izin DITOLAK. Cek setelan HP: Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error'); }
-          else show('Izin notifikasi belum diberikan', 'error');
-        }).catch(function() { show('Popup izin gagal muncul — buka Miapos dari app/Chrome biasa lalu coba lagi', 'error'); });
-      } catch (e) {}
-      return;
-    }
-    if (perm === 'denied') {
-      show('Buka blokir: Setelan HP → Aplikasi → Miapos → Notifikasi → Izinkan (atau Chrome → ⋮ → Setelan → Setelan situs → Notifikasi)', 'error');
-      return;
-    }
-    if (perm === 'unsupported') { show('Browser ini tidak mendukung notifikasi', 'error'); return; }
-    toggleMorningNotif();
-    show(on ? 'Salam pagi dimatikan' : 'Salam pagi diaktifkan ☀️');
-  }
-  return React.createElement('button', { onClick: klik, className:'w-full flex items-center justify-between gap-3 py-3.5 text-left' },
-    React.createElement('div', { className:'flex items-center gap-3 min-w-0' },
-      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70' },
-        React.createElement(Icon, { name:'bell', className:'w-5 h-5 text-slate-700' })
-      ),
-      React.createElement('div', { className:'min-w-0' },
-        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Notifikasi Resto ☀️🌙'),
-        React.createElement('p', { className:'text-xs text-slate-500' }, desc)
-      )
-    ),
-    perm === 'granted' && React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', on ? 'bg-emerald-500' : 'bg-slate-300') },
-      React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', on && 'translate-x-5') })
-    ),
-    perm !== 'granted' && React.createElement(Badge, { variant:'outline', className:'shrink-0 text-[10px]' }, perm === 'default' ? 'IZINKAN →' : 'CEK IZIN')
-  );
-}
-
-function NotifTestRow() {
-  const { show } = useToast();
-  const perm = Notif.perm();
-  function kirim() {
-    if (perm === 'default') {
-      // v2.10: langsung minta izin DI SINI (dalam ketukan) — dulu baru kirim notif tes
-      try {
-        Notification.requestPermission().then(function(p) {
-          if (p === 'granted') { setTimeout(function() { tes(); }, 350); }
-          else show('Izin DITOLAK. Setelan HP → Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error');
-        }).catch(function() { show('Popup izin gagal muncul — coba lagi', 'error'); });
-      } catch (e) {}
-      return;
-    }
-    if (perm !== 'granted') { show('Izin notif diblokir. Setelan HP → Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error'); return; }
-    tes();
-  }
-  function tes() {
-    var ok = Notif.fire('🔔 Tes Notifikasi Miapos', 'Notifikasi jalan! Salam pagi akan muncul otomatis tiap pagi ☀️', 'miapos-tes');
-    show(ok ? 'Notifikasi tes terkirim — cek bilah notifikasi HP' : 'Notifikasi gagal dikirim', ok ? 'success' : 'error');
-  }
-  return React.createElement('button', { onClick: kirim, className:'w-full flex items-center justify-between gap-3 py-3.5 text-left' },
-    React.createElement('div', { className:'flex items-center gap-3 min-w-0' },
-      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70' },
-        React.createElement(Icon, { name:'bell-ring', className:'w-5 h-5 text-slate-700' })
-      ),
-      React.createElement('div', { className:'min-w-0' },
-        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Kirim Notifikasi Tes'),
-        React.createElement('p', { className:'text-xs text-slate-500' }, 'Cek notifikasi muncul di bilah status HP kamu')
-      )
-    ),
-    React.createElement(Icon, { name:'send', className:'w-4 h-4 text-slate-300 shrink-0' })
-  );
-}
-
 // ===== v2.9: OWNER ZONE — area khusus owner, diproteksi password =====
-// Isinya: atur jam buka & tutup, teks notif, nama pengirim ("morgvn: ..."),
-// getar notif tutup, ganti password, + tombol tes. Password default: morgvn
+// Isinya: upload gambar QRIS resto + ganti password. Password default: morgvn
 // (disimpan di HP ini saja — ganti dari dalam Owner Zone biar aman).
+// (v2.10 revisi: semua fitur notifikasi DICABUT — permintaan owner.)
 const OWNER_PW_KEY = 'miapos-owner-pw';
 function ownerGetPw() { try { return localStorage.getItem(OWNER_PW_KEY) || 'morgvn'; } catch (e) { return 'morgvn'; } }
 function ownerSetPw(v) { try { localStorage.setItem(OWNER_PW_KEY, v); } catch (e) {} }
 
 function OwnerZoneScreen({ onBack }) {
-  const { state, updateSettings, toggleMorningNotif } = useAppStore();
+  const { state, updateSettings } = useAppStore();
   const { show } = useToast();
   const s = state.settings;
   const [unlocked, setUnlocked] = React.useState(function() {
@@ -4548,15 +4166,6 @@ function OwnerZoneScreen({ onBack }) {
   });
   const [pw, setPw] = React.useState('');
   const [err, setErr] = React.useState('');
-  const [openTime, setOpenTime] = React.useState(s.notifOpenTime || '08:00');
-  const [closeTime, setCloseTime] = React.useState(s.notifCloseTime || '21:00');
-  const [ownerName, setOwnerName] = React.useState(s.notifOwnerName || 'morgvn');
-  const [morningText, setMorningText] = React.useState(s.notifMorningText || NOTIF_DEFAULTS.notifMorningText);
-  const [nightText, setNightText] = React.useState(s.notifNightText || NOTIF_DEFAULTS.notifNightText);
-  const [vib, setVib] = React.useState(s.notifNightVibrate !== false);
-  // v2.10: teks kartu cuaca + push server (walau app ditutup)
-  const [pushOn, setPushOn] = React.useState(s.pushServer !== false);
-  const [pushBusy, setPushBusy] = React.useState(false);
   const [pwLama, setPwLama] = React.useState('');
   const [pwBaru, setPwBaru] = React.useState('');
   // v2.10: seksi gulung — cuma 1 yang kebuka, biar rapih & gak panjang turun
@@ -4571,40 +4180,11 @@ function OwnerZoneScreen({ onBack }) {
       show('🔓 Owner Zone terbuka — selamat datang, owner!');
     } else { setErr('Password salah — coba lagi'); }
   }
-  function simpan() {
-    var ot = (openTime || '').trim() || '08:00';
-    var ct = (closeTime || '').trim() || '21:00';
-    var nm = (ownerName || '').trim() || 'morgvn';
-    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, pushServer: pushOn });
-    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm);
-    show('Tersimpan ✅ Notif buka jam ' + ot + ' · notif tutup jam ' + ct);
-    // v2.10: sinkron ke server biar push (walau app ditutup) pakai teks/jam terbaru
-    Notif.pushUploadConfig({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, pushServer: pushOn }, false)
-      .then(function(ok) { if (ok) show('☁️ Teks notif tersinkron ke server push'); });
-  }
   function gantiPw() {
     if (pwLama !== ownerGetPw()) { show('Password lama salah', 'error'); return; }
     if ((pwBaru || '').trim().length < 4) { show('Password baru minimal 4 karakter', 'error'); return; }
     ownerSetPw(pwBaru.trim()); setPwLama(''); setPwBaru('');
     show('Password owner diganti ✅');
-  }
-  function tesNotif(kind) {
-    // tes pakai nilai yang sedang diketik (belum tentu sudah disimpan)
-    var draft = { notifOpenTime: openTime, notifCloseTime: closeTime, notifOwnerName: ownerName, notifMorningText: morningText, notifNightText: nightText, notifNightVibrate: vib, morningNotif: s.morningNotif };
-    var ok = Notif.sendOwner(kind, draft);
-    show(ok ? 'Notifikasi tes terkirim — cek bilah notif HP' : 'Izin notifikasi belum aktif — ketuk baris \"Notifikasi\" dulu', ok ? 'success' : 'error');
-  }
-  // v2.10: tes sirkuit penuh dari SERVER — notif muncul walau app nanti ditutup
-  function tesServer(kind) {
-    if (pushBusy) return;
-    setPushBusy(true);
-    Notif.pushTestFromServer(kind).then(function(res) {
-      setPushBusy(false);
-      if (res && res.ok) show('☁️ Dikirim dari server ke ' + (res.sent || 0) + ' HP — notif bakal muncul walau app ditutup', 'success');
-      else if (res && res.error === 'NO_KEY') show('Isi dulu password backup di Pengaturan → Backup Cloud & Mesin Lokal (dipakai buat tes server)', 'error');
-      else if (res && res.error === 'SERVER_BELUM_DISET') show('Server belum siap — set env GITHUB_TOKEN & BACKUP_KEY di Vercel (lihat PANDUAN-NOTIF.txt)', 'error');
-      else show('Tes server gagal (' + ((res && res.error) || 'offline') + ') — cek internet / deploy Vercel', 'error');
-    });
   }
   // v2.10: upload gambar QRIS (dipangkas otomatis biar localStorage aman)
   function pickQris(e) {
@@ -4673,80 +4253,7 @@ function OwnerZoneScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner', onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-3' },
-      // Saklar utama — selalu kelihatan di paling atas
-      React.createElement(Card, { className:'divide-y divide-slate-100 overflow-hidden' },
-        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifToggleRow, null))
-      ),
-      // ===== SEKSI 1 — NOTIFIKASI BUKA & TUTUP =====
-      React.createElement(Card, { className:'overflow-hidden' },
-        SectHead('notif', 'bell', '🔔 Notifikasi Buka & Tutup', 'Jam, teks salam, getar & tes notif'),
-        sect === 'notif' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-3' },
-          React.createElement('div', null,
-            React.createElement('p', { className:'text-xs font-bold text-slate-700 mb-1.5' }, 'Jam buka & tutup resto'),
-            React.createElement('div', { className:'grid grid-cols-2 gap-3' },
-              React.createElement('div', null,
-                React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '\u2600\uFE0F Jam Buka'),
-                React.createElement(Input, { type:'time', value: openTime, onChange: function(e) { setOpenTime(e.target.value); } })),
-              React.createElement('div', null,
-                React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '🌙 Jam Tutup'),
-                React.createElement(Input, { type:'time', value: closeTime, onChange: function(e) { setCloseTime(e.target.value); } }))
-            ),
-            React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Notif saat app DIBUKA ikut jam di atas. Notif dari SERVER (walau app ditutup) jalan jam 08.00 & 21.00 WIB \u2014 kalau jam resto berubah, bilang aja ke yang bikin app buat digeser.')
-          ),
-          React.createElement('div', null,
-            React.createElement('p', { className:'text-xs font-bold text-slate-700 mb-1.5' }, 'Teks notifikasi \u2014 isi: "nama: teks ucapan"'),
-            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, 'Nama pengirim (nama kamu)'),
-            React.createElement(Input, { value: ownerName, onChange: function(e) { setOwnerName(e.target.value); }, placeholder:'morgvn', maxLength: 24 }),
-            React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-2 mb-1 block' }, 'Teks notif BUKA (pagi)'),
-            React.createElement('textarea', { value: morningText, onChange: function(e) { setMorningText(e.target.value); }, rows: 2,
-              className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
-            React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-2 mb-1 block' }, 'Teks notif TUTUP (malam)'),
-            React.createElement('textarea', { value: nightText, onChange: function(e) { setNightText(e.target.value); }, rows: 2,
-              className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
-            React.createElement('button', { onClick: function() { setVib(!vib); }, className:'w-full flex items-center justify-between gap-3 mt-2 py-1.5 text-left' },
-              React.createElement('div', { className:'min-w-0' },
-                React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Getar saat notif tutup'),
-                React.createElement('p', { className:'text-xs text-slate-500' }, vib ? 'Aktif \u2014 getar pendek bentar aja, gak lama' : 'Mati \u2014 notif tutup tanpa getar kuat')),
-              React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', vib ? 'bg-emerald-500' : 'bg-slate-300') },
-                React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', vib && 'translate-x-5') }))
-            ),
-            React.createElement('div', { className:'rounded-xl bg-slate-50 border border-slate-200/70 p-3 mt-2' },
-              React.createElement('p', { className:'text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1' }, 'Pratinjau isi notif'),
-              React.createElement('p', { className:'text-sm font-semibold text-slate-800' }, '\u2600\uFE0F Miapos \u00b7 Buka Resto'),
-              React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (morningText || '')),
-              React.createElement('p', { className:'text-sm font-semibold text-slate-800 mt-2' }, '🌙 Miapos \u00b7 Waktunya Tutup'),
-              React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (nightText || ''))
-            )
-          ),
-          React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-2' },
-            React.createElement(Button, { onClick: simpan }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan'),
-            React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('buka'); } }, '\u2600\uFE0F Tes Buka'),
-            React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('tutup'); } }, '🌙 Tes Tutup')
-          )
-        )
-      ),
-      // ===== SEKSI 2 — NOTIF WALAU APP DITUTUP (PUSH SERVER) =====
-      // (v2.10: seksi "Teks Kartu Cuaca" DIHAPUS — teksnya sekarang random otomatis dari app)
-      React.createElement(Card, { className:'overflow-hidden' },
-        SectHead('push', 'satellite-dish', '📴 Notif Walau App Ditutup', 'Push server \u2014 jam 08.00 & 21.00 WIB'),
-        sect === 'push' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-3' },
-          React.createElement('p', { className:'text-xs text-slate-500 leading-relaxed' }, 'Server Miapos ngirim notif langsung ke HP walau app-nya ditutup total \u2014 kayak notif WA. Yang jalan di HP cuma sistem notifikasi Android-nya, jadi baterai & kuota tetap aman.'),
-          React.createElement('button', { onClick: function() { setPushOn(!pushOn); }, className:'w-full flex items-center justify-between gap-3 py-1.5 text-left' },
-            React.createElement('div', { className:'min-w-0' },
-              React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Push dari server'),
-              React.createElement('p', { className:'text-xs text-slate-500' }, pushOn ? 'Aktif \u2014 notif tetap muncul walau app ditutup (butuh internet di HP)' : 'Mati \u2014 notif cuma muncul saat app dibuka/di-background')),
-            React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', pushOn ? 'bg-emerald-500' : 'bg-slate-300') },
-              React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', pushOn && 'translate-x-5') }))
-          ),
-          React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-2' },
-            React.createElement(Button, { variant:'outline', onClick: function() { tesServer('buka'); }, disabled: pushBusy }, '\u2601\uFE0F Tes dari Server (Buka)'),
-            React.createElement(Button, { variant:'outline', onClick: function() { tesServer('tutup'); }, disabled: pushBusy }, '\u2601\uFE0F Tes dari Server (Tutup)')
-          ),
-          React.createElement('p', { className:'text-[10px] text-slate-400 leading-relaxed' }, Notif.pushOk() ? 'Status: HP ini sudah terdaftar di server push \u2705' : 'Status: HP belum terdaftar \u2014 izinkan notifikasi dulu, lalu buka app saat online, otomatis terdaftar.'),
-          React.createElement('p', { className:'text-[10px] text-slate-400 leading-relaxed' }, 'Butuh deploy di Vercel (api/push-subscribe.js + push-send.js + vercel.json) \u2014 langkah lengkap di PANDUAN-NOTIF.txt. Tes dari server butuh password backup yang diisi dulu di menu Backup Cloud.')
-        )
-      ),
-      // ===== SEKSI 3 — QRIS RESTO =====
+      // ===== SEKSI 1 — QRIS RESTO =====
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('qris', 'qr-code', 'QRIS Resto', 'Upload QRIS \u2014 muncul saat pembayaran'),
         sect === 'qris' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100' },
@@ -4768,7 +4275,7 @@ function OwnerZoneScreen({ onBack }) {
           )
         )
       ),
-      // ===== SEKSI 4 — KEAMANAN =====
+      // ===== SEKSI 2 — KEAMANAN =====
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('keamanan', 'shield', '🔒 Keamanan', 'Ganti password Owner Zone'),
         sect === 'keamanan' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-2' },
@@ -4779,12 +4286,6 @@ function OwnerZoneScreen({ onBack }) {
           ),
           React.createElement(Button, { variant:'outline', className:'w-full sm:w-auto', onClick: gantiPw }, React.createElement(Icon, { name:'key-round', className:'w-4 h-4' }), 'Ganti Password')
         )
-      ),
-      // Info singkat
-      React.createElement(Card, { className:'p-4 border-sky-100 bg-sky-50/50' },
-        React.createElement('p', { className:'text-xs font-bold text-sky-800 mb-1' }, '\u2139\uFE0F Cara kerja notifikasinya'),
-        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed' }, 'Ada 2 jalur: (1) NOTIF LOKAL \u2014 muncul saat app dibuka/di-background di jam buka & tutup, cek tiap 20 detik, maks 1x sehari per jenis. (2) PUSH SERVER \u2014 muncul walau app ditutup total, dikirim server Miapos jam 08.00 & 21.00 WIB lewat internet (pakai layanan push Chrome, bukan app yang jalan terus \u2014 baterai aman).'),
-        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed mt-2' }, 'Saklar "Notifikasi" di atas itu saklar utama \u2014 kalau dimatikan, semua notif buka/tutup ikut berhenti. Semua pengaturan di sini tersimpan otomatis di HP ini.')
       )
     )
   );
@@ -4962,9 +4463,7 @@ function SettingsView({ onBack }) {
           )
         ),
         React.createElement('div', { className:'px-3.5' }, React.createElement(FullscreenRow, null)),
-        React.createElement('div', { className:'px-3.5' }, React.createElement(HPPToggleRow, null)),
-        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifToggleRow, null)),
-        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifTestRow, null))
+        React.createElement('div', { className:'px-3.5' }, React.createElement(HPPToggleRow, null))
       ),
       React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm' },
         React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'database', className:'w-4 h-4' }), 'Data Lokal'),
@@ -5709,19 +5208,6 @@ function App() {
     var t2 = setTimeout(function() { setLoading(false); }, 2500);
     return function() { clearTimeout(t1); clearTimeout(t2); };
   }, []);
-  // v2.9 JADWAL NOTIF: cek jam buka (default 08.00) & jam tutup (default 21.00) tiap 20 detik
-  // selama app jalan. Juga dikejar pas tab balik aktif. Maks 1x/hari per jenis (lihat Notif.tick).
-  React.useEffect(function() {
-    if (loading || !mounted) return;
-    // v2.10: daftarkan HP ke push server (walau app nanti ditutup, notif tetap
-    // bisa muncul) — jalan kalau izin notif sudah granted & sedang online.
-    var tp = setTimeout(function() { try { Notif.pushEnsure(); } catch (e) {} }, 5000);
-    var t = setTimeout(function() { try { Notif.tick(); } catch (e) {} }, 2500);
-    var iv = setInterval(function() { try { Notif.tick(); } catch (e) {} }, 20000);
-    var onVis = function() { if (!document.hidden) { try { Notif.tick(); } catch (e) {} } };
-    document.addEventListener('visibilitychange', onVis);
-    return function() { clearTimeout(tp); clearTimeout(t); clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
-  }, [loading, mounted]);
   // v2.6 THEME ENGINE: class html.theme-* + warna bilah status/notif ikut tema aktif.
   // Tema terang = putih tulang (#f8fafc) nyatu sama header putih (habis masalah blend
   // ijo di header); Charcoal = #121212 gelap total. Splash tetap gelap (#020617).
@@ -5758,7 +5244,6 @@ function App() {
         active === 'settings' && React.createElement(SettingsView, { onBack: goMore })
       )
     ),
-    React.createElement(NotifAutoAsk, null),
     toast && React.createElement(Toast, { key: toast.id, message: toast.msg, type: toast.type, onClose: () => setToast(null) })
   );
 }

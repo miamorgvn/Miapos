@@ -47,27 +47,10 @@ self.addEventListener('activate', (e) => {
 });
 
 // ============================================================
-// v2.9: PUSH NOTIFICATIONS (checklist PWABuilder #5 ✅)
-// Handler push beneran — kalau nanti ada server pengirim
-// (mis. Vercel cron), notif langsung muncul di bilah status HP.
-// Format pesan JSON: { title, body, tag, vibrate, url }
+// v2.10 REVISI: PUSH NOTIFICATIONS DIHAPUS — fitur notif dicabut
+// (permintaan owner). Gak ada handler 'push' & 'notificationclick'
+// lagi; yang tersisa: auto-update, offline cache, sync, periodic sync.
 // ============================================================
-self.addEventListener('push', (e) => {
-  var data = {};
-  try { data = e.data ? e.data.json() : {}; }
-  catch (err) { try { data = { body: e.data && e.data.text() }; } catch (e2) {} }
-  var title = data.title || 'Miapos';
-  var opts = {
-    body: data.body || 'Ada kabar baru dari Miapos 👋',
-    icon: './icon-192.png',
-    badge: './icon-192.png',
-    tag: data.tag || 'miapos-push',
-    vibrate: Array.isArray(data.vibrate) ? data.vibrate : [80, 40, 80],
-    dir: 'id',
-    data: { url: data.url || './' }
-  };
-  e.waitUntil(self.registration.showNotification(title, opts));
-});
 
 // ============================================================
 // v2.9: BACKGROUND SYNC (checklist PWABuilder #4 ✅)
@@ -104,19 +87,6 @@ self.addEventListener('periodicsync', (e) => {
       })()
     );
   }
-});
-
-// v2.8: notifikasi diketuk → buka/fokus aplikasi Miapos
-self.addEventListener('notificationclick', (e) => {
-  e.notification.close();
-  e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
-      for (var i = 0; i < list.length; i++) {
-        if ('focus' in list[i]) return list[i].focus();
-      }
-      return self.clients.openWindow('./');
-    })
-  );
 });
 
 self.addEventListener('fetch', (e) => {
