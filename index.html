@@ -402,7 +402,6 @@ const NOTIF_DEFAULTS = {
   notifMorningText: 'Selamat pagi, saatnya memulai kembali bisnis yaaa! Semangat ya hari ini! ☀️',
   notifNightText: 'Sudah jam 9 malam, waktunya tutup. Capek kan? Rest dulu, besok gas lagi! 😴',
   notifNightVibrate: true, // getar pendek di notif jam tutup
-  wxCardText: '',          // v2.10: teks custom kartu cuaca (kosong = salam otomatis)
   pushServer: true,        // v2.10: push dari server (notif muncul walau app ditutup)
   qrisImage: ''            // v2.10: gambar QRIS resto (dataURL) — tampil saat pembayaran
 };
@@ -447,7 +446,7 @@ function AppProvider({ children }) {
     }
     if (!loaded) loaded = generateSeed();
     // Normalisasi settings: field baru (mis. theme) dapat default aman utk data lama
-    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, wxCardText:'', pushServer:true, qrisImage:'' }, NOTIF_DEFAULTS, loaded.settings || {});
+    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, pushServer:true, qrisImage:'' }, NOTIF_DEFAULTS, loaded.settings || {});
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     loaded.archivedOrders = loaded.archivedOrders || [];
     // v2.10 NORMALISASI DATA — perbaiki layar blank putih di Stok & Bahan → tab
@@ -1095,12 +1094,71 @@ function wxFetch(force) {
     });
   });
 }
-// Salam sesuai jam — dipakai kartu cuaca & notifikasi pagi
+// Salam sesuai jam — dipakai kartu cuaca
 function greetParts(h) {
-  if (h >= 4 && h <= 10) return { label:'Selamat pagi', emoji:'☀️', sub:'Saatnya buka lapak, semangat ya!' };
-  if (h <= 14) return { label:'Selamat siang', emoji:'🌞', sub:'Semangat jaga antrian & omzetnya!' };
-  if (h <= 17) return { label:'Selamat sore', emoji:'🌇', sub:'Sikat orderan sorenya!' };
-  return { label:'Selamat malam', emoji:'🌙', sub:'Rehat dulu, data aman semua.' };
+  if (h >= 4 && h <= 10) return { label:'Selamat pagi', emoji:'☀️' };
+  if (h <= 14) return { label:'Selamat siang', emoji:'🌞' };
+  if (h <= 17) return { label:'Selamat sore', emoji:'🌇' };
+  return { label:'Selamat malam', emoji:'🌙' };
+}
+// ===== v2.10: TEKS KARTU CUACA RANDOM =====
+// Permintaan owner: teksnya jangan kaya "data aman semua" — kasir gak paham istilah teknis.
+// Sekarang teksnya ditentukan aplikasi sendiri: kumpulan kalimat santai kaya teman,
+// NOL kata data/backup/server, dan ganti sendiri (random) biar gak bosen dibaca tiap hari.
+var SALAM_POOL = {
+  pagi: [
+    'Semangat ya, hari ini pasti rame! ✨',
+    'Sarapan dulu biar kuat jaga kasir 🍳',
+    'Hari baru, rezeki baru — gaskeun! 🚀',
+    'Senyum dulu, pelanggan pertama nungguin 😄',
+    'Kopi dulu biar melek ngatur antrian ☕',
+    'Ayo buka lapak, semoga menu best seller abis semua! 💪',
+    'Pagi penuh berkah — jangan lupa senyum ya 😊',
+    'Cek stok sebentar biar gak ada menu yang habis 👀',
+    'Sikat orderan pagi, pelan-pelan aja 😌',
+    'Bismillah, semoga hari ini lancar terus 🌤️'
+  ],
+  siang: [
+    'Jangan lupa makan siang ya! 🍚',
+    'Siang ini rame ya — semangat! 💪',
+    'Istirahat sebentar, kamu juga butuh rehat 😄',
+    'Hari panjang ya, tapi kamu pasti bisa! 🔥',
+    'Minum dulu biar gak haus ngatur resto 🥤',
+    'Pelanggan senyum, kamu juga ikut senyum 😁',
+    'Orderan lancar terus, mantap! 🌞',
+    'Menu favorit pasti dicari terus siang ini 🍜',
+    'Santai aja, semua pasti beres 😎',
+    'Es teh dulu biar segar lagi 🧊'
+  ],
+  sore: [
+    'Sore santai, orderan tetap lancar ya 🌇',
+    'Udah lihat langit sore? Cantik banget 🧡',
+    'Snack dulu biar mood tetap oke 🍩',
+    'Semangat terakhir sebelum tutup! 🔥',
+    'Sore enak nih, cocoknya minum es teh 🧋',
+    'Kamu udah keren banget hari ini ✨',
+    'Bentar lagi tutup, tetap teliti ya 😊',
+    'Sisanya dikit, hampir selesai! 🎯',
+    'Senja indah, jualan juga indah 🌆',
+    'Sore-sore gini enaknya ngopi dulu ☕'
+  ],
+  malam: [
+    'Hari ini udah hebat, rehat ya! 🌙',
+    'Bersih-bersih dulu, nanti pulang tepat waktu 🧹',
+    'Malam ini tenang, kamu juga tenang 😌',
+    'Udah capek ya? Bentar lagi istirahat 🛋️',
+    'Tutup resto pelan-pelan, gak usah buru-buru 🌜',
+    'Terima kasih udah jaga resto hari ini 💚',
+    'Sisa energinya buat pulang dengan senyum 😊',
+    'Hitung uang pelan-pelan, teliti ya 🧮',
+    'Nanti tidur nyenyak, hari ini berkah 🌟',
+    'Malam makin sepi — waktunya santai ⭐'
+  ]
+};
+function salamRandom(h) {
+  var p = (h >= 4 && h <= 10) ? 'pagi' : (h <= 14 ? 'siang' : (h <= 17 ? 'sore' : 'malam'));
+  var arr = SALAM_POOL[p] || SALAM_POOL.pagi;
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 // ===== v2.8→v2.9: NOTIFIKASI BUKA & TUTUP RESTO (notifikasi sistem beneran) =====
 // • Notif BUKA  : muncul jam buka (default 08.00)  → isi: "morgvn: Selamat pagi, ..."
@@ -1307,9 +1365,14 @@ function WeatherCard() {
   var cw = wxMap(wx && wx.ok ? wx.code : -1);
   var g = greetParts(new Date().getHours());
   var nama = cashier ? cashier.name : '';
-  // v2.10: teks kartu cuaca bisa diatur owner (Owner Zone) — kosong = salam otomatis
-  var customText = String((settings && settings.wxCardText) || '').trim();
-  var salamLine = customText || (g.label + (nama ? ', ' + nama : '') + '! ' + g.sub + ' ' + g.emoji);
+  // v2.10: teks salam RANDOM — ganti tiap app dibuka + diacak ulang tiap 5 menit
+  // selama app jalan. Isinya kalimat santai, tanpa istilah teknis (aman buat kasir).
+  var [salamSub, setSalamSub] = React.useState(function() { return salamRandom(new Date().getHours()); });
+  React.useEffect(function() {
+    var iv = setInterval(function() { setSalamSub(salamRandom(new Date().getHours())); }, 5 * 60 * 1000);
+    return function() { clearInterval(iv); };
+  }, []);
+  var salamLine = g.label + (nama ? ', ' + nama : '') + '! ' + salamSub;
   var jam = wx && wx.at ? new Date(wx.at).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : '';
   var detail;
   if (!wx || !wx.ok) detail = 'Sambungkan internet sebentar buat ambil cuaca — app tetap jalan offline';
@@ -1335,37 +1398,105 @@ function WeatherCard() {
   );
 }
 
-// Banner kecil di Dashboard: minta izin notifikasi (cuma tampil sebelum diizinkan)
+// ===== v2.10: MINTA IZIN NOTIF LANGSUNG SAAT APP DIBUKA =====
+// Keluhan owner: "pas buka aplikasi gak ada izin notif" — karena Chrome cuma mau
+// nampilin popup izin SETELAH ada ketukan (user gesture). Solusinya: begitu app
+// dibuka & izin masih "default", KETUKAN PERTAMA di mana aja langsung memunculkan
+// popup izin notifikasi beneran dari browser — gak perlu nyari-nyari tombol lagi.
+// Gak nanya ulang kalau udah granted/denied, dan gak nembak pas baru ngetuk tombol
+// di banner (biar gak dobel popup).
+function NotifAutoAsk() {
+  const { show } = useToast();
+  React.useEffect(function() {
+    var done = false;
+    function cleanup() {
+      if (done) return; done = true;
+      document.removeEventListener('pointerdown', onTap, true);
+    }
+    function onTap(e) {
+      // ketukan di banner izin → biarkan tombolnya sendiri yang minta izin
+      try { if (e.target && e.target.closest && e.target.closest('[data-notif-banner]')) return; } catch (er) {}
+      if (Notif.perm() !== 'default') { cleanup(); return; }
+      cleanup();
+      try {
+        Notification.requestPermission().then(function(p) {
+          try { window.dispatchEvent(new Event('miapos-perm-changed')); } catch (e2) {}
+          if (p === 'granted') {
+            show('🔔 Notifikasi aktif — salam buka & tutup resto siap muncul');
+            try { Notif.pushEnsure(); } catch (e) {}
+            try { Notif.tick(); } catch (e) {}
+          }
+        }).catch(function() {});
+      } catch (e) {}
+    }
+    document.addEventListener('pointerdown', onTap, true);
+    return cleanup;
+  }, []);
+  return null;
+}
+
+// Banner izin notifikasi di Dashboard — v2.10:
+// • "Nanti" cuma nyembunyiin banner SELAMA app ini jalan. Besok buka app → banner
+//   nongol lagi + popup izin nanya lagi (dulu kena "Nanti" = hilang 3 hari, makanya
+//   owner kira popupnya keblokir karena gak pernah nongol lagi).
+// • Izin DIBLOKIR di browser? Banner berubah jadi panduan buka blokir + tombol cek ulang.
+var NOTIF_SNOOZE_SESSION = false;
 function NotifPromptCard() {
   const { state } = useAppStore();
   const { show } = useToast();
   const [perm, setPerm] = React.useState(function() { return Notif.perm(); });
-  const [hidden, setHidden] = React.useState(function() {
-    try { var s = parseInt(localStorage.getItem('miapos-notif-snooze') || '0', 10) || 0; return Date.now() - s < 3 * 24 * 60 * 60 * 1000; } catch (e) { return false; }
-  });
-  if (perm !== 'default' || hidden) return null;
+  const [hidden, setHidden] = React.useState(NOTIF_SNOOZE_SESSION);
+  // balik dari setelan browser → cek ulang izinnya otomatis
+  React.useEffect(function() {
+    var onVis = function() { if (!document.hidden) setPerm(Notif.perm()); };
+    var onChg = function() { setPerm(Notif.perm()); }; // popup izin dari ketukan pertama baru selesai
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('miapos-perm-changed', onChg);
+    return function() { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('miapos-perm-changed', onChg); };
+  }, []);
   function allow() {
     try {
       Notification.requestPermission().then(function(p) {
         setPerm(p);
         if (p === 'granted') {
-          show('🔔 Notifikasi aktif — salam pagi siap muncul');
+          show('🔔 Notifikasi aktif — salam buka & tutup resto siap muncul');
           var cash = state.employees.find(function(e) { return e.id === state.settings.cashierId; });
           Notif.maybeMorning(cash ? cash.name : '', state.settings.morningNotif !== false);
           // v2.10: sekalian daftarkan push server (notif walau app ditutup)
           Notif.pushEnsure();
-        } else { setHidden(true); show('Izin notif ditolak — bisa diaktifkan lagi di baris "Notifikasi Resto" (Pengaturan)', 'error'); }
-      }).catch(function() { setHidden(true); });
-    } catch (e) { setHidden(true); }
+        } else if (p === 'denied') {
+          show('Izin notif diblokir — ikuti panduan buka blokirnya', 'error');
+        }
+      }).catch(function() {});
+    } catch (e) {}
   }
-  function later() { try { localStorage.setItem('miapos-notif-snooze', String(Date.now())); } catch (e) {} setHidden(true); }
-  return React.createElement(Card, { className:'border-emerald-200 bg-emerald-50/60 animate-mp-pop' },
+  function cekLagi() {
+    var p = Notif.perm(); setPerm(p);
+    if (p === 'granted') { show('🔔 Notifikasi sudah aktif!'); try { Notif.pushEnsure(); } catch (e) {} }
+    else show('Masih diblokir — coba lagi langkah buka blokirnya ya', 'error');
+  }
+  function later() { NOTIF_SNOOZE_SESSION = true; setHidden(true); }
+  if (perm === 'granted' || perm === 'unsupported' || hidden) return null;
+  // ---- izin diblokir: panduan buka blokir ----
+  if (perm === 'denied') return React.createElement(Card, { className:'border-red-200 bg-red-50/60 animate-mp-pop' },
+    React.createElement('div', { className:'flex items-start gap-3 p-3 md:p-4' },
+      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-500 text-white shadow-md shadow-red-500/30' },
+        React.createElement(Icon, { name:'bell-off', className:'w-5 h-5' })),
+      React.createElement('div', { className:'flex-1 min-w-0' },
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Notifikasi Diblokir di Browser 🔕'),
+        React.createElement('p', { className:'text-xs text-slate-600 mt-0.5 leading-relaxed' }, 'Buka blokir: ketuk ikon 🔒 / ⋮ di address bar → Setelan situs → Notifikasi → Izinkan → buka ulang app Miapos.'),
+        React.createElement('p', { className:'text-[10px] text-slate-500 mt-1 leading-relaxed' }, 'Pakai app Play Store? Setelan HP → Aplikasi → Miapos → Notifikasi → nyalakan "Semua notifikasi".')),
+      React.createElement(Button, { size:'sm', onClick: cekLagi, className:'shrink-0' }, 'Cek Lagi')
+    )
+  );
+  // ---- izin belum diminta: banner ajakan (popup asli muncul di ketukan pertama) ----
+  return React.createElement(Card, { className:'border-emerald-200 bg-emerald-50/60 animate-mp-pop', 'data-notif-banner': true },
     React.createElement('div', { className:'flex items-center gap-3 p-3 md:p-4' },
       React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30' },
         React.createElement(Icon, { name:'bell', className:'w-5 h-5' })),
       React.createElement('div', { className:'flex-1 min-w-0' },
-        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Aktifkan Notifikasi Pagi ☀️'),
-        React.createElement('p', { className:'text-xs text-slate-600' }, 'Notif salam jam buka & pengingat jam tutup dari owner kamu — teks & jamnya diatur di Owner Zone (Pengaturan).')),
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Aktifkan Notifikasi Resto ☀️'),
+        React.createElement('p', { className:'text-xs text-slate-600' }, 'Ketuk IZINKAN — popup izin dari browser bakal muncul. Notif salam jam buka & tutup dari owner kamu bakal masuk.')),
       React.createElement('div', { className:'flex gap-1.5 shrink-0' },
         React.createElement(Button, { size:'sm', onClick: allow }, 'Izinkan'),
         React.createElement(Button, { size:'sm', variant:'outline', onClick: later }, 'Nanti'))
@@ -4424,7 +4555,6 @@ function OwnerZoneScreen({ onBack }) {
   const [nightText, setNightText] = React.useState(s.notifNightText || NOTIF_DEFAULTS.notifNightText);
   const [vib, setVib] = React.useState(s.notifNightVibrate !== false);
   // v2.10: teks kartu cuaca + push server (walau app ditutup)
-  const [wxText, setWxText] = React.useState(s.wxCardText || '');
   const [pushOn, setPushOn] = React.useState(s.pushServer !== false);
   const [pushBusy, setPushBusy] = React.useState(false);
   const [pwLama, setPwLama] = React.useState('');
@@ -4445,9 +4575,8 @@ function OwnerZoneScreen({ onBack }) {
     var ot = (openTime || '').trim() || '08:00';
     var ct = (closeTime || '').trim() || '21:00';
     var nm = (ownerName || '').trim() || 'morgvn';
-    var wxt = (wxText || '').trim();
-    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, wxCardText: wxt, pushServer: pushOn });
-    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm); setWxText(wxt);
+    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, pushServer: pushOn });
+    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm);
     show('Tersimpan ✅ Notif buka jam ' + ot + ' · notif tutup jam ' + ct);
     // v2.10: sinkron ke server biar push (walau app ditutup) pakai teks/jam terbaru
     Notif.pushUploadConfig({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, pushServer: pushOn }, false)
@@ -4541,11 +4670,6 @@ function OwnerZoneScreen({ onBack }) {
   }
 
   // ---- Terbuka: panel owner — disortir jadi SEKSI GULUNG (klik = layarnya kebuka) ----
-  function simpanCuaca() {
-    var wxt = (wxText || '').trim();
-    updateSettings({ wxCardText: wxt });
-    show(wxt ? 'Teks kartu cuaca tersimpan ✅' : 'Kartu cuaca balik ke salam otomatis ✅');
-  }
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner', onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-3' },
@@ -4601,18 +4725,8 @@ function OwnerZoneScreen({ onBack }) {
           )
         )
       ),
-      // ===== SEKSI 2 — TEKS KARTU CUACA =====
-      React.createElement(Card, { className:'overflow-hidden' },
-        SectHead('cuaca', 'cloud-sun', '\u2601\uFE0F Teks Kartu Cuaca', 'Teks dashboard \u2014 kosong = salam otomatis'),
-        sect === 'cuaca' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-2' },
-          React.createElement('p', { className:'text-xs text-slate-500 leading-relaxed' }, 'Teks di kartu cuaca paling atas Dashboard. Kosongkan = salam otomatis (Selamat pagi, Chelsa! \u2026) yang ganti sendiri pagi/siang/sore/malam & ikut nama kasir yang lagi aktif.'),
-          React.createElement('textarea', { value: wxText, onChange: function(e) { setWxText(e.target.value); }, rows: 2, maxLength: 120,
-            placeholder:'Contoh: Hari cerah, semangat jualan yuk! \u2600\uFE0F',
-            className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
-          React.createElement(Button, { onClick: simpanCuaca }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan Teks Cuaca')
-        )
-      ),
-      // ===== SEKSI 3 — NOTIF WALAU APP DITUTUP (PUSH SERVER) =====
+      // ===== SEKSI 2 — NOTIF WALAU APP DITUTUP (PUSH SERVER) =====
+      // (v2.10: seksi "Teks Kartu Cuaca" DIHAPUS — teksnya sekarang random otomatis dari app)
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('push', 'satellite-dish', '📴 Notif Walau App Ditutup', 'Push server \u2014 jam 08.00 & 21.00 WIB'),
         sect === 'push' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-3' },
@@ -4632,7 +4746,7 @@ function OwnerZoneScreen({ onBack }) {
           React.createElement('p', { className:'text-[10px] text-slate-400 leading-relaxed' }, 'Butuh deploy di Vercel (api/push-subscribe.js + push-send.js + vercel.json) \u2014 langkah lengkap di PANDUAN-NOTIF.txt. Tes dari server butuh password backup yang diisi dulu di menu Backup Cloud.')
         )
       ),
-      // ===== SEKSI 4 — QRIS RESTO =====
+      // ===== SEKSI 3 — QRIS RESTO =====
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('qris', 'qr-code', 'QRIS Resto', 'Upload QRIS \u2014 muncul saat pembayaran'),
         sect === 'qris' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100' },
@@ -4654,7 +4768,7 @@ function OwnerZoneScreen({ onBack }) {
           )
         )
       ),
-      // ===== SEKSI 5 — KEAMANAN =====
+      // ===== SEKSI 4 — KEAMANAN =====
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('keamanan', 'shield', '🔒 Keamanan', 'Ganti password Owner Zone'),
         sect === 'keamanan' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-2' },
@@ -5644,6 +5758,7 @@ function App() {
         active === 'settings' && React.createElement(SettingsView, { onBack: goMore })
       )
     ),
+    React.createElement(NotifAutoAsk, null),
     toast && React.createElement(Toast, { key: toast.id, message: toast.msg, type: toast.type, onClose: () => setToast(null) })
   );
 }

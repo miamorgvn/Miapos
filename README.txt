@@ -41,18 +41,32 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
      lama/backup tanpa varian) — sudah dibaliki lapis
      normalisasi otomatis. Gak blank lagi.
 6. OWNER ZONE MAKIN RAPIH:
-   • Isinya sekarang SEKSI GULUNG: Notifikasi / Kartu Cuaca /
-     Push Server / QRIS / Keamanan — klik baru layarnya
-     kebuka, gak numpuk panjang ke bawah.
-   • Teks kartu cuaca bisa diatur owner (kosong = salam
-     otomatis yang ikut jam & nama kasir).
+   • Isinya sekarang SEKSI GULUNG: Notifikasi / Push Server /
+     QRIS / Keamanan — klik baru layarnya kebuka, gak numpuk
+     panjang ke bawah. (Setelan teks kartu cuaca DIHAPUS —
+     teksnya sekarang diatur app sendiri.)
    • Kartu cuaca NAIK ke paling atas Dashboard (di atas
      4 kotak ringkasan) — sesuai permintaan.
-7. IZIN NOTIFIKASI MAKIN GAMPANG:
-   • Tombol Tes Notifikasi sekarang sekaligus minta izin
-     (gak perlu nyari baris lain dulu).
-   • Kalau izin diblokir, app kasih tahu langkah buka blokir
-     di setelan HP. Detail: PANDUAN-NOTIF.txt.
+7. TEKS KARTU CUACA RANDOM (BARU — permintaan owner):
+   • Salam di kartu cuaca sekarang RANDOM: "Selamat malam,
+     Trinda!" diikuti kalimat santai yang ganti sendiri —
+     tiap app dibuka beda + diacak ulang tiap 5 menit
+     (10 kalimat per waktu: pagi/siang/sore/malam).
+   • Isinya dikontrol app: kalimat kenyamanan buat kasir
+     (semangat, jam makan, rehat) — TANPA kata teknis kaya
+     "data aman semua" yang bikin kasir bingung.
+8. IZIN NOTIFIKASI DIJAMIN MUNCUL (BARU — perbaikan):
+   • Begitu app dibuka, popup izin notifikasi BENERAN
+     muncul di ketukan pertama di mana aja (dulu Chrome
+     butuh ketukan tapi app gak pernah nimpa — makanya
+     kaya "diblokir").
+   • Banner "Aktifkan Notifikasi Resto" MUNCUL LAGI tiap
+     app dibuka selama izin belum diizinkan (dulu sekali
+     ketuk "Nanti" = hilang 3 hari).
+   • Kalau izinnya diblokir di browser, banner berubah
+     jadi kartu MERAH berisi panduan buka blokir + tombol
+     "Cek Lagi". Tombol Tes Notifikasi juga tetap minta
+     izin. Detail: PANDUAN-NOTIF.txt.
 8. SHEET "TAMBAH MENU" DI DETAIL PESANAN:
    • Buka pesanan (menu Pesanan) → "+ Tambah Menu" → muncul
      KOTAK BAWAH (drag-handle) yang tampilannya sama persis

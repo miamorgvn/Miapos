@@ -34,8 +34,8 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
            seperti panduan backup cloud).
 [x] 5. FIX blank putih (Stok & Bahan → Produk)
 [x] 6. Owner Zone: judul polos, isi jadi seksi
-       gulung (klik buka), ada QRIS & teks kartu
-       cuaca di dalamnya.
+       gulung (klik buka), ada QRIS di dalamnya
+       (teks kartu cuaca dihapus — sekarang random).
 [x] 7. Kartu cuaca pindah ke paling atas Dashboard.
 [x] 8. Tombol Tes Notif sekarang minta izin
        langsung + panduan buka blokir izin.

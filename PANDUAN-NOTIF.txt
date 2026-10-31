@@ -33,30 +33,41 @@ ISI NOTIFNYA
 
 ================================================
 A. IZIN NOTIFIKASI (WAJIB — INI YANG SERING BIKIN
-   NOTIF GAK MUNCUL)
+   NOTIF GAK MUNCUL)  — DIPERBAIKI DI v2.10
 ================================================
 Notif gak bakal muncul kalo izinnya belum "DIIZINKAN".
-Cara benarnya:
 
-1. Buka app Miapos → bakal muncul banner hijau
-   "Aktifkan Notifikasi Pagi" → ketuk IZINKAN →
-   popup izin Chrome muncul → pilih IZINKAN/ALLOW.
-   (Banner hilang? Buka Pengaturan → baris
-   "Notifikasi Resto ☀️🌙" → ketuk → minta izin lagi.
-   Atau tombol "Kirim Notifikasi Tes" — sekarang
-   sekaligus minta izin.)
+KENAPA DULU KAYA "KEBLOKIR"?
+Chrome/Android cuma mau nampilin popup izin SETELAH ada
+ketukan di layar (aturan browser, bukan bug Miapos). Dulu
+app belum nimpa popup pas ketukan pertama + banner izinnya
+sekali ketuk "Nanti" langsung hilang 3 hari — jadi kaya
+gak pernah nanya. Sekarang udah dibenerin:
 
-2. KALAU POPUP IZIN GAK MAU MUNCUL LAGI / PERNAH DITOLAK:
+1. BUKA APP MIapos → KETUK DI MANA AJA (sekali aja) →
+   popup izin notif dari Chrome LANGSUNG MUNCUL →
+   pilih IZINKAN/ALLOW. Gak perlu nyari-nyari tombol.
+
+2. Banner hijau "Aktifkan Notifikasi Resto" di Dashboard
+   juga MUNCUL LAGI tiap app dibuka selama izinnya belum
+   diizinkan ("Nanti" cuma nyembunyiin banner selama app
+   itu jalan aja — besok buka app nongol lagi).
+
+3. KALAU IZINNYA DIBLOKIR (banner jadi MERAH
+   "Notifikasi Diblokir di Browser"):
    Chrome gak boleh nanya 2x — harus buka blokir manual:
-   • LEWAT APP (kalau Miapos dipasang dari Play Store):
+   • LEWAT CHROME (buka lewat browser):
+     ketuk ikon 🔒 / titik tiga di address bar →
+     Setelan situs → Notifikasi → Izinkan →
+     buka ulang app Miapos → ketuk "Cek Lagi".
+   • LEWAT APP (Miapos dipasang dari Play Store/TWA):
      Setelan HP → Aplikasi → Miapos → Notifikasi →
-     nyalakan "Semua notifikasi".
-   • LEWAT CHROME (kalau buka lewat browser):
+     nyalakan "Semua notifikasi" → buka ulang app.
+   • LEWAT SETELAN SITUS (kaya screenshot owner):
      Chrome → titik tiga → Setelan → Setelan situs →
-     Notifikasi → cari miapos / url Vercel lu → Izinkan.
-     (Atau: setelan HP → Aplikasi → Chrome → Notifikasi
-     → izinkan dulu.)
-3. HPnya juga jangan kasih "Jangan Ganggu / Focus mode"
+     Notifikasi → cari miaposv2.vercel.app → Izinkan.
+
+4. HPnya juga jangan kasih "Jangan Ganggu / Focus mode"
    ke app Chrome/Miapos, dan hemat baterai jangan "dibatasi"
    total buat Chrome — biar notif gak ditahan.
 
@@ -64,6 +75,13 @@ CARA CEK IZINNYA UDAH MASUK APA BELUM:
 Pengaturan → "Notifikasi Resto ☀️🌙" → tulisannya harus
 "Aktif — notif buka jam 08.00 & tutup jam 21.00".
 Kalau masih "Ketuk untuk izinkan" → belum granted.
+Tombol "Kirim Notifikasi Tes" juga sekaligus minta izin.
+
+CATATAN TEKS KARTU CUACA (v2.10):
+Setelan "Teks Kartu Cuaca" di Owner Zone DIHAPUS. Salam di
+kartu cuaca sekarang otomatis RANDOM dari app (kalimat
+santai buat kasir, ganti tiap buka app + tiap 5 menit) —
+gak ada kata "data" atau istilah teknis lagi.
 
 ================================================
 B. NOTIF WALAU APP DITUTUP (PUSH SERVER) — SETELAN
