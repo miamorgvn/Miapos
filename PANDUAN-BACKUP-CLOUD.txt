@@ -1,0 +1,114 @@
+================================================
+  MIAPOS v2.8 — BACKUP CLOUD OTOMATIS
+  (tanpa Termux · tanpa jaga server · gratis)
+================================================
+
+APA INI?
+--------
+Setelah setup SEKALI (±10 menit), aplikasi Miapos yang
+dibuka lewat URL Vercel otomatis nyimpan snapshot data ke
+folder backups/ di repo GitHub kamu:
+   - Maksimal 1x per 2 jam, dan hanya kalau datanya
+     beneran berubah.
+   - Cukup 7 backup terakhir yang disimpan (rotasi
+     otomatis, satu file per hari).
+   - Tiap backup keliatan sebagai commit di repo.
+Kalau HP hilang / data browser kehapus / ganti HP →
+buka app → isi password → Pulihkan → data balik lagi.
+
+TANPA setup ini app tetap jalan normal — data tersimpan
+di HP (offline). Setup ini cuma buat "asuransi" data.
+
+YANG DIPERLUKIN
+---------------
+- Repo GitHub + Vercel yang udah jalan (punya lu).
+- Aplikasi versi v2.8 (timpa file v2.8 ke repo dulu —
+  ikut PANDUAN-GITHUB.txt, sekalian folder api/).
+
+LANGKAH 1 — BIKIN TOKEN GITHUB (kunci API)
+------------------------------------------
+1. Buka github.com → login → klik foto profil →
+   Settings →scroll paling bawah → "Developer settings".
+2. "Personal access tokens" → "Fine-grained tokens" →
+   "Generate new token".
+3. Isi begini:
+   - Token name        : miapos-backup
+   - Expiration        : 90 hari (atau No expiration)
+   - Repository access : "Only select repositories"
+     → pilih repo Miapos kamu.
+   - Permissions → Repository permissions →
+     Contents : "Read and write"
+     (permission lain biarkan No access)
+4. Klik Generate token → COPY kode tokennya (mulai
+   github_pat_... / ghp_...). Copy SEKARANG, setelah
+   keluar halaman gak bisa dilihat lagi!
+
+LANGKAH 2 — 2 ENV DI VERCEL
+---------------------------
+1. Buka vercel.com → project Miapos kamu →
+   Settings → Environment Variables.
+2. Tambahkan DUA variable (Add new):
+   a. Name  : GITHUB_TOKEN
+      Value : paste token dari Langkah 1
+   b. Name  : BACKUP_KEY
+      Value : password bebas buatan lu
+              contoh: kopi27rahasia
+      (ini password untuk app — PAHAM INGET!)
+3. Kalau nama branch repo kamu BUKAN "main"
+   (misal "master"), tambahin satu lagi:
+      Name : GITHUB_BRANCH   Value : master
+4. Aktifin env-nya: tab Deployments → klik deployment
+   paling atas → menu ⋯ → Redeploy → Confirm.
+
+LANGKAH 3 — NYALAIN DI APLIKASI (sekali aja)
+--------------------------------------------
+1. Buka app Miapos (URL Vercel / app yang sudah
+   ke-install di HP).
+2. Pengaturan → "Backup Cloud & Mesin Lokal".
+3. Muncul kotak kuning "AKTIFKAN BACKUP CLOUD"
+   → ketik BACKUP_KEY tadi → ketuk "Aktifkan".
+4. Badge jadi hijau "CLOUD AKTIF" = beres!
+5. Tes: ketuk "Backup Sekarang" → buka repo GitHub
+   kamu → sekarang ada folder backups/ berisi file
+   backup. Auto-backup berikutnya jalan sendiri.
+
+PULIHKAN DATA (RESTORE)
+-----------------------
+1. Pengaturan → "Backup Cloud & Mesin Lokal".
+2. Lihat daftar "BACKUP TERSIMPAN" → ketuk
+   "Pulihkan" di tanggal yang mau.
+3. Konfirmasi → app reload → data balik.
+   HATI-HATI: data yang ada sekarang DIGANTI
+   dengan isi backup (memang gitu cara kerjanya).
+
+GANTI HP / HP HILANG
+--------------------
+1. Di HP baru: buka URL Vercel → install app
+   (menu Chrome → tambah ke layar utama).
+2. Pengaturan → "Backup Cloud & Mesin Lokal"
+   → isi BACKUP_KEY yang SAMA.
+3. Daftar backup muncul → "Pulihkan". SELESAI.
+
+TROUBLESHOOT
+------------
+- "PASSWORD SALAH" → isi di app harus PERSIS sama
+  dengan env BACKUP_KEY di Vercel (huruf besar/
+  kecil beda dianggap beda).
+- "SERVER CEK ENV" → env GITHUB_TOKEN/BACKUP_KEY
+  belum di-set, atau BELUM Redeploy setelah di-set.
+- Backup gak muncul di repo → pastikan token punya
+  izin "Contents: Read and write", repo-nya yang
+  benar, dan token belum kedaluwarsa.
+- Token kedaluwarsa (mis. 90 hari) → ulangi
+  LANGKAH 1, ganti nilai GITHUB_TOKEN di Vercel,
+  lalu Redeploy.
+
+BUAT PENGGUNA TERMUX
+--------------------
+Termux tetap bisa dipakai (opsional) — python main.py
+tidak berubah. Bedanya sekarang:
+   - Kamu TIDAK LAGI WAJIB nyala'in Termux terus-
+   - terusan cuma buat backup (yang nguras batre).
+   - Backup dari mode Termux juga bisa dipulihkan
+     lewat daftar di app.
+   - Mesin C++ tetap jalan kalau kamu suka.

@@ -13,7 +13,7 @@
    Tidak jalan di file:// (Termux) — aman, app tetap offline.
    ============================================================ */
 
-const CACHE = 'miapos-v2.6';
+const CACHE = 'miapos-v2.9';
 
 const CORE = [
   './',
@@ -46,12 +46,87 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// ============================================================
+// v2.9: PUSH NOTIFICATIONS (checklist PWABuilder #5 ✅)
+// Handler push beneran — kalau nanti ada server pengirim
+// (mis. Vercel cron), notif langsung muncul di bilah status HP.
+// Format pesan JSON: { title, body, tag, vibrate, url }
+// ============================================================
+self.addEventListener('push', (e) => {
+  var data = {};
+  try { data = e.data ? e.data.json() : {}; }
+  catch (err) { try { data = { body: e.data && e.data.text() }; } catch (e2) {} }
+  var title = data.title || 'Miapos';
+  var opts = {
+    body: data.body || 'Ada kabar baru dari Miapos 👋',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    tag: data.tag || 'miapos-push',
+    vibrate: Array.isArray(data.vibrate) ? data.vibrate : [80, 40, 80],
+    dir: 'id',
+    data: { url: data.url || './' }
+  };
+  e.waitUntil(self.registration.showNotification(title, opts));
+});
+
+// ============================================================
+// v2.9: BACKGROUND SYNC (checklist PWABuilder #4 ✅)
+// Saat HP online lagi, SW kasih tahu app buat mengulang
+// kerjaan yang sempat tertahan (mis. kirim backup).
+// ============================================================
+self.addEventListener('sync', (e) => {
+  if (e.tag === 'miapos-sync' || e.tag === 'miapos-backup') {
+    e.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        list.forEach((c) => { try { c.postMessage({ type: 'MIAPOS_SYNC_NOW', tag: e.tag }); } catch (err) {} });
+      })
+    );
+  }
+});
+
+// ============================================================
+// v2.9: PERIODIC SYNC (checklist PWABuilder #3 ✅)
+// Sinkron ringan berkala (mis. 12 jam sekali) untuk app yang
+// sudah di-install — segarkan cache biar app selalu siap.
+// ============================================================
+self.addEventListener('periodicsync', (e) => {
+  if (e.tag === 'miapos-periodic') {
+    e.waitUntil(
+      (async () => {
+        try {
+          const cache = await caches.open(CACHE);
+          await Promise.allSettled(CORE.map((u) => cache.add(u)));
+        } catch (err) {}
+        try {
+          const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+          list.forEach((c) => { try { c.postMessage({ type: 'MIAPOS_PERIODIC', tag: e.tag }); } catch (err) {} });
+        } catch (err) {}
+      })()
+    );
+  }
+});
+
+// v2.8: notifikasi diketuk → buka/fokus aplikasi Miapos
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (var i = 0; i < list.length; i++) {
+        if ('focus' in list[i]) return list[i].focus();
+      }
+      return self.clients.openWindow('./');
+    })
+  );
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== location.origin) return;
+  // v2.7: API (backup cloud dll) TIDAK di-cache — selalu jaringan langsung
+  if (url.pathname.indexOf('/api/') === 0) return;
 
   // NETWORK-FIRST: versi baru selalu menang; offline pakai cache
   e.respondWith(

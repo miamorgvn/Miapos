@@ -1,61 +1,153 @@
 ================================================
   MIAPOS — PANDUAN GITHUB & UPDATE APLIKASI
+  (dipperbarui untuk v2.9 — dibikin detail biar jelas)
 ================================================
 
-NIMPA FILE BARU KE REPO (cara update aplikasi)
-----------------------------------------------
+PRINSIP DASARNYA CUMA 1
+-----------------------
 Web kamu live di Vercel karena tersambung ke repo GitHub.
 Jadi update aplikasi = TIMPA FILE DI REPO, selesai. Vercel
 otomatis deploy ulang (±1 menit), lalu app di semua HP
 pengguna update sendiri lewat service worker (sw.js).
+TIDAK PERLU uninstall app di HP. Sekali install, selamanya.
+
+==========================================================
+FILE APA SAJA YANG HARUS DIPUSH? (INI PALING SERING DITANYA)
+==========================================================
+
+Gampangnya gini — ikut tabel ini:
+
+  FILE / FOLDER        KAPAN DIPUSH?
+  -------------------  ------------------------------------------
+  index.html           WAJIB tiap update (ini aplikasinya)
+  sw.js                WAJIB tiap update (mesin auto-update)
+  manifest.json        WAJIB tiap update (kecil, sekalian aja)
+  README.txt           opsional (sekalian aja, namanya sama
+  PANDUAN-GITHUB.txt   otomatis ketimpa sama yang baru)
+  PANDUAN-PLAYSTORE.txt
+  PANDUAN-BACKUP-CLOUD.txt
+  CHECKLIST-UPDATE.txt
+  favicon.ico          WAJIB kalau barusan ganti icon
+  icon-192.png         WAJIB kalau barusan ganti icon
+  icon-512.png         WAJIB kalau barusan ganti icon
+  main.py / *.sh       Cuma kalau dipakai Termux (sekalian aja)
+  engine/              Cuma kalau dipakai Termux (sekalian aja)
+
+  FOLDER KHUSUS — PERHATIKAN INI:
+
+  lib/   → Isinya React, Tailwind, dll. DIPUSH SEKALI aja
+           di awal. Update selanjutnya jarang berubah.
+           Kalau ragu, upload sekalian — nggak ngaruh apa2.
+  api/   → WAJIB ADA DI REPO (isinya ping.js & backup.js).
+           Ini MESIN BACKUP CLOUD OTOMATIS — backup dari
+           app dikirim ke sini, lalu disimpan ke folder
+           backups/ di repo GitHub kamu.
+           KALAU FOLDER INI NGGAK DIPUSH → BACKUP CLOUD
+           MEMANG NGGAK JALAN (app bakal bilang
+           "SERVER CEK ENV"). Jadi: push sekali, biarkan
+           di sana — update selanjutnya nggak perlu ditimpa
+           lagi kecuali gua bilang filenya berubah.
+  backups/ → JANGAN dibikin manual, JANGAN dihapus. Folder
+           ini dibikin otomatis oleh api/backup.js pas
+           backup pertama jalan. Isinya data backup kamu.
+
+INTINYA: Kalau bingung, PUSHA SEMUA ISI ZIP. Nggak ada
+efek sampingnya — yang sama otomatis ketimpa, yang belum
+ada otomatis kebikin. Aman 100%.
 
 == CARA A — LEWAT WEBSITE GITHUB (paling gampang, tanpa Termux) ==
 1. Extract zip Miapos terbaru di HP/PC kamu.
 2. Buka github.com → masuk repo miapos kamu.
 3. Klik "Add file" → "Upload files".
-4. Pilih / tarik file-file ini (yang berubah tiap versi —
-   semuanya di root, tanpa folder):
-      index.html             (WAJIB)
-      sw.js                  (WAJIB — mesin auto-update)
-      manifest.json          (WAJIB)
-      README.txt             (opsional)
-      PANDUAN-GITHUB.txt     (opsional)
-      PANDUAN-PLAYSTORE.txt  (opsional)
+4. Drag SEMUA file di root (luar folder):
+      index.html, sw.js, manifest.json, favicon.ico,
+      icon-192.png, icon-512.png, README.txt,
+      PANDUAN-GITHUB.txt, PANDUAN-PLAYSTORE.txt,
+      PANDUAN-BACKUP-CLOUD.txt, CHECKLIST-UPDATE.txt,
+      main.py, install.sh, start.sh
    File lama yang namanya sama OTOMATIS KETIMPA.
-5. Klik "Commit changes" (pesan bebas, mis. "update v2.6").
-6. Tunggu ±1 menit → Vercel deploy ulang sendiri. Cek: buka
-   app → Setelan → Mesin Lokal → tertulis versi baru.
+5. KALAU REPO KAMU BELUM PUNYA folder lib/ dan folder api/
+   → drag FOLDER lib/ dan FOLDER api/ sekalian dari PC
+   (GitHub otomatis meng-upload isi foldernya).
+   Kalau foldernya SUDAH ada di repo → lewati, nggak usah.
+   CATATAN v2.9: folder api/ WAJIB ada di repo — folder ini
+   MESIN BACKUP CLOUD OTOMATIS (isinya ping.js & backup.js).
+   Tanpa folder ini, backup cloud memang tidak jalan
+   (app akan bilang "SERVER CEK ENV"). Push sekali, selesai.
+6. Klik "Commit changes" (pesan bebas, mis. "update v2.9").
+7. Tunggu ±1 menit → Vercel deploy ulang sendiri. Beres.
 
-   Catatan: kalau repo kamu belum ada folder lib/ atau ragu
-   isinya, upload juga SEMUA isi zip termasuk folder lib/
-   (paling gampang drag folder lib sekaligus dari PC).
+   TRICK bikin folder di GitHub: pas "Create new file",
+   ketik namanya pakai garis miring — contoh ketik
+      api/ping.js
+   → GitHub otomatis bikin folder "api/" buat kamu.
 
-== CARA B — LEWAT TERMUX (4 perintah) ==
+== CARA B — LEWAT TERMUX (paling cepet, 4 perintah) ==
 Simpan zip Miapos ke HP, lalu di Termux:
 
    cd ~/miapos
-   unzip -o ~/storage/downloads/miapos-v2.6.zip
+   unzip -o ~/storage/downloads/miapos-v2.9.zip
    git add -A
-   git commit -m "Miapos v2.6"
+   git commit -m "Miapos v2.9"
    git push
 
    (-o = timpa semua file lama langsung di tempat. Zip
-   Miapos sekarang TANPA folder pembungkus, jadi extract
-   langsung nimpa dengan benar.)
+   Miapos TANPA folder pembungkus, jadi extract langsung
+   nimpa dengan benar — termasuk bikin folder api/ kalau
+   belum ada.)
+   (git add -A = masukin SEMUA perubahan: file baru,
+   file ketimpa, dan file kehapus. Jadi nggak perlu mikir
+   file mana yang berubah.)
    Kalau push ditolak "rejected" → pakai: git push --force
 
-SETELAH NIMPA — AUTO-UPDATE JALAN SENDIRI
------------------------------------------
+== CARA B KALAU ADA FILE BARU (contoh: folder api/) ==
+Sama persis kayak di atas! Zip terbaru tinggal di-extract
+pakai unzip -o, folder api/ ikut kebikin sendiri kalau
+belum ada, terus git add -A nyiderek semuanya. Cukup.
+Kamu nggak perlu hafal file mana yang baru — yang penting
+zip-nya yang TERBARU.
+
+==========================================================
+APP DI HP: GAK PERLU UNINSTALL-UNINSTALL LAGI
+==========================================================
+
+Ini penting biar tenang:
+
+1. App yang ke-install di HP (via Chrome "Tambahkan ke layar
+   utama" / APK PWABuilder) itu CUMA "cangkang"-nya.
+   Isinya (index.html dll) diambil dari Vercel.
+2. Kamu push ke GitHub → Vercel deploy → app di HP otomatis
+   ambil versi baru pas dibuka pakai internet → reload
+   sendiri. TANPA uninstall. TANPA install ulang. SELAMANYA.
+3. Cuma 1 kasus yang butuh ganti APK: kalau kamu MAU memperbarui
+   APLIKASI DI PLAY STORE-nya. Caranya: bikin APK/AAB baru di
+   PWABuilder (tinggal next-next, URL Vercel sama) → upload
+   ke Play Console sebagai update (naikkan versionCode).
+   Pengguna Play Store dapat update dari Play. Yang install
+   langsung dari APK juga tinggal install APK barunya
+   DI ATAS yang lama (data aman, nggak perlu uninstall dulu).
+
+VERCEL: nggak ada settingan tambahan. Repo ke-update →
+Vercel deploy sendiri. (Khusus BACKUP CLOUD: sekali aja
+set env GITHUB_TOKEN + BACKUP_KEY — ikut
+PANDUAN-BACKUP-CLOUD.txt. Sekali set, selamanya.)
+
+==========================================================
+SETELAH PUSH — AUTO-UPDATE JALAN SENDIRI
+==========================================================
 - Vercel deploy ulang otomatis (±1 menit).
 - App di HP pengguna: begitu dibuka pakai internet, service
   worker ambil versi terbaru lalu reload sendiri. Tanpa
   internet tetap jalan dari cache (masih bisa dipakai).
+- Cek versi sudah masuk apa belum: buka app → Pengaturan →
+  scroll paling bawah → tertulis "Miapos F&B Suite v2.9".
 - Kalau repo lagi kena merge conflict (web tampil <<<<<<<),
   cara nimpa di atas sekalian menyembuhkannya — index.html
   yang bersih menimpa yang conflict.
 
-SEKALI SAJA — PERSIAPAN
-----------------------
+==========================================================
+SEKALI SAJA — PERSIAPAN TERMUX
+==========================================================
    pkg install git -y
 
 Buat akun di github.com kalau belum punya, lalu buat
@@ -81,35 +173,39 @@ PUSH PERTAMA KALI (jalankan di folder miapos)
    cd ~/miapos
    git init
    git add .
-   git commit -m "Miapos v2.1 - full offline"
+   git commit -m "Miapos v2.9 - full offline"
    git branch -M main
    git remote add origin https://github.com/USERNAME/miapos.git
    git push -u origin main
    (nanti diminta Username + Password → paste TOKEN tadi)
+   (PASTIKAN folder lib/ dan api/ ikut ke-push — cek di web
+    GitHub, harus ada 2 folder itu di repo kamu)
 
 UPDATE BERIKUTNYA (tinggal 3 perintah)
 --------------------------------------
    cd ~/miapos
-   git add .
+   git add -A
    git commit -m "update"
    git push
 
    Setelah push → Vercel deploy ulang otomatis (±1 menit).
    App di HP semua pengguna AKAN UPDATE SENDIRI (auto-update
    via service worker) — mereka cukup buka/tutup aplikasinya,
-   tanpa perlu apa-apa. Cek versi di: Setelan → Mesin Lokal
-   (tertulis "Miapos F(tertulis "Miapos F&B Suite v2.5")B Suite v2.6").
+   tanpa perlu apa-apa, tanpa uninstall.
 
+==========================================================
 BONUS 1 — JADIKAN WEB LIVE (GitHub Pages)
------------------------------------------
+==========================================================
    Repo → Settings → Pages → Source: main branch → Save.
    Web kamu jadi online di:
    https://USERNAME.github.io/miapos/
    (otomatis buka index.html)
-   Cocok buat test dari HP lain / share ke teman.
+   CATATAN: api/ (backup cloud) CUMA JALAN di Vercel, bukan
+   di GitHub Pages — GitHub Pages nggak punya serverless.
 
-BONUS 2 — DEPLOY KE VERCEL
---------------------------
+==========================================================
+BONUS 2 — DEPLOY KE VERCEL (sekali aja, 2 menit)
+==========================================================
    1. Buka vercel.com → login pakai akun GitHub
    2. Add New → Project → pilih repo "miapos"
    3. Framework Preset: OTHER (biarkan default, tanpa build)
@@ -118,10 +214,13 @@ BONUS 2 — DEPLOY KE VERCEL
    otomatis mendeteksi & menampilkannya di URL root:
    https://miapos-kamu.vercel.app
    Setiap git push baru → Vercel auto-deploy ulang sendiri.
+   Mau aktifin BACKUP CLOUD? Set env GITHUB_TOKEN +
+   BACKUP_KEY di Vercel → ikut PANDUAN-BACKUP-CLOUD.txt.
 
+==========================================================
 PENTING — FIX "MERGE CONFLICT" (web tampil tulisan
 <<<<<<< HEAD ======= >>>>>>> bukan aplikasinya)
------------------------------------------------------
+==========================================================
 Ini terjadi kalau file index.html di GitHub berisi TANDA
 CONFLICT yang belum diresolve (biasanya gara-gara merge /
 pull yang bentrok). Solusi paling gampang: TIMPA aja
@@ -132,7 +231,7 @@ index.html-nya pakai versi terbaru, lalu push ulang:
     terbaru dari zip Miapos yang lu download — JANGAN
     lupa sw.js, file kecil ini yang bikin app auto-update)
    git add -A
-   git commit -m "Miapos v2.6 - tema warna"
+   git commit -m "Miapos v2.9 - timpa bersih"
    git push
 
 Kalau Terminal masih bilang "All conflicts fixed but you
@@ -144,20 +243,61 @@ Jangan pernah edit index.html pakai aplikasi yang bisa
 nyisipin tulisan <<<<<<< di file — kalau ragu, selalu timpa
 pakai file asli dari zip Miapos.
 
+==========================================================
 BONUS 3 — AUTO-UPDATE (sudah aktif, tanpa setting)
---------------------------------------------------
+==========================================================
 Mulai v2.5, Miapos pakai SERVICE WORKER (file sw.js):
 - Setiap app dibuka dengan internet → otomatis ambil versi
   terbaru dari Vercel, lalu reload sendiri.
 - Tanpa internet → jalan dari cache, tetap bisa dipakai.
 - Lu cukup push/timpa file ke GitHub. Selesai. Semua HP
   pengguna otomatis ke-update dalam ±1 menit.
-- Kalau mau pasti-in versi sudah masuk: buka app → Setelan
-  → bagian bawah tertulis "Miapos F→ bagian bawah tertulis "Miapos F&B Suite v2.5".B Suite v2.6".
+- Kalau mau pasti-in versi sudah masuk: buka app → Pengaturan
+  → scroll paling bawah → tertulis "Miapos F&B Suite v2.9".
+
+==========================================================
+YANG BARU DI v2.9 (biar nggak bingung pas buka app)
+==========================================================
+- CHECKLIST PWABUILDER 6/6: kartu "Service Worker" di
+  PWABuilder sekarang lolos semua (3 yang kurang — Push
+  Notifications, Background Sync, Periodic Sync — kodenya
+  sudah ada di sw.js & terdaftar otomatis). Re-analyze URL
+  Vercel lu ABIS push versi ini.
+- NOTIFIKASI JADWAL BUKA & TUTUP: jam 08.00 muncul notif
+  "morgvn: Selamat pagi, saatnya memulai kembali bisnis
+  yaaa!" — jam 21.00 muncul "morgvn: Sudah jam 9 malam,
+  waktunya tutup. Capek kan? ..." + getar pendek. Maks
+  1x sehari per jenis.
+- OWNER ZONE: Pengaturan → "Owner Zone 🔒" (password
+  default: morgvn — ganti di bagian Keamanan). Di situ
+  lu atur jam buka/tutup, teks notif, nama pengirim,
+  getar, + tombol tes. Khusus owner.
+- SALAM DI DASHBOARD: ikut kasir aktif & ikut jam
+  (dicek tiap menit — ganti sendiri pagi→siang→sore→malam).
+- KARTU CUACA di Dashboard: suhu + gambar (matahari kalau
+  cerah, awan mendung + hujan kalau gerimis/hujan lewat
+  Open-Meteo, gratis). Butuh internet SESKALI buat ambil
+  data (refresh ±30 menit); hasilnya disimpan, jadi pas
+  offline kartu tetap nampilin data terakhir. Kalau diminta
+  izin lokasi → cuaca sesuai lokasi cabang; ditolak juga
+  nggak papa (pakai lokasi default).
+- NOTIFIKASI SALAM PAGI: muncul di bilah notifikasi HP
+  (kayak notif WA) berisi "Selamat pagi, [nama]! Saatnya
+  buka lapak..." saat app dibuka jam 04.00–10.00, maksimal
+  1x sehari. Tekan "Izinkan" di banner Dashboard ATAU di
+  Pengaturan → Notifikasi Salam Pagi. Ada tombol
+  "Kirim Notifikasi Tes" buat mastiin notifikasinya jalan.
+- Jujur-juragan: notifikasi ini dikirim oleh HP sendiri pas
+  app dibuka pagi. Karena Miapos 100% offline & tanpa server,
+  notif yang muncul PADAHAL app-nya ditutup total butuh
+  layanan push server (FCM) — itu ranah app online; kalau
+  nanti mau, bisa jadi fitur tambahan terpisah.
 
 Mau rilis ke PLAY STORE? Ikuti file PANDUAN-PLAYSTORE.txt
-(tinggal isi URL Vercel ini ke PWABuilder).
+(tinggal isi URL Vercel ke PWABuilder).
 
 CATATAN: di Vercel/GitHub Pages yang jalan hanya bagian web
-(HTML). Fitur Python + C++ (backup & Insight) aktif kalau app
-dijalankan lewat Termux: python main.py
+(HTML). Fitur Python + C++ (backup Termux & Insight) aktif
+kalau app dijalankan lewat Termux: python main.py — ini
+OPSIONAL. Backup utama sekarang CLOUD (api/ + PANDUAN-BACKUP-
+CLOUD.txt), nggak butuh Termux nyala terus.

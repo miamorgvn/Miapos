@@ -48,20 +48,80 @@ LANGKAH 2 — PAKET APLIKASI VIA PWABUILDER (gratis)
       - Manifest URL : otomatis terisi
    6. Klik Generate → download ZIP berisi:
       - app-release-signed.aab  ← INI YANG DIUPLOAD KE PLAY
-      - assetlinks.json         ← langkah 4 di bawah
+      - assetlinks.json         ← langkah 3 di bawah
       - signing key             ← SIMPAN AMAN! jangan hilang,
         jangan share. Kalau hilang = tidak bisa update app.
 
 LANGKAH 3 — UPLOAD assetlinks.json KE REPO
 ------------------------------------------
-Supaya app tampil full tanpa address bar Chrome:
-   1. Dalam ZIP tadi ada folder .well-known → assetlinks.json
-   2. Upload ke repo GitHub lu di folder:
-      .well-known/assetlinks.json
-      (tepat di root repo, persis sejajar index.html)
-   3. git add . && git commit -m "assetlinks" && git push
-   4. Cek: buka https://URL-VERCEL-LU/.well-known/assetlinks.json
-      harus muncul isi JSON-nya (Vercel otomatis serve).
+Supaya app tampil full tanpa address bar Chrome.
+
+!! PENTING, BIAR GA BINGUNG !!
+Dalam ZIP PWABuilder itu file assetlinks.json ada
+LANGSUNG di dalam ZIP (sejajar file AAB), TIDAK ADA
+folder .well-known. Memang begitu — bukan salah download.
+Folder .well-known itu harus kita BIKIN SENDIRI di GitHub.
+Kenapa harus nama segitu? Karena Android WAJIB file ini
+terbaca di alamat persis:
+   https://url-lu/.well-known/assetlinks.json
+Itu standar web yang gak bisa diganti. Jadi intinya:
+file-nya dari ZIP, folder-nya kita bikin di GitHub.
+
+CARA PALING GAMPANG (GitHub web, tanpa Termux):
+   1. Ekstrak ZIP PWABuilder → buka assetlinks.json
+      pakai text editor → copy SEMUA isinya.
+   2. Buka repo GitHub lu → Add file → Create new file.
+   3. Di kotak nama file, ketik PERSIS begini:
+         .well-known/assetlinks.json
+      Begitu lu ngetik tanda "/", GitHub OTOMATIS
+      bikin folder .well-known-nya (ada tulisan
+      "this will create a new folder").
+   4. Paste isi JSON yang tadi di-copy ke kotak besar.
+   5. Klik Commit changes. Sekali jalan: folder + file
+      langsung jadi di root repo, sejajar index.html.
+   6. Tunggu Vercel deploy (±1 menit), terus cek buka:
+      https://URL-VERCEL-LU/.well-known/assetlinks.json
+      Kalau muncul isi JSON-nya = beres, bener.
+
+INI KUNCI FULLSCREEN (GAK ADA TOPBAR CHROME):
+App dari PWABuilder itu TWA. Saat dibuka, Android ngecek
+ke alamat .well-known/assetlinks.json tadi: "app ini
+beneran pemilik domain Vercel-nya gak?"
+   - File ada & cocok  → app FULL, topbar Chrome
+     GAK MUNCUL sama sekali (kayak app asli).
+   - File gak ada/salah → Chrome jalanin sebagai
+     "custom tab" → bar Chrome ikut muncul.
+Jadi selama langkah di atas bener, fullscreen pasti dapet.
+
+CARA TES CEPAT TANPA PLAY STORE:
+   Kalau di ZIP PWABuilder ada file berakhiran .apk,
+   tinggal copy ke HP → buka file-nya → install
+   (izin "install dari sumber tidak dikenal"). Buka
+   app-nya: kalau assetlinks.json sudah live, app
+   langsung FULL, topbar Chrome GAK MUNCUL.
+   Catatan: kalau app ke-install SEBELUM file-nya
+   live, uninstall dulu terus install lagi (Android
+   nyimpen cache verifikasi).
+
+CARA TERMUX (kalau lebih suka lewat HP terminal):
+   1. Copy assetlinks.json dari ZIP tadi ke folder
+      repo lu di storage HP.
+   2. Jalankan:
+      cd miapos
+      mkdir -p .well-known
+      cp assetlinks.json .well-known/
+      git add . && git commit -m "assetlinks" && git push
+
+NOTE KALAU ADDRESS BAR MASIH MUNCUL JUGA:
+Play Console kadang re-sign app pakai kunci mereka
+(Play App Signing) sehingga fingerprint beda dari yang
+di assetlinks.json. Solusinya:
+   1. Play Console → Setup → App signing → copy
+      SHA-256 "App signing key certificate".
+   2. Edit assetlinks.json di repo: tambahkan SHA-256
+      itu ke daftar sha256_cert_fingerprints (dipisah
+      koma — boleh berisi lebih dari 1 fingerprint).
+   3. Commit → push. Vercel deploy lagi, beres.
 
 LANGKAH 4 — UPLOAD KE PLAY CONSOLE
 ----------------------------------

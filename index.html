@@ -343,13 +343,23 @@ function generateSeed() {
   const orders = [];
   return {
     outlets, employees, tables, products, materials, orders, movements: [],
-    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald' },
+    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, ...NOTIF_DEFAULTS },
   };
 }
 
 // ===== STORE (Context API based) =====
 const STORAGE_KEY = 'miapos-store-v4';
 const LEGACY_STORAGE_KEY = 'miapos-store-v3';
+// v2.9: default notifikasi buka/tutup resto — teks & jamnya bisa diubah owner
+// lewat Owner Zone (Pengaturan → Owner Zone, pakai password).
+const NOTIF_DEFAULTS = {
+  notifOpenTime: '08:00',  // jam buka resto → notif salam pagi
+  notifCloseTime: '21:00', // jam tutup → notif pengingat tutup (+getar pendek)
+  notifOwnerName: 'morgvn', // nama pengirim di isi notif: "morgvn: <teks>"
+  notifMorningText: 'Selamat pagi, saatnya memulai kembali bisnis yaaa! Semangat ya hari ini! ☀️',
+  notifNightText: 'Sudah jam 9 malam, waktunya tutup. Capek kan? Rest dulu, besok gas lagi! 😴',
+  notifNightVibrate: true, // getar pendek di notif jam tutup
+};
 const AppContext = React.createContext(null);
 const useAppStore = () => React.useContext(AppContext);
 
@@ -391,7 +401,7 @@ function AppProvider({ children }) {
     }
     if (!loaded) loaded = generateSeed();
     // Normalisasi settings: field baru (mis. theme) dapat default aman utk data lama
-    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald' }, loaded.settings || {});
+    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true }, NOTIF_DEFAULTS, loaded.settings || {});
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     loaded.archivedOrders = loaded.archivedOrders || [];
     return applyRollover(loaded);
@@ -402,6 +412,41 @@ function AppProvider({ children }) {
 
   React.useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  }, [state]);
+
+  // v2.7 CLOUD AUTO-BACKUP: tiap data berubah & online, snapshot dikirim ke
+  // /api/backup (Vercel) → tersimpan ke folder backups/ di repo GitHub.
+  // TANPA Termux, tanpa jaga server, tanpa nguras batre — kerja beratnya di cloud.
+  // Aturan main: maksimal 1x per 2 jam, dan cuma kalau datanya beneran berubah.
+  React.useEffect(() => {
+    try {
+      var online = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!online) return;
+      var key = localStorage.getItem('miapos-cloud-key') || '';
+      if (!key) return;
+      var s = JSON.stringify(state);
+      var h = 0;
+      for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+      var last = parseInt(localStorage.getItem('miapos-cloud-last') || '0', 10) || 0;
+      var lastH = localStorage.getItem('miapos-cloud-hash') || '';
+      if (String(h) === lastH) return; // data belum berubah sejak backup terakhir
+      if (Date.now() - last < 2 * 60 * 60 * 1000) return; // throttle: 1x per 2 jam
+      var t = setTimeout(function() {
+        fetch('/api/backup', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-backup-key': key }, body: s })
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(res) {
+            if (res && res.ok) {
+              try {
+                localStorage.setItem('miapos-cloud-last', String(Date.now()));
+                localStorage.setItem('miapos-cloud-hash', String(h));
+              } catch (e) {}
+              console.log('Miapos: backup cloud tersimpan (' + res.file + ')');
+            }
+          })
+          .catch(function() {});
+      }, 15000);
+      return function() { clearTimeout(t); };
+    } catch (e) {}
   }, [state]);
 
   // Rollover LIVE: cek pergantian hari tiap 30 detik + saat tab kembali aktif
@@ -450,6 +495,10 @@ function AppProvider({ children }) {
     setCashier: (cashierId) => setState(s => ({ ...s, settings: { ...s.settings, cashierId } })),
     toggleOnline: () => setState(s => ({ ...s, settings: { ...s.settings, online: !s.settings.online } })),
     toggleHPP: () => setState(s => ({ ...s, settings: { ...s.settings, fiturHPP: !s.settings.fiturHPP } })),
+    // v2.8: saklar notifikasi salam pagi (default ON)
+    toggleMorningNotif: () => setState(s => ({ ...s, settings: { ...s.settings, morningNotif: !(s.settings.morningNotif !== false) } })),
+    // v2.9: setter umum utk Owner Zone (jam buka/tutup, teks notif, nama pengirim, dll)
+    updateSettings: (patch) => setState(s => ({ ...s, settings: { ...s.settings, ...(patch || {}) } })),
     setTheme: (t) => setState(s => (MD_THEME_KEYS.indexOf(t) === -1 || t === s.settings.theme) ? s : ({ ...s, settings: { ...s.settings, theme: t } })),
     addToCart: (productId, variantId) => {
       const p = state.products.find(x => x.id === productId); if (!p) return;
@@ -871,7 +920,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.6')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.9')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -897,6 +946,242 @@ function Sidebar({ active, onChange }) {
         mobTab('reports', 'Lapor', 'bar-chart-3'),
         mobTab('settings', 'Set', 'settings')
       )
+    )
+  );
+}
+
+// ===== v2.8: CUACA (Dashboard) — Open-Meteo gratis, tanpa API key =====
+// Butuh internet sesekali (refresh 30 menit, hasil di-cache). Saat offline,
+// kartu tetap tampil dengan data terakhir — app TETAP 100% jalan offline.
+var WX_KEY = 'miapos-wx';
+var WX_GEO_KEY = 'miapos-wx-geo';
+var WX_FRESH = 30 * 60 * 1000; // 30 menit
+var WX_CODES = {
+  0:{ l:'Cerah', e:'☀️' }, 1:{ l:'Cerah Berawan', e:'🌤️' }, 2:{ l:'Berawan Sebagian', e:'⛅' },
+  3:{ l:'Berawan', e:'☁️' }, 45:{ l:'Berkabut', e:'🌫️' }, 48:{ l:'Berkabut Beku', e:'🌫️' },
+  51:{ l:'Gerimis', e:'🌦️' }, 53:{ l:'Gerimis', e:'🌦️' }, 55:{ l:'Gerimis Lebat', e:'🌦️' },
+  61:{ l:'Hujan Ringan', e:'🌧️' }, 63:{ l:'Hujan', e:'🌧️' }, 65:{ l:'Hujan Lebat', e:'🌧️' },
+  66:{ l:'Hujan Beku', e:'🌧️' }, 67:{ l:'Hujan Beku', e:'🌧️' },
+  71:{ l:'Salju', e:'🌨️' }, 73:{ l:'Salju', e:'🌨️' }, 75:{ l:'Salju Tebal', e:'❄️' }, 77:{ l:'Butiran Salju', e:'🌨️' },
+  80:{ l:'Hujan Deras', e:'🌧️' }, 81:{ l:'Hujan Deras', e:'🌧️' }, 82:{ l:'Hujan Sangat Deras', e:'⛈️' },
+  85:{ l:'Gerimis Salju', e:'🌨️' }, 86:{ l:'Gerimis Salju', e:'🌨️' },
+  95:{ l:'Badai Petir', e:'⛈️' }, 96:{ l:'Badai Petir + Es', e:'⛈️' }, 99:{ l:'Badai Petir + Es', e:'⛈️' }
+};
+function wxMap(code) { return WX_CODES[code] || { l:'Cuaca', e:'☁️' }; }
+function wxReadCache() { try { return JSON.parse(localStorage.getItem(WX_KEY) || 'null'); } catch (e) { return null; } }
+function wxGetGeo() { try { return JSON.parse(localStorage.getItem(WX_GEO_KEY) || 'null'); } catch (e) { return null; } }
+function wxAskGeo() {
+  return new Promise(function(resolve) {
+    try {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        function(p) {
+          var g = { lat: Math.round(p.coords.latitude * 100) / 100, lon: Math.round(p.coords.longitude * 100) / 100 };
+          try { localStorage.setItem(WX_GEO_KEY, JSON.stringify(g)); } catch (e) {}
+          resolve(g);
+        },
+        function() { resolve(null); },
+        { timeout: 8000, maximumAge: 6 * 60 * 60 * 1000 }
+      );
+    } catch (e) { resolve(null); }
+  });
+}
+function wxFetch(force) {
+  return new Promise(function(resolve) {
+    var cached = wxReadCache();
+    if (!force && cached && cached.ok && Date.now() - (cached.at || 0) < WX_FRESH) return resolve(cached);
+    function ambil(g) {
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + g.lat + '&longitude=' + g.lon +
+        '&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto';
+      fetch(url)
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(j) {
+          if (!j || !j.current) return resolve(cached || null);
+          var d = {
+            ok: true,
+            temp: Math.round(j.current.temperature_2m),
+            hum: j.current.relative_humidity_2m != null ? Math.round(j.current.relative_humidity_2m) : null,
+            code: j.current.weather_code || 0,
+            at: Date.now(),
+            approx: !g.own
+          };
+          try { localStorage.setItem(WX_KEY, JSON.stringify(d)); } catch (e) {}
+          resolve(d);
+        })
+        .catch(function() { resolve(cached || null); });
+    }
+    var geo = wxGetGeo();
+    if (geo) { geo.own = true; return ambil(geo); }
+    wxAskGeo().then(function(g) {
+      if (g) { g.own = true; ambil(g); }
+      else ambil({ lat: -6.2088, lon: 106.8456, own: false }); // default: Jakarta, bila lokasi ditolak/tidak ada
+    });
+  });
+}
+// Salam sesuai jam — dipakai kartu cuaca & notifikasi pagi
+function greetParts(h) {
+  if (h >= 4 && h <= 10) return { label:'Selamat pagi', emoji:'☀️', sub:'Saatnya buka lapak, semangat ya!' };
+  if (h <= 14) return { label:'Selamat siang', emoji:'🌞', sub:'Semangat jaga antrian & omzetnya!' };
+  if (h <= 17) return { label:'Selamat sore', emoji:'🌇', sub:'Sikat orderan sorenya!' };
+  return { label:'Selamat malam', emoji:'🌙', sub:'Rehat dulu, data aman semua.' };
+}
+// ===== v2.8→v2.9: NOTIFIKASI BUKA & TUTUP RESTO (notifikasi sistem beneran) =====
+// • Notif BUKA  : muncul jam buka (default 08.00)  → isi: "morgvn: Selamat pagi, ..."
+// • Notif TUTUP : muncul jam tutup (default 21.00) → isi: "morgvn: Sudah jam 9 malam, ..."
+//                 + GETAR PENDEK (bentar aja, gak lama)
+// • Jam & teksnya diatur owner di Owner Zone (Pengaturan → Owner Zone, pakai password)
+// • Jadwal jalan selama app Miapos jalan di HP (dibuka / di background), cek tiap 20 detik,
+//   maksimal 1x per hari per jenis — gak nyerang terus. Data dibaca langsung dari localStorage
+//   tiap tick, jadi perubahan di Owner Zone langsung kepakai tanpa buka-ulang app.
+var Notif = {
+  perm: function() { try { return ('Notification' in window) ? Notification.permission : 'unsupported'; } catch (e) { return 'unsupported'; } },
+  fire: function(title, body, tag, vibrate) {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return false;
+      var opts = { body: body, tag: tag || 'miapos', icon: './icon-192.png', badge: './icon-192.png', vibrate: vibrate || [80, 40, 80], dir: 'id' };
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(function(reg) {
+          if (reg && reg.showNotification) { try { reg.showNotification(title, opts); } catch (e) {} }
+          else { try { new Notification(title, opts); } catch (e) {} }
+        }).catch(function() { try { new Notification(title, opts); } catch (e) {} });
+      } else { try { new Notification(title, opts); } catch (e) {} }
+      return true;
+    } catch (e) { return false; }
+  },
+  // ---- v2.9: mesin jadwal ----
+  readSettings: function() {
+    try { var raw = JSON.parse(localStorage.getItem('miapos-store-v4') || 'null'); return (raw && raw.settings) || {}; } catch (e) { return {}; }
+  },
+  todayKey: function() {
+    var d = new Date(); var p = function(n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  },
+  parseHM: function(hm) {
+    var a = String(hm || '').split(':'); var h = parseInt(a[0], 10) || 0; var m = parseInt(a[1], 10) || 0;
+    return h * 60 + m;
+  },
+  // Kirim notif dari owner — format isi: "<nama owner>: <teks ucapan>"
+  sendOwner: function(kind, s) {
+    s = s || this.readSettings();
+    var owner = String(s.notifOwnerName || 'morgvn').trim() || 'morgvn';
+    var text = kind === 'buka' ? (s.notifMorningText || NOTIF_DEFAULTS.notifMorningText) : (s.notifNightText || NOTIF_DEFAULTS.notifNightText);
+    var title = kind === 'buka' ? '☀️ Miapos · Buka Resto' : '🌙 Miapos · Waktunya Tutup';
+    // notif tutup = getar PENDEK (bentar aja); kalau dimatikan owner → getar super halus
+    var vib = kind === 'tutup' ? (s.notifNightVibrate === false ? [60, 40, 60] : [220, 130, 220]) : [80, 40, 80];
+    return this.fire(title, owner + ': ' + text, 'miapos-' + kind, vib);
+  },
+  // Dipanggil tiap ±20 detik + tiap app dibuka/kembali aktif.
+  tick: function() {
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      var s = this.readSettings();
+      if (s.morningNotif === false) return; // saklar utama di Pengaturan
+      var now = new Date();
+      var cur = now.getHours() * 60 + now.getMinutes();
+      var dkey = this.todayKey();
+      var openM = this.parseHM(s.notifOpenTime || '08:00');
+      var closeM = this.parseHM(s.notifCloseTime || '21:00');
+      // jendela 60 menit: app baru dibuka agak telat tetap kejar notifnya (maks 1x/hari)
+      if (cur >= openM && cur - openM <= 60 && (localStorage.getItem('miapos-notif-buka') || '') !== dkey) {
+        localStorage.setItem('miapos-notif-buka', dkey);
+        this.sendOwner('buka', s);
+        return;
+      }
+      if (cur >= closeM && cur - closeM <= 60 && (localStorage.getItem('miapos-notif-tutup') || '') !== dkey) {
+        localStorage.setItem('miapos-notif-tutup', dkey);
+        this.sendOwner('tutup', s);
+      }
+    } catch (e) {}
+  },
+  // nama lama yang dipakai beberapa tempat — sekarang delegasi ke mesin jadwal v2.9
+  maybeMorning: function() { return this.tick(); }
+};
+
+// Kartu cuaca — dipasang di Dashboard (kompak: gambar cuaca + suhu + salam)
+function WeatherCard() {
+  const { state } = useAppStore();
+  const { settings } = state;
+  const outlet = state.outlets.find(o => o.id === settings.outletId);
+  const cashier = state.employees.find(e => e.id === settings.cashierId);
+  const [wx, setWx] = React.useState(function() { return wxReadCache(); });
+  // v2.9: detak menit — salam otomatis ganti pagi→siang→sore→malam walau app dibuka lama
+  var [, setMinuteTick] = React.useState(0);
+  React.useEffect(function() {
+    var iv = setInterval(function() { setMinuteTick(function(t) { return t + 1; }); }, 60000);
+    return function() { clearInterval(iv); };
+  }, []);
+  React.useEffect(function() {
+    var alive = true;
+    function muat(force) { wxFetch(force).then(function(d) { if (alive && d) setWx(d); }); }
+    muat(false);
+    var iv = setInterval(function() { muat(false); }, WX_FRESH);
+    var onOn = function() { muat(true); };
+    window.addEventListener('online', onOn);
+    return function() { alive = false; clearInterval(iv); window.removeEventListener('online', onOn); };
+  }, []);
+  var fresh = wx && wx.ok && (Date.now() - (wx.at || 0) < WX_FRESH);
+  var staled = wx && wx.ok && !fresh;
+  var cw = wxMap(wx && wx.ok ? wx.code : -1);
+  var g = greetParts(new Date().getHours());
+  var nama = cashier ? cashier.name : '';
+  var jam = wx && wx.at ? new Date(wx.at).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : '';
+  var detail;
+  if (!wx || !wx.ok) detail = 'Sambungkan internet sebentar buat ambil cuaca — app tetap jalan offline';
+  else if (wx.approx) detail = 'Izinkan akses lokasi di browser biar cuaca makin akurat';
+  else if (staled) detail = 'Offline — data cuaca jam ' + jam;
+  else detail = 'Cuaca sekitar ' + (outlet ? outlet.name : 'cabang kamu') + ' · Diperbarui ' + jam;
+  return React.createElement(Card, { className:'overflow-hidden animate-mp-pop border-sky-100' },
+    React.createElement('div', { className:'flex items-center gap-3 p-3 md:p-4' },
+      React.createElement('div', { className:'grid h-14 w-14 md:h-16 md:w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-100 via-sky-50 to-emerald-50 border border-sky-100/80 text-[30px] md:text-4xl leading-none' }, cw.e),
+      React.createElement('div', { className:'flex-1 min-w-0' },
+        React.createElement('div', { className:'flex items-baseline gap-2 flex-wrap' },
+          React.createElement('span', { className:'text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900' }, wx && wx.ok ? wx.temp + '°C' : '—'),
+          React.createElement('span', { className:'text-xs md:text-sm font-bold text-sky-700' }, wx && wx.ok ? cw.l : 'Cuaca belum tersedia')
+        ),
+        React.createElement('p', { className:'text-xs md:text-sm font-semibold text-slate-700 mt-0.5 leading-snug' },
+          g.label + (nama ? ', ' + nama : '') + '! ' + g.sub + ' ' + g.emoji),
+        React.createElement('p', { className:'text-[10px] md:text-[11px] text-slate-400 mt-0.5 truncate' }, detail)
+      ),
+      wx && wx.ok && wx.hum != null && React.createElement('div', { className:'shrink-0 text-right' },
+        React.createElement('p', { className:'text-sm md:text-base font-extrabold text-sky-600' }, wx.hum + '%'),
+        React.createElement('p', { className:'text-[9px] md:text-[10px] text-slate-400' }, 'Kelembapan')
+      )
+    )
+  );
+}
+
+// Banner kecil di Dashboard: minta izin notifikasi (cuma tampil sebelum diizinkan)
+function NotifPromptCard() {
+  const { state } = useAppStore();
+  const { show } = useToast();
+  const [perm, setPerm] = React.useState(function() { return Notif.perm(); });
+  const [hidden, setHidden] = React.useState(function() {
+    try { var s = parseInt(localStorage.getItem('miapos-notif-snooze') || '0', 10) || 0; return Date.now() - s < 3 * 24 * 60 * 60 * 1000; } catch (e) { return false; }
+  });
+  if (perm !== 'default' || hidden) return null;
+  function allow() {
+    try {
+      Notification.requestPermission().then(function(p) {
+        setPerm(p);
+        if (p === 'granted') {
+          show('🔔 Notifikasi aktif — salam pagi siap muncul');
+          var cash = state.employees.find(function(e) { return e.id === state.settings.cashierId; });
+          Notif.maybeMorning(cash ? cash.name : '', state.settings.morningNotif !== false);
+        } else { setHidden(true); }
+      }).catch(function() { setHidden(true); });
+    } catch (e) { setHidden(true); }
+  }
+  function later() { try { localStorage.setItem('miapos-notif-snooze', String(Date.now())); } catch (e) {} setHidden(true); }
+  return React.createElement(Card, { className:'border-emerald-200 bg-emerald-50/60 animate-mp-pop' },
+    React.createElement('div', { className:'flex items-center gap-3 p-3 md:p-4' },
+      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white shadow-md shadow-emerald-500/30' },
+        React.createElement(Icon, { name:'bell', className:'w-5 h-5' })),
+      React.createElement('div', { className:'flex-1 min-w-0' },
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Aktifkan Notifikasi Pagi ☀️'),
+        React.createElement('p', { className:'text-xs text-slate-600' }, 'Notif salam jam buka & pengingat jam tutup dari owner kamu — teks & jamnya diatur di Owner Zone (Pengaturan).')),
+      React.createElement('div', { className:'flex gap-1.5 shrink-0' },
+        React.createElement(Button, { size:'sm', onClick: allow }, 'Izinkan'),
+        React.createElement(Button, { size:'sm', variant:'outline', onClick: later }, 'Nanti'))
     )
   );
 }
@@ -947,6 +1232,9 @@ function DashboardView({ onNavigate }) {
         React.createElement(KpiCard, { label:'Stok Menipis', value: String(lowStock.length), sub:'bahan baku restock', icon:'triangle-alert', color:'red' }),
         React.createElement(KpiCard, { label:'Staf Aktif', value: String(outletEmployees.filter(e => e.active).length), sub:'karyawan outlet', icon:'users', color:'violet' })
       ),
+      // v2.8: kartu cuaca + salam sesuai jam, lalu banner izin notifikasi pagi
+      React.createElement(WeatherCard, null),
+      React.createElement(NotifPromptCard, null),
       React.createElement('div', { className:'grid grid-cols-1 lg:grid-cols-3 gap-4 mp-stagger' },
         React.createElement(Card, { className:'lg:col-span-2' },
           React.createElement('div', { className:'p-4' },
@@ -3541,6 +3829,222 @@ function HPPToggleRow() {
   );
 }
 
+// ===== v2.8: NOTIFIKASI SALAM PAGI — saklar + tes di Pengaturan =====
+function NotifToggleRow() {
+  const { state, toggleMorningNotif } = useAppStore();
+  const { show } = useToast();
+  const on = state.settings.morningNotif !== false;
+  const perm = Notif.perm();
+  var desc;
+  if (perm === 'unsupported') desc = 'Browser tidak mendukung notifikasi (jalan di Chrome/app HP)';
+  else if (perm === 'denied') desc = 'Izin diblokir — aktifkan izin notifikasi utk Miapos di setelan browser';
+  else if (perm === 'default') desc = 'Ketuk untuk izinkan notifikasi dulu';
+  else desc = on ? 'Aktif — notif buka jam ' + (state.settings.notifOpenTime || '08:00') + ' & tutup jam ' + (state.settings.notifCloseTime || '21:00') + ' (atur di Owner Zone)' : 'Mati — semua notif buka/tutup tidak dikirim';
+  function klik() {
+    if (perm === 'default') {
+      try {
+        Notification.requestPermission().then(function(p) {
+          if (p === 'granted') { show('🔔 Izin notifikasi diberikan — salam pagi aktif'); Notif.maybeMorning(); }
+          else show('Izin notifikasi belum diberikan', 'error');
+        }).catch(function() {});
+      } catch (e) {}
+      return;
+    }
+    if (perm === 'denied') { show('Buka setelan browser → Notifikasi → izinkan Miapos', 'error'); return; }
+    if (perm === 'unsupported') { show('Browser ini tidak mendukung notifikasi', 'error'); return; }
+    toggleMorningNotif();
+    show(on ? 'Salam pagi dimatikan' : 'Salam pagi diaktifkan ☀️');
+  }
+  return React.createElement('button', { onClick: klik, className:'w-full flex items-center justify-between gap-3 py-3.5 text-left' },
+    React.createElement('div', { className:'flex items-center gap-3 min-w-0' },
+      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70' },
+        React.createElement(Icon, { name:'bell', className:'w-5 h-5 text-slate-700' })
+      ),
+      React.createElement('div', { className:'min-w-0' },
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Notifikasi Resto ☀️🌙'),
+        React.createElement('p', { className:'text-xs text-slate-500' }, desc)
+      )
+    ),
+    perm === 'granted' && React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', on ? 'bg-emerald-500' : 'bg-slate-300') },
+      React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', on && 'translate-x-5') })
+    ),
+    perm !== 'granted' && React.createElement(Badge, { variant:'outline', className:'shrink-0 text-[10px]' }, perm === 'default' ? 'IZINKAN →' : 'CEK IZIN')
+  );
+}
+
+function NotifTestRow() {
+  const { show } = useToast();
+  const perm = Notif.perm();
+  function kirim() {
+    if (perm !== 'granted') { show('Izinkan notifikasi dulu di baris "Salam Pagi" atasnya', 'error'); return; }
+    var ok = Notif.fire('🔔 Tes Notifikasi Miapos', 'Notifikasi jalan! Salam pagi akan muncul otomatis tiap pagi ☀️', 'miapos-tes');
+    show(ok ? 'Notifikasi tes terkirim — cek bilah notifikasi HP' : 'Notifikasi gagal dikirim', ok ? 'success' : 'error');
+  }
+  return React.createElement('button', { onClick: kirim, className:'w-full flex items-center justify-between gap-3 py-3.5 text-left' },
+    React.createElement('div', { className:'flex items-center gap-3 min-w-0' },
+      React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70' },
+        React.createElement(Icon, { name:'bell-ring', className:'w-5 h-5 text-slate-700' })
+      ),
+      React.createElement('div', { className:'min-w-0' },
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Kirim Notifikasi Tes'),
+        React.createElement('p', { className:'text-xs text-slate-500' }, 'Cek notifikasi muncul di bilah status HP kamu')
+      )
+    ),
+    React.createElement(Icon, { name:'send', className:'w-4 h-4 text-slate-300 shrink-0' })
+  );
+}
+
+// ===== v2.9: OWNER ZONE — area khusus owner, diproteksi password =====
+// Isinya: atur jam buka & tutup, teks notif, nama pengirim ("morgvn: ..."),
+// getar notif tutup, ganti password, + tombol tes. Password default: morgvn
+// (disimpan di HP ini saja — ganti dari dalam Owner Zone biar aman).
+const OWNER_PW_KEY = 'miapos-owner-pw';
+function ownerGetPw() { try { return localStorage.getItem(OWNER_PW_KEY) || 'morgvn'; } catch (e) { return 'morgvn'; } }
+function ownerSetPw(v) { try { localStorage.setItem(OWNER_PW_KEY, v); } catch (e) {} }
+
+function OwnerZoneScreen({ onBack }) {
+  const { state, updateSettings, toggleMorningNotif } = useAppStore();
+  const { show } = useToast();
+  const s = state.settings;
+  const [unlocked, setUnlocked] = React.useState(function() {
+    try { return sessionStorage.getItem('miapos-owner-unlocked') === '1'; } catch (e) { return false; }
+  });
+  const [pw, setPw] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [openTime, setOpenTime] = React.useState(s.notifOpenTime || '08:00');
+  const [closeTime, setCloseTime] = React.useState(s.notifCloseTime || '21:00');
+  const [ownerName, setOwnerName] = React.useState(s.notifOwnerName || 'morgvn');
+  const [morningText, setMorningText] = React.useState(s.notifMorningText || NOTIF_DEFAULTS.notifMorningText);
+  const [nightText, setNightText] = React.useState(s.notifNightText || NOTIF_DEFAULTS.notifNightText);
+  const [vib, setVib] = React.useState(s.notifNightVibrate !== false);
+  const [pwLama, setPwLama] = React.useState('');
+  const [pwBaru, setPwBaru] = React.useState('');
+
+  function bukaKunci() {
+    if (pw === ownerGetPw()) {
+      try { sessionStorage.setItem('miapos-owner-unlocked', '1'); } catch (e) {}
+      setUnlocked(true); setErr('');
+      show('🔓 Owner Zone terbuka — selamat datang, owner!');
+    } else { setErr('Password salah — coba lagi'); }
+  }
+  function simpan() {
+    var ot = (openTime || '').trim() || '08:00';
+    var ct = (closeTime || '').trim() || '21:00';
+    var nm = (ownerName || '').trim() || 'morgvn';
+    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib });
+    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm);
+    show('Tersimpan ✅ Notif buka jam ' + ot + ' · notif tutup jam ' + ct);
+  }
+  function gantiPw() {
+    if (pwLama !== ownerGetPw()) { show('Password lama salah', 'error'); return; }
+    if ((pwBaru || '').trim().length < 4) { show('Password baru minimal 4 karakter', 'error'); return; }
+    ownerSetPw(pwBaru.trim()); setPwLama(''); setPwBaru('');
+    show('Password owner diganti ✅');
+  }
+  function tesNotif(kind) {
+    // tes pakai nilai yang sedang diketik (belum tentu sudah disimpan)
+    var draft = { notifOpenTime: openTime, notifCloseTime: closeTime, notifOwnerName: ownerName, notifMorningText: morningText, notifNightText: nightText, notifNightVibrate: vib, morningNotif: s.morningNotif };
+    var ok = Notif.sendOwner(kind, draft);
+    show(ok ? 'Notifikasi tes terkirim — cek bilah notif HP' : 'Izin notifikasi belum aktif — ketuk baris \"Notifikasi\" dulu', ok ? 'success' : 'error');
+  }
+
+  // ---- Tampilan terkunci: minta password ----
+  if (!unlocked) {
+    return React.createElement('div', { className:'flex flex-col min-h-full' },
+      React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner — masukkan password dulu', onBack: onBack }),
+      React.createElement('main', { className:'flex-1 overflow-y-auto p-3 md:p-6 flex items-start justify-center' },
+        React.createElement(Card, { className:'w-full max-w-sm mt-6 md:mt-12 animate-mp-pop' },
+          React.createElement('div', { className:'p-5 text-center' },
+            React.createElement('div', { className:'mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-900 text-white shadow-lg' },
+              React.createElement(Icon, { name:'lock', className:'w-7 h-7' })),
+            React.createElement('h3', { className:'mt-3 font-extrabold text-slate-900' }, 'Area Khusus Owner'),
+            React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, 'Atur notifikasi buka/tutup resto & teks salamnya. Fitur ini dikunci biar cuma owner yang bisa ubah.'),
+            React.createElement('input', { type:'password', value: pw, onChange: function(e) { setPw(e.target.value); setErr(''); },
+              onKeyDown: function(e) { if (e.key === 'Enter') bukaKunci(); },
+              placeholder:'Password owner...', className:'mt-4 w-full text-center tracking-widest' }),
+            err && React.createElement('p', { className:'text-xs text-red-600 font-semibold mt-2' }, err),
+            React.createElement(Button, { className:'w-full mt-3', onClick: bukaKunci }, '🔓 Buka Kunci'),
+            React.createElement('p', { className:'text-[10px] text-slate-400 mt-3 leading-relaxed' }, 'Password default: morgvn — ganti dari dalam Owner Zone (bagian Keamanan) biar cuma kamu yang tahu.')
+          )
+        )
+      )
+    );
+  }
+
+  // ---- Terbuka: panel aturan notif ----
+  return React.createElement('div', { className:'flex flex-col min-h-full' },
+    React.createElement(Topbar, { title:'Owner Zone', subtitle:'Notifikasi buka & tutup resto — milik owner', onBack: onBack }),
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-4' },
+      // Ringkasan jadwal
+      React.createElement(Card, { className:'p-4' },
+        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), 'Jam Buka & Tutup Resto'),
+        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Notif buka muncul di jam buka; notif tutup muncul di jam tutup + getar pendek. Ubah jamnya di sini kalau jam buka resto berubah.'),
+        React.createElement('div', { className:'grid grid-cols-2 gap-3' },
+          React.createElement('div', null,
+            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '☀️ Jam Buka'),
+            React.createElement(Input, { type:'time', value: openTime, onChange: function(e) { setOpenTime(e.target.value); } })),
+          React.createElement('div', null,
+            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '🌙 Jam Tutup'),
+            React.createElement(Input, { type:'time', value: closeTime, onChange: function(e) { setCloseTime(e.target.value); } }))
+        )
+      ),
+      // Teks notifikasi
+      React.createElement(Card, { className:'p-4' },
+        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'bell', className:'w-4 h-4' }), 'Teks Notifikasi'),
+        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Isi notif otomatis diawali nama kamu, jadi bentuknya: \"nama: teks ucapan\".'),
+        React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, 'Nama pengirim (nama kamu)'),
+        React.createElement(Input, { value: ownerName, onChange: function(e) { setOwnerName(e.target.value); }, placeholder:'morgvn', maxLength: 24 }),
+        React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-3 mb-1 block' }, 'Teks notif BUKA (pagi)'),
+        React.createElement('textarea', { value: morningText, onChange: function(e) { setMorningText(e.target.value); }, rows: 2,
+          className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
+        React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-3 mb-1 block' }, 'Teks notif TUTUP (malam)'),
+        React.createElement('textarea', { value: nightText, onChange: function(e) { setNightText(e.target.value); }, rows: 2,
+          className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
+        React.createElement('button', { onClick: function() { setVib(!vib); }, className:'w-full flex items-center justify-between gap-3 mt-4 py-2 text-left' },
+          React.createElement('div', { className:'min-w-0' },
+            React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Getar saat notif tutup'),
+            React.createElement('p', { className:'text-xs text-slate-500' }, vib ? 'Aktif — getar pendek bentar aja, gak lama' : 'Mati — notif tutup tanpa getar kuat')),
+          React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', vib ? 'bg-emerald-500' : 'bg-slate-300') },
+            React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', vib && 'translate-x-5') }))
+        ),
+        React.createElement('div', { className:'rounded-xl bg-slate-50 border border-slate-200/70 p-3 mt-3' },
+          React.createElement('p', { className:'text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1' }, 'Pratinjau isi notif'),
+          React.createElement('p', { className:'text-sm font-semibold text-slate-800' }, '☀️ Miapos · Buka Resto'),
+          React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (morningText || '')),
+          React.createElement('p', { className:'text-sm font-semibold text-slate-800 mt-2' }, '🌙 Miapos · Waktunya Tutup'),
+          React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (nightText || ''))
+        )
+      ),
+      // Tombol aksi
+      React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-2' },
+        React.createElement(Button, { onClick: simpan, className:'sm:col-span-1' }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan'),
+        React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('buka'); } }, '☀️ Tes Notif Buka'),
+        React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('tutup'); } }, '🌙 Tes Notif Tutup')
+      ),
+      // Master saklar
+      React.createElement(Card, { className:'divide-y divide-slate-100 overflow-hidden' },
+        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifToggleRow, null))
+      ),
+      // Keamanan
+      React.createElement(Card, { className:'p-4' },
+        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'shield', className:'w-4 h-4' }), 'Keamanan'),
+        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Ganti password Owner Zone — biar cuma kamu yang bisa buka area ini.'),
+        React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-2' },
+          React.createElement(Input, { type:'password', value: pwLama, onChange: function(e) { setPwLama(e.target.value); }, placeholder:'Password lama' }),
+          React.createElement(Input, { type:'password', value: pwBaru, onChange: function(e) { setPwBaru(e.target.value); }, placeholder:'Password baru (min. 4)' })
+        ),
+        React.createElement(Button, { variant:'outline', className:'mt-2 w-full sm:w-auto', onClick: gantiPw }, React.createElement(Icon, { name:'key-round', className:'w-4 h-4' }), 'Ganti Password')
+      ),
+      // Catatan jujur soal cara kerja
+      React.createElement(Card, { className:'p-4 border-sky-100 bg-sky-50/50' },
+        React.createElement('p', { className:'text-xs font-bold text-sky-800 mb-1' }, 'ℹ️ Cara kerja notifikasinya'),
+        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed' }, 'Selama app Miapos jalan di HP (dibuka atau baru di-background), notif muncul tepat di jam buka & jam tutup — cek tiap 20 detik, maksimal 1x sehari per jenis. Kalau HP dimatiin total atau app di-swap habis, notif muncul pas app dibuka lagi (dikejar otomatis kalau masih dalam 1 jam dari jadwal).'),
+        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed mt-2' }, 'Saklar \"Notifikasi\" di atas itu saklar utama — kalau dimatikan, semua notif buka/tutup ikut berhenti.')
+      )
+    )
+  );
+}
+
 // ===== v2.6: PEMILIH TEMA — popup + kartu preview 3 tema (ala setelan dark mode HP) =====
 function ThemePreviewCard({ t, active, onPick }) {
   const dark = !!t.dark;
@@ -3618,7 +4122,7 @@ function CashierScreen({ onBack }) {
 
 function EngineScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Mesin Lokal', subtitle:'Server Python + analisis C++ (opsional)', onBack: onBack }),
+    React.createElement(Topbar, { title:'Backup Cloud & Mesin Lokal', subtitle:'Otomatis ke GitHub · tanpa Termux · opsional', onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-full space-y-4 min-h-full' },
       React.createElement(EngineCard, null)
     )
@@ -3647,6 +4151,7 @@ function SettingsView({ onBack }) {
   if (sub === 'inventory') return React.createElement(InventoryView, { onBack: function() { setSub(null); } });
   if (sub === 'kitchen') return React.createElement(KDSView, { onBack: function() { setSub(null); } });
   if (sub === 'outlets') return React.createElement(OutletsView, { onBack: function() { setSub(null); } });
+  if (sub === 'owner') return React.createElement(OwnerZoneScreen, { onBack: function() { setSub(null); } });
 
   const groups = [
     { title:'Kelola', items: [
@@ -3661,7 +4166,10 @@ function SettingsView({ onBack }) {
     ]},
     { title:'Aplikasi', items: [
       { key:'tema', icon:'palette', label:'Tema Warna', desc:'Aktif: ' + (MD_THEMES[settings.theme] || MD_THEMES.emerald).name + ' · 3 pilihan warna' },
-      { key:'engine', icon:'cpu', label:'Mesin Lokal (Python + C++)', desc:'Server lokal & insight otomatis' },
+      { key:'engine', icon:'cpu', label:'Backup Cloud & Mesin Lokal', desc:'Auto-backup GitHub · mesin lokal opsional' },
+    ]},
+    { title:'Khusus Owner', items: [
+      { key:'owner', icon:'lock', label:'Owner Zone 🔒', desc:'Notif jam buka/tutup, teks salam & nama pengirim — proteksi password' },
     ]},
   ];
 
@@ -3709,7 +4217,9 @@ function SettingsView({ onBack }) {
           )
         ),
         React.createElement('div', { className:'px-3.5' }, React.createElement(FullscreenRow, null)),
-        React.createElement('div', { className:'px-3.5' }, React.createElement(HPPToggleRow, null))
+        React.createElement('div', { className:'px-3.5' }, React.createElement(HPPToggleRow, null)),
+        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifToggleRow, null)),
+        React.createElement('div', { className:'px-3.5' }, React.createElement(NotifTestRow, null))
       ),
       React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm' },
         React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'database', className:'w-4 h-4' }), 'Data Lokal'),
@@ -3725,7 +4235,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.6 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.9 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
         React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
       ),
@@ -4044,6 +4554,13 @@ console.log('Miapos: PrinterManager ready');
 // Kalau dibuka lewat server Termux (python main.py), app otomatis
 // deteksi API lokal. Kalau dibuka sebagai HTML murni, semua fitur
 // tetap jalan normal — kartu engine hanya tidak tampil.
+// v2.7: di Vercel ada API CLOUD → backup otomatis tersimpan ke
+// folder backups/ di repo GitHub — TANPA Termux & tanpa jaga server.
+var CloudStore = {
+  KEY_NAME: 'miapos-cloud-key',
+  getKey: function() { try { return localStorage.getItem(this.KEY_NAME) || ''; } catch (e) { return ''; } },
+  setKey: function(k) { try { if (k) localStorage.setItem(this.KEY_NAME, k); else localStorage.removeItem(this.KEY_NAME); } catch (e) {} }
+};
 var ServerBridge = {
   _ping: null,
   isHttp: function() { return location.protocol === 'http:' || location.protocol === 'https:'; },
@@ -4055,13 +4572,35 @@ var ServerBridge = {
       .catch(function() { return null; });
     return this._ping;
   },
+  keyHeaders: function() { var k = CloudStore.getKey(); return k ? { 'x-backup-key': k } : {}; },
   backup: function(data) {
-    return fetch('/api/backup', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data) })
-      .then(function(r) { return r.json(); });
+    return fetch('/api/backup', {
+      method:'POST',
+      headers: Object.assign({ 'Content-Type':'application/json' }, this.keyHeaders()),
+      body: JSON.stringify(data)
+    }).then(function(r) { return r.json(); });
   },
   listBackups: function() {
-    return fetch('/api/backups', { cache:'no-store' })
+    // Cloud (Vercel): GET /api/backup · Termux: GET /api/backups
+    var cloud = fetch('/api/backup', { cache:'no-store', headers: this.keyHeaders() })
+      .then(function(r) { return r.json().catch(function() { return null; }); })
+      .catch(function() { return null; });
+    var lokal = fetch('/api/backups', { cache:'no-store' })
       .then(function(r) { return r.ok ? r.json() : null; })
+      .catch(function() { return null; });
+    return cloud.then(function(c) {
+      // jawaban cloud dipakai walau error key (supaya app bisa bilang "PASSWORD SALAH")
+      if (c && (c.ok || c.error)) return c;
+      return lokal;
+    });
+  },
+  readBackup: function(file) {
+    // Cloud: baca via API · Termux: file statis /backups/<nama>
+    return fetch('/api/backup?file=' + encodeURIComponent(file), { cache:'no-store', headers: this.keyHeaders() })
+      .then(function(r) {
+        if (r.ok) return r.json();
+        return fetch('/backups/' + file).then(function(r2) { return r2.ok ? r2.json() : null; });
+      })
       .catch(function() { return null; });
   },
   stats: function(daily) {
@@ -4071,7 +4610,13 @@ var ServerBridge = {
   }
 };
 
-// ===== KARTU MESIN LOKAL (Settings) =====
+// ===== KARTU BACKUP CLOUD + MESIN LOKAL (Settings, v2.7) =====
+// 3 mode otomatis (tanpa setelan apa pun):
+//   CLOUD      -> dibuka lewat Vercel: backup otomatis ke folder backups/
+//                 di repo GitHub, bisa dipulihkan dari HP mana pun.
+//   TERMUX     -> dibuka lewat python main.py: backup ke HP + C++ native.
+//   STANDALONE -> dibuka sebagai file HTML: app tetap jalan penuh,
+//                 data aman tersimpan di HP (Termux hanya opsional).
 function EngineCard() {
   const { state } = useAppStore();
   const { show } = useToast();
@@ -4079,39 +4624,133 @@ function EngineCard() {
   const [backups, setBackups] = React.useState(null);
   const [busy, setBusy] = React.useState(false);
   const [checked, setChecked] = React.useState(false);
+  const [hasKey, setHasKey] = React.useState(function() { return !!CloudStore.getKey(); });
+  const [keyInput, setKeyInput] = React.useState('');
+  const [keyErr, setKeyErr] = React.useState('');
+  const [last, setLast] = React.useState(function() {
+    try { return parseInt(localStorage.getItem('miapos-cloud-last') || '0', 10) || 0; } catch (e) { return 0; }
+  });
+  const modeCloud = checked && info && info.engine === 'cloud';
+  const modeLocal = checked && info && info.engine !== 'cloud';
+  const cloudReady = modeCloud && hasKey && keyErr !== 'KEY_SALAH';
+  function refreshList() {
+    return ServerBridge.listBackups().then(function(b) {
+      if (b && b.ok) { setBackups(b.backups || []); setKeyErr(''); return true; }
+      setKeyErr(b && b.error === 'KEY_SALAH' ? 'KEY_SALAH' : 'SERVER_ERROR');
+      return false;
+    });
+  }
   React.useEffect(function() {
     var alive = true;
     ServerBridge.ping().then(function(p) {
       if (!alive) return;
       setInfo(p); setChecked(true);
-      if (p) ServerBridge.listBackups().then(function(b) { if (alive && b) setBackups(b.backups || []); });
+      if (p && CloudStore.getKey()) refreshList();
     });
     return function() { alive = false; };
   }, []);
+  function saveKey() {
+    if (!keyInput.trim()) { show('Isi password dulu ya', 'error'); return; }
+    setBusy(true);
+    CloudStore.setKey(keyInput.trim());
+    ServerBridge.listBackups().then(function(b) {
+      setBusy(false);
+      if (b && b.ok) {
+        setHasKey(true); setKeyErr(''); setKeyInput(''); setBackups(b.backups || []);
+        show('✅ Backup cloud aktif — otomatis jalan sendiri');
+      } else {
+        CloudStore.setKey('');
+        setKeyErr(b && b.error === 'KEY_SALAH' ? 'KEY_SALAH' : 'SERVER_ERROR');
+        show(b && b.error === 'KEY_SALAH' ? 'Password salah — harus sama dengan BACKUP_KEY di Vercel' : 'Server cloud belum siap — cek env di Vercel', 'error');
+      }
+    });
+  }
   function doBackup() {
     setBusy(true);
     ServerBridge.backup(state).then(function(res) {
       if (res && res.ok) {
+        try { localStorage.setItem('miapos-cloud-last', String(Date.now())); } catch (e) {}
+        setLast(Date.now());
         show('💾 Backup tersimpan: ' + res.file);
-        return ServerBridge.listBackups().then(function(b) { if (b) setBackups(b.backups || []); });
+        return ServerBridge.listBackups().then(function(b) { if (b && b.ok) setBackups(b.backups || []); });
       }
-      show('Backup gagal', 'error');
-    }).catch(function() { show('Backup gagal — server tidak terjangkau', 'error'); })
+      if (res && res.error === 'KEY_SALAH') { setKeyErr('KEY_SALAH'); show('Password salah — harus sama dengan BACKUP_KEY di Vercel', 'error'); }
+      else show('Backup gagal', 'error');
+    }).catch(function() { show('Backup gagal — tidak ada koneksi', 'error'); })
       .finally(function() { setBusy(false); });
   }
+  function doRestore(file) {
+    if (!confirm('Pulihkan data dari ' + file + '?\n\nData sekarang akan DIGANTI dengan isi backup ini.')) return;
+    setBusy(true);
+    ServerBridge.readBackup(file).then(function(res) {
+      setBusy(false);
+      var data = res && res.data ? res.data : (res && Array.isArray(res.products) ? res : null);
+      if (!data || !Array.isArray(data.products)) { show('Backup tidak bisa dibaca', 'error'); return; }
+      try { localStorage.setItem('miapos-store-v4', JSON.stringify(data)); } catch (e) {}
+      show('✅ Data dipulihkan — app dimuat ulang...');
+      setTimeout(function() { try { location.reload(); } catch (e) {} }, 900);
+    }).catch(function() { setBusy(false); show('Gagal mengambil backup', 'error'); });
+  }
+  function lastLabel() {
+    if (!last) return 'Belum pernah';
+    try { return new Date(last).toLocaleString('id-ID', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }); } catch (e) { return '-'; }
+  }
+  var badge = null;
+  if (!checked) badge = null;
+  else if (modeCloud && hasKey && keyErr === '') badge = React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
+    React.createElement('span', { className:'w-1.5 h-1.5 rounded-full bg-emerald-500', style:{ animation:'pulse-soft 1.6s infinite' } }), 'CLOUD AKTIF');
+  else if (modeCloud && keyErr === 'KEY_SALAH') badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-red-50 border border-red-200 text-[10px] font-bold text-red-600' }, 'PASSWORD SALAH');
+  else if (modeCloud && keyErr === 'SERVER_ERROR') badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700' }, 'SERVER CEK ENV');
+  else if (modeCloud) badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700' }, 'ISI PASSWORD');
+  else if (modeLocal) badge = React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
+    React.createElement('span', { className:'w-1.5 h-1.5 rounded-full bg-emerald-500', style:{ animation:'pulse-soft 1.6s infinite' } }), 'TERMUX AKTIF');
+  else badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500' }, 'STANDALONE');
   return React.createElement(Card, null, React.createElement('div', { className:'p-4' },
     React.createElement('div', { className:'flex items-center justify-between mb-1' },
       React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2' },
-        React.createElement(Icon, { name:'cpu', className:'w-4 h-4' }), 'Mesin Lokal'
+        React.createElement(Icon, { name: modeCloud ? 'cloud' : 'cpu', className:'w-4 h-4' }),
+        modeCloud ? 'Backup Cloud' : 'Mesin Lokal'
       ),
-      checked && info
-        ? React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
-            React.createElement('span', { className:'w-1.5 h-1.5 rounded-full bg-emerald-500', style:{ animation:'pulse-soft 1.6s infinite' } }), 'TERHUBUNG')
-        : (checked ? React.createElement('span', { className:'px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500' }, 'STANDALONE') : null)
+      badge
     ),
     React.createElement('p', { className:'text-xs text-slate-500 mb-3' },
-      'Python server + C++ native analytics yang jalan di HP kamu sendiri (via Termux)'),
-    checked && info ? React.createElement('div', { className:'grid grid-cols-2 gap-2 mb-3' },
+      modeCloud ? 'Backup otomatis ke repo GitHub (folder backups/) — tanpa Termux, tanpa jaga server.'
+        : (modeLocal ? 'Python server + C++ native analytics yang jalan di HP kamu sendiri (via Termux).'
+          : 'App jalan 100% offline — semua data tersimpan aman di HP kamu.')),
+    // ---- CLOUD: panel setup (belum isi password / password salah) ----
+    modeCloud && !cloudReady ? React.createElement('div', { className:'rounded-lg border p-3 mb-3 ' + (keyErr === 'KEY_SALAH' ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200') },
+      React.createElement('p', { className:'text-[11px] font-bold mb-1 ' + (keyErr === 'KEY_SALAH' ? 'text-red-700' : 'text-amber-700') },
+        keyErr === 'KEY_SALAH' ? 'PASSWORD SALAH' : 'AKTIFKAN BACKUP CLOUD'),
+      React.createElement('p', { className:'text-[11px] mb-2 text-slate-600' },
+        'Masukkan password backup — harus sama dengan BACKUP_KEY yang di-set di Vercel. Langkah lengkap: PANDUAN-BACKUP-CLOUD.txt.'),
+      React.createElement('div', { className:'flex gap-2' },
+        React.createElement('input', {
+          type:'password', value: keyInput, placeholder:'Password backup cloud...',
+          onChange: function(e) { setKeyInput(e.target.value); },
+          className:'flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/40'
+        }),
+        React.createElement(Button, { disabled: busy, onClick: saveKey, className:'shrink-0' }, busy ? 'Cek...' : 'Aktifkan')
+      )
+    ) : null,
+    // ---- CLOUD: aktif ----
+    cloudReady ? React.createElement('div', { className:'grid grid-cols-2 gap-2 mb-3' },
+      React.createElement('div', { className:'rounded-lg border p-2.5' },
+        React.createElement('p', { className:'text-[10px] text-slate-500 font-medium' }, 'BACKUP TERAKHIR'),
+        React.createElement('p', { className:'text-sm font-bold text-emerald-600 truncate' }, lastLabel())
+      ),
+      React.createElement('div', { className:'rounded-lg border p-2.5' },
+        React.createElement('p', { className:'text-[10px] text-slate-500 font-medium' }, 'TOTAL BACKUP'),
+        React.createElement('p', { className:'text-sm font-bold' }, (backups === null ? '—' : backups.length) + ' file · simpan 7 terakhir')
+      )
+    ) : null,
+    cloudReady || modeLocal ? React.createElement('div', { className:'flex flex-col sm:flex-row gap-2 mb-3' },
+      React.createElement(Button, { className:'flex-1 gap-2', disabled: busy, onClick: doBackup },
+        React.createElement(Icon, { name:'save', className:'w-4 h-4' }), busy ? 'Menyimpan...' : 'Backup Sekarang'),
+      React.createElement(Button, { variant:'outline', className:'flex-1 gap-2', disabled: busy, onClick: refreshList },
+        React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }), 'Refresh')
+    ) : null,
+    // ---- TERMUX: info server python + C++ ----
+    modeLocal ? React.createElement('div', { className:'grid grid-cols-2 gap-2 mb-3' },
       React.createElement('div', { className:'rounded-lg border p-2.5' },
         React.createElement('p', { className:'text-[10px] text-slate-500 font-medium' }, 'PYTHON SERVER'),
         React.createElement('p', { className:'text-sm font-bold text-emerald-600' }, 'v' + (info.version || '2.1') + ' aktif')
@@ -4122,30 +4761,33 @@ function EngineCard() {
           info.cppEngine ? '⚡ Native aktif' : 'Mode fallback')
       )
     ) : null,
-    checked && info ? React.createElement('div', { className:'flex flex-col sm:flex-row gap-2 mb-3' },
-      React.createElement(Button, { className:'flex-1 gap-2', disabled: busy, onClick: doBackup },
-        React.createElement(Icon, { name:'save', className:'w-4 h-4' }), busy ? 'Menyimpan...' : 'Backup Data Sekarang'),
-      React.createElement(Button, { variant:'outline', className:'flex-1 gap-2', disabled: busy, onClick: function() {
-        ServerBridge.listBackups().then(function(b) { if (b) setBackups(b.backups || []); });
-      } }, React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }), 'Refresh')
-    ) : null,
-    checked && info && backups !== null ? React.createElement('div', { className:'rounded-lg bg-slate-50 border p-3' },
+    // ---- DAFTAR BACKUP (cloud & termux) ----
+    (cloudReady || modeLocal) && backups !== null ? React.createElement('div', { className:'rounded-lg bg-slate-50 border p-3' },
       React.createElement('p', { className:'text-[11px] font-bold text-slate-600 mb-1.5' }, 'BACKUP TERSIMPAN (' + backups.length + ')'),
       backups.length === 0
-        ? React.createElement('p', { className:'text-[11px] text-slate-500' }, 'Belum ada backup. Klik "Backup Data Sekarang" buat simpan data ke folder backup/.')
-        : React.createElement('div', { className:'space-y-1' },
-            backups.slice(0, 3).map(function(b, i) {
-              return React.createElement('div', { key:i, className:'flex items-center justify-between text-[11px]' },
-                React.createElement('span', { className:'text-slate-600 font-mono truncate' }, b.file),
-                React.createElement('span', { className:'text-slate-400 shrink-0 ml-2' }, (Math.round(b.size/102.4)/10) + ' KB · ' + b.time)
+        ? React.createElement('p', { className:'text-[11px] text-slate-500' }, 'Belum ada backup. Klik "Backup Sekarang" — auto-backup juga jalan sendiri (maks. 1x per 2 jam, kalau data berubah).')
+        : React.createElement('div', { className:'space-y-1.5' },
+            backups.map(function(b, i) {
+              return React.createElement('div', { key:i, className:'flex items-center justify-between gap-2 text-[11px]' },
+                React.createElement('div', { className:'min-w-0' },
+                  React.createElement('p', { className:'text-slate-700 font-mono truncate' }, b.file),
+                  React.createElement('p', { className:'text-slate-400' }, (Math.round(b.size/102.4)/10) + ' KB · ' + b.time)
+                ),
+                React.createElement('button', {
+                  onClick: function() { doRestore(b.file); },
+                  disabled: busy,
+                  className:'shrink-0 px-2 py-1 rounded-md border border-slate-300 bg-white text-[10px] font-bold text-slate-600 hover:bg-slate-100 active:bg-slate-200'
+                }, 'Pulihkan')
               );
-            }),
-            backups.length > 3 ? React.createElement('p', { className:'text-[10px] text-slate-400' }, '+' + (backups.length - 3) + ' backup lainnya...') : null
+            })
           )
     ) : null,
+    // ---- STANDALONE (file HTML biasa) ----
     checked && !info ? React.createElement('div', { className:'rounded-lg bg-amber-50 border border-amber-200 p-3' },
+      React.createElement('p', { className:'text-[11px] text-amber-700 mb-2' },
+        'Kamu buka app sebagai file HTML biasa. Tenang — SEMUA fitur tetap jalan dan data tersimpan aman di HP (100% offline, tanpa server).'),
       React.createElement('p', { className:'text-[11px] text-amber-700' },
-        'Kamu sedang buka app sebagai file HTML biasa. Jalankan "python main.py" di Termux untuk mengaktifkan mesin Python + C++ (backup otomatis & analitik native).')
+        'Mau backup otomatis ke GitHub tanpa Termux? Buka app lewat URL Vercel kamu → fitur Backup Cloud aktif sendiri. Mau mesin analisis C++ di HP sendiri? Jalankan "python main.py" di Termux — itu opsional.')
     ) : null
   ));
 }
@@ -4322,6 +4964,16 @@ function App() {
     var t2 = setTimeout(function() { setLoading(false); }, 2500);
     return function() { clearTimeout(t1); clearTimeout(t2); };
   }, []);
+  // v2.9 JADWAL NOTIF: cek jam buka (default 08.00) & jam tutup (default 21.00) tiap 20 detik
+  // selama app jalan. Juga dikejar pas tab balik aktif. Maks 1x/hari per jenis (lihat Notif.tick).
+  React.useEffect(function() {
+    if (loading || !mounted) return;
+    var t = setTimeout(function() { try { Notif.tick(); } catch (e) {} }, 2500);
+    var iv = setInterval(function() { try { Notif.tick(); } catch (e) {} }, 20000);
+    var onVis = function() { if (!document.hidden) { try { Notif.tick(); } catch (e) {} } };
+    document.addEventListener('visibilitychange', onVis);
+    return function() { clearTimeout(t); clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+  }, [loading, mounted]);
   // v2.6 THEME ENGINE: class html.theme-* + warna bilah status/notif ikut tema aktif.
   // Tema terang = putih tulang (#f8fafc) nyatu sama header putih (habis masalah blend
   // ijo di header); Charcoal = #121212 gelap total. Splash tetap gelap (#020617).
@@ -4384,7 +5036,16 @@ console.log('Miapos: App rendered');
     try { window.location.reload(); } catch (e) {}
   });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(function () {});
+    // v2.9: sekalian daftarkan Background Sync + Periodic Sync (checklist PWABuilder).
+    // Semua dibungkus try/catch — browser yang gak dukung tetap aman, app tetap jalan.
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      try { if (reg.sync && reg.sync.register) reg.sync.register('miapos-sync').catch(function () {}); } catch (e) {}
+      try {
+        if (reg.periodicSync && reg.periodicSync.register) {
+          reg.periodicSync.register('miapos-periodic', { minInterval: 12 * 60 * 60 * 1000 }).catch(function () {});
+        }
+      } catch (e) {}
+    }).catch(function () {});
   });
 })();
 </script>

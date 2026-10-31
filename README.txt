@@ -1,7 +1,106 @@
 ================================================
-  MIAPOS v2.6 — 3 TEMA WARNA + CHIP KASIR/CABANG
-        + AUTO-UPDATE + SIAP PLAY STORE
+  MIAPOS v2.9 — CHECKLIST PWABUILDER 6/6 + NOTIF BUKA/TUTUP
+     + OWNER ZONE + CUACA + BACKUP CLOUD + 3 TEMA + SIAP PLAY STORE
 ================================================
+
+APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
+------------------------------------------------------------
+1. CHECKLIST SERVICE WORKER PWABUILDER — 6/6 LOLOS:
+   • Sebelumnya 3 lolos (Has SW, Has Logic, Offline).
+   • Sekarang tambar 3 yang kurang, kodenya beneran ada:
+     - PUSH NOTIFICATIONS → handler 'push' di sw.js
+     - BACKGROUND SYNC → handler 'sync' + pendaftaran
+     - PERIODIC SYNC → handler 'periodicsync' + pendaftaran
+   • Re-analyze URL di PWABuilder → skor kartu Service
+     Worker jadi 6/6 (tambar +3).
+2. NOTIFIKASI JADWAL BUKA & TUTUP RESTO:
+   • Jam 08.00 (buka) → notif: "morgvn: Selamat pagi,
+     saatnya memulai kembali bisnis yaaa! ..."
+   • Jam 21.00 (tutup) → notif: "morgvn: Sudah jam 9 malam,
+     waktunya tutup. Capek kan? ..." + GETAR PENDEK
+     (bentar aja, gak lama).
+   • Maks 1x per hari per jenis — gak nyerang terus.
+   • Dikejar juga kalau app dibuka telat (masih dalam
+     1 jam dari jadwal).
+3. OWNER ZONE (FITUR KHUSUS OWNER, PAKAI PASSWORD):
+   • Pengaturan → "Owner Zone 🔒" → isi password.
+     Password default: morgvn — GANTI dari dalam
+     (bagian Keamanan) biar cuma lu yang tahu.
+   • Bisa diatur: jam buka, jam tutup, teks notif buka,
+     teks notif tutup, nama pengirim (morgvn), saklar
+     getar notif tutup, ganti password, + tombol
+     Tes Notif Buka / Tes Notif Tutup.
+   • Ada pratinjau isi notif sebelum disimpan.
+   • Data tersimpan di HP tempat app jalan — bukan di
+     Vercel; app-nya sendiri tetap dihosting Vercel.
+4. SALAM DI DASHBOARD MAKIN PINTAR:
+   • Tetap di bawah 4 kotak, ikut KASIR AKTIF (ganti
+     kasir → nama ikut ganti) & ikut JAM (pagi/siang/
+     sore/malam) — sekarang dicek tiap menit, jadi
+     salamnya ganti sendiri walau app dibuka lama.
+5. LABEL VERSI: "Miapos F&B Suite v2.9".
+
+APA YANG BARU DI v2.8 (kartu cuaca + notifikasi salam pagi)
+------------------------------------------------------------
+1. KARTU CUACA DI DASHBOARD:
+   • Suhu hari ini + kelembapan + gambar cuaca: matahari
+     ☀️ cerah, awan mendung ☁️, gerimis 🌦️, hujan 🌧️,
+     badai petir ⛈️ — otomatis sesuai kondisi nyata
+     (data Open-Meteo, gratis, tanpa daftar apa pun).
+   • Sekalian nampilin salam sesuai jam: "Selamat pagi,
+     Chelsa! Saatnya buka lapak..." (pagi/siang/sore/malam).
+   • Posisi pas: di bawah 4 kotak ringkasan, di atas grafik
+     tren omzet — ukuran compak, gak makan tempat.
+   • Butuh internet SESKALI (refresh ±30 menit). Offline?
+     Kartu tetap nampilin data terakhir, app tetap jalan.
+2. NOTIFIKASI SALAM PAGI (seperti yang diminta):
+   • Tiap pagi (04.00–10.00, maks 1x sehari) app kirim
+     notifikasi: "☀️ Selamat pagi, [nama]! Saatnya buka
+     lapak — semangat memulai kembali bisnis hari ini! 💪"
+   • Muncul di bilah notifikasi HP (beneran kayak notif WA).
+   • Aktifinnya gampang: banner di Dashboard → IZINKAN.
+     Bisa dimatiin di Pengaturan → "Notifikasi Salam Pagi".
+     Ada tombol "Kirim Notifikasi Tes" buat mastiin jalan.
+   • Notif diketuk → app Miapos langsung kebuka.
+3. PANDUAN GITHUB DIRAPIKAN (PANDUAN-GITHUB.txt):
+   • Tabel "FILE APA SAJA YANG HARUS DIPUSH" + penjelasan
+     folder api/ (mesin backup cloud — WAJIB dipush) dan
+     bagian "GAK PERLU UNINSTALL-UNINSTALL LAGI".
+4. FILE BARU: CHECKLIST-UPDATE.txt — checklist semua fitur
+   + langkah push langkah demi langkah.
+5. LABEL VERSI: "Miapos F&B Suite v2.8".
+
+APA YANG BARU DI v2.7 (backup cloud otomatis — tanpa Termux)
+------------------------------------------------------------
+1. BACKUP CLOUD OTOMATIS — DATA NYANGKUT DI GITHUB:
+   • App yang dibuka lewat URL Vercel otomatis kirim
+     snapshot data ke folder backups/ di repo GitHub —
+     TANPA Termux, TANPA jaga server, TANPA nguras batre.
+   • Sopan: maksimal 1x per 2 jam & hanya kalau data
+     beneran berubah. Tiap backup = 1 commit di repo.
+   • Rotasi otomatis: cukup 7 backup terakhir disimpan.
+2. PULIHKAN DATA DARI HP MANA PUN:
+   • Pengaturan → "Backup Cloud & Mesin Lokal" → daftar
+     backup → ketuk "Pulihkan" → data diganti dari backup
+     (selalu ada konfirmasi dulu). Ganti HP / HP hilang?
+     Buka app → isi password → Pulihkan — beres.
+3. LAYAR "MESIN LOKAL" JADI "BACKUP CLOUD & MESIN LOKAL":
+   • Status jelas lewat badge: CLOUD AKTIF / ISI PASSWORD
+     / PASSWORD SALAH / TERMUX AKTIF / STANDALONE.
+   • Dibuka sebagai file HTML? Tetap tenang: SEMUA fitur
+     jalan 100% offline & data aman di HP — pesan kuning
+     yang dulu bikin panik sudah diganti yang menenangkan.
+4. KEAMANAN:
+   • Backup dijaga password (BACKUP_KEY di Vercel, diisi
+     sekali di app). Salah password = ditolak server.
+   • Termux tetap kompatibel (main.py tidak berubah) —
+     backup mode Termux juga bisa dipulihkan dari app.
+5. LABEL VERSI: "Miapos F&B Suite v2.7".
+   SETUP SEKALI ±10 MENIT: ikuti PANDUAN-BACKUP-CLOUD.txt
+   (bikin token GitHub → 2 env di Vercel → isi password
+   di app). Sebelum setup, semua fitur tetap jalan normal.
+   (Sejak v2.8: folder api/ WAJIB dipush ke repo — tanpa
+   dia, backup cloud memang tidak jalan.)
 
 APA YANG BARU DI v2.6 (tema warna + perapihan header)
 -----------------------------------------------------
@@ -184,4 +283,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.6
+SELAMAT PAKAI! — Miapos v2.9

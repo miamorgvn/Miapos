@@ -1,0 +1,134 @@
+================================================
+  MIAPOS v2.9 — CHECKLIST (permintaan lu, semua)
+================================================
+Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
+yang harus lu lakuin sendiri (tinggal diklik/ketik).
+
+=====================================================
+A. FITUR BARU — SUDAH DIKERJAIN SEMUA
+=====================================================
+[x] 1. CHECKLIST SERVICE WORKER PWABUILDER — 6/6
+       Kartu "Service Worker" di PWABuilder ada 6 ceklis.
+       Semua sekarang LOLOS karena kodenya beneran ada:
+       [x] Has Service Worker   (sw.js terpasang)
+       [x] Has Logic            (network-first + auto-update)
+       [x] Offline Support      (cache core, jalan offline)
+       [x] Push Notifications   → BARU: handler 'push' di sw.js
+       [x] Background Sync      → BARU: handler 'sync' + daftar
+                                   otomatis pas app dibuka
+       [x] Periodic Sync        → BARU: handler 'periodicsync' +
+                                   daftar otomatis (12 jam sekali)
+       Caranya cek: buka pwabuilder.com → masukin URL Vercel
+       lu → Analyze → kartu Service Worker tampil +3 (total
+       6/6). Re-analyze ABIS push zip ini ya, jangan yang lama.
+[x] 2. NOTIFIKASI JADWAL BUKA & TUTUP RESTO
+       - JAM 08.00 (buka) → notif muncul:
+         judul: "☀️ Miapos · Buka Resto"
+         isi  : "morgvn: Selamat pagi, saatnya memulai kembali
+                 bisnis yaaa! Semangat ya hari ini! ☀️"
+       - JAM 21.00 (tutup) → notif muncul + GETAR PENDEK
+         (bentar doang, gak lama):
+         judul: "🌙 Miapos · Waktunya Tutup"
+         isi  : "morgvn: Sudah jam 9 malam, waktunya tutup.
+                 Capek kan? Rest dulu, besok gas lagi! 😴"
+       - Maksimal 1x sehari per jenis — gak nyerang terus.
+       - App dibuka telat? Tetap dikejar (selama masih dalam
+         1 jam dari jadwal).
+       - Notif diketuk → app Miapos langsung kebuka.
+[x] 3. OWNER ZONE — ATUR NOTIFNYA (KHUSUS OWNER, PAKAI PW)
+       - Pengaturan → grup "KHUSUS OWNER" → "Owner Zone 🔒"
+       - Password default: morgvn → GANTI dari bagian
+         "Keamanan" di dalam (lu sendiri yang pegang).
+       - Yang bisa diatur di dalam:
+         • Jam buka & jam tutup (kalau jam resto berubah)
+         • Teks notif buka & tutup (terserah lu mau nulis apa)
+         • Nama pengirim: default "morgvn" — isi notif jadi
+           "morgvn: <teks ucapan>"
+         • Saklar getar notif tutup (kalau males getar)
+         • Ganti password + tombol TES notif buka/tutup
+       - Ada pratinjau isi notif sebelum disimpan.
+       - Catat: pengaturannya disimpan di HP tempat app
+         jalan (notif itu per-HP anyway). App-nya sendiri
+         tetap dihosting Vercel — gak ada yang diubah di
+         Vercel buat fitur ini.
+[x] 4. SALAM DI DASHBOARD (DI BAWAH 4 KOTAK) MAKIN PINTAR
+       - Ikut KASIR AKTIF: ganti kasir lewat switcher atas
+         → salamnya ikut ganti nama. "Selamat pagi, Chelsa!"
+         beda sama "Selamat pagi, Dimas!" — otomatis.
+       - Ikut JAM: pagi/siang/sore/malam teksnya beda, dan
+         sekarang dicek TIAP MENIT — app dibuka jam 9 terus
+         dipake sampe sore? Salamnya ganti sendiri jadi
+         "Selamat sore". Lu gak perlu buka-ulang app.
+[x] 5. KARTU CUACA (v2.8) TETEP UTUH
+       - Suhu + kelembapan + gambar matahari/mendung/hujan/
+         petir. Refresh ±30 menit. Offline = data terakhir.
+[x] 6. BACKUP CLOUD (v2.7) TETEP UTUH
+       - api/backup.js + api/ping.js di Vercel, backup
+         otomatis ke GitHub, restore dari HP mana pun.
+
+=====================================================
+B. LANGKAH LU (TINGGAL DIKLIK/KETIK)
+=====================================================
+[ ] 1. Push SEMUA isi zip v2.9 ini ke repo GitHub
+       (pilih 1 cara — detail lengkap di PANDUAN-GITHUB.txt):
+       - WEB: github.com → repo → Add file → Upload files
+         → drag semua isi zip → Commit changes
+       - TERMUX: cd ~/miapos
+         unzip -o ~/storage/downloads/miapos-v2.9.zip
+         git add -A
+         git commit -m "Miapos v2.9"
+         git push
+[ ] 2. Cek Vercel: deployment baru muncul & status Ready
+       (±1 menit setelah push)
+[ ] 3. Buka app (JANGAN di-uninstall!) → cek versi di
+       Pengaturan paling bawah: "v2.9"
+[ ] 4. Ceklis PWABuilder: pwabuilder.com → Analyze URL
+       Vercel lu → kartu Service Worker = 6/6 ✅
+[ ] 5. Aktifin notifnya: Dashboard → banner "Aktifkan
+       Notifikasi" → IZINKAN. Tes: Pengaturan → Owner
+       Zone (pw: morgvn) → "Tes Notif Buka"/"Tes Notif Tutup"
+[ ] 6. GANTI PASSWORD OWNER dari bagian Keamanan biar
+       cuma lu yang bisa buka Owner Zone
+
+=====================================================
+C. RANGKUMAN JAWABAN (yang sering ditanyain)
+=====================================================
+Q: Checklist PWABuilder udah bener semua?
+A: UDAH 6/6. 3 yang tadinya gagal (Periodic Sync, Background
+   Sync, Push Notifications) sekarang ada kodenya di sw.js
+   + didaftarin otomatis pas app dibuka. Re-analyze di
+   PWABuilder setelah push v2.9 ini.
+
+Q: Salam di dashboard bisa ganti tiap kasir & tiap jam?
+A: BISA DUA-DUANYA. Nama ikut kasir aktif (switcher atas),
+   teksnya ikut jam (pagi/siang/sore/malam) dan dicek ulang
+   tiap menit — jadi ganti sendiri tanpa buka-ulang app.
+
+Q: Notif buka/tutup bisa diatur sendiri?
+A: BISA — di Owner Zone (Pengaturan → Owner Zone 🔒).
+   Jam, teks, nama pengirim ("morgvn: ..."), getar, semua.
+   Khusus owner, diproteksi password (default: morgvn,
+   buruan ganti).
+
+Q: Kalau folder api/ gak dipush, backup jalan gak?
+A: GAK. Backup cloud butuh api/backup.js hidup di Vercel.
+   Zip v2.9 ini udah termasuk api/ — push semuanya sekali
+   jalan. (Set env GITHUB_TOKEN + BACKUP_KEY: lihat
+   PANDUAN-BACKUP-CLOUD.txt.)
+
+Q: Perlu uninstall aplikasinya lagi?
+A: GAK PERLU. Sekali install. Push → Vercel deploy →
+   app update sendiri (sw.js network-first + skipWaiting).
+   Cuma kalau mau update APLIKASI DI PLAY STORE baru perlu
+   bikin APK/AAB baru di PWABuilder — dan install di HP
+   tetap gak perlu uninstall dulu.
+
+Q: Notif jalan gak kalau app ditutup total?
+A: Selama app Miapos masih jalan di HP (dibuka atau baru
+   di-background — kayak biasanya orang tinggal app POS),
+   notif muncul TEPAT di jamnya. Kalau HP dimatiin total /
+   app di-swap habis, notif muncul pas app dibuka lagi
+   (dikejar otomatis kalau masih dalam 1 jam dari jadwal).
+   Nanti kalau lu mau notif jalan walau app mati total,
+   itu butuh server pengirim (Vercel cron) — bisa jadi
+   fitur langganan/premium kayak yang lu bilang 😎
