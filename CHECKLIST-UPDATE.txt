@@ -1,8 +1,44 @@
 ================================================
-  MIAPOS v2.9 — CHECKLIST (permintaan lu, semua)
+  MIAPOS v2.10 — CHECKLIST (permintaan lu, semua)
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
+
+=====================================================
+0. BARU DI v2.10 — SCAN BARCODE, LAPORAN MENU, QRIS,
+   NOTIF WALAU APP DITUTUP
+=====================================================
+[x] 1. SCAN BARCODE (Pengaturan → Kelola Menu, di
+       samping tombol +)
+       Scan → isi nama + harga → menu masuk. Lanjut
+       scan terus = banyak menu sekaligus. Offline
+       100% (BarcodeDetector Chrome). Ada fallback
+       ketik manual. Barcode tersimpan di menu —
+       scan ulang dikenali, gak dobel.
+[x] 2. LAPORAN MENU (ganti layar Dapur/KDS)
+       Terjual hari ini, per item per qty, auto
+       sortir terbanyak → tersedikit. Ada omzet per
+       menu + medali 3 besar + ringkasan item/omzet.
+[x] 3. QRIS RESTO (di Owner Zone → seksi QRIS)
+       Upload gambar QRIS → otomatis tampil di layar
+       pembayaran metode QRIS.
+[x] 4. NOTIF WALAU APP DITUTUP
+       Server kirim notif jam 08.00 & 21.00 WIB via
+       web-push (FCM) — HP gak diperas baterai.
+       File pendukung: api/push-subscribe.js,
+       api/push-send.js, api/_pushlib.js,
+       vercel.json (cron 2x sehari), package.json.
+       [ ] Aktifinnya: ikut PANDUAN-NOTIF.txt
+           (deploy sudah otomatis pas push zip ini;
+           pastikan env GITHUB_TOKEN sudah di-set
+           seperti panduan backup cloud).
+[x] 5. FIX blank putih (Stok & Bahan → Produk)
+[x] 6. Owner Zone: judul polos, isi jadi seksi
+       gulung (klik buka), ada QRIS & teks kartu
+       cuaca di dalamnya.
+[x] 7. Kartu cuaca pindah ke paling atas Dashboard.
+[x] 8. Tombol Tes Notif sekarang minta izin
+       langsung + panduan buka blokir izin.
 
 =====================================================
 A. FITUR BARU — SUDAH DIKERJAIN SEMUA

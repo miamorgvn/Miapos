@@ -1,7 +1,13 @@
 ================================================
-  MIAPOS v2.8 — BACKUP CLOUD OTOMATIS
+  MIAPOS v2.10 — BACKUP CLOUD OTOMATIS
   (tanpa Termux · tanpa jaga server · gratis)
 ================================================
+
+UPDATE v2.10: env GITHUB_TOKEN yang lu set buat backup
+cloud ini SEKALIGUS dipakai buat NOTIF WALAU APP DITUTUP
+(api/push-send.js baca daftar HP dari folder backups/ yang
+sama). Jadi sekali setup backup cloud → push notif otomatis
+ikut nyala. Detail: PANDUAN-NOTIF.txt.
 
 APA INI?
 --------

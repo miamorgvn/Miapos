@@ -1,0 +1,123 @@
+================================================
+  MIAPOS v2.10 — PANDUAN NOTIFIKASI
+  (notif jam buka/tutup + notif walau app ditutup)
+================================================
+
+ADA 2 JENIS NOTIF DI MIAPOS
+---------------------------
+1) NOTIF LOKAL  → muncul saat app DIBUKA atau baru
+   di-background. Jamnya bisa diatur owner di Owner Zone.
+   Ini jalan 100% offline, gak butuh setelan apa-apa.
+
+2) PUSH SERVER → muncul WALAU APP DITUTUP TOTAL (layar
+   mati, app di-swap habis). Yang ngirim = server Miapos
+   (Vercel) jam 08.00 WIB (buka) & 21.00 WIB (tutup), lewat
+   layanan push Chrome/Android (FCM).
+   PENTING: yang jalan terus di HP itu cuma sistem
+   notifikasi Android-nya (sama seperti notif WA) — BUKAN
+   app Miapos yang nguras baterai. Kuota juga aman, cuma
+   ping-pong data mini.
+
+ISI NOTIFNYA
+------------
+- Buka  : judul "☀️ Miapos · Buka Resto"
+          isi  "morgvn: Selamat pagi, saatnya memulai
+          kembali bisnis yaaa! ..."
+- Tutup : judul "🌙 Miapos · Waktunya Tutup"
+          isi  "morgvn: Sudah jam 9 malam, waktunya tutup.
+          Capek kan? ..." + GETAR PENDEK (bentar doang)
+- Nama "morgvn" & teksnya bisa ganti sendiri:
+  Pengaturan → Owner Zone (password) → seksi
+  "Notifikasi Buka & Tutup" → Simpan → otomatis
+  tersinkron ke server push.
+
+================================================
+A. IZIN NOTIFIKASI (WAJIB — INI YANG SERING BIKIN
+   NOTIF GAK MUNCUL)
+================================================
+Notif gak bakal muncul kalo izinnya belum "DIIZINKAN".
+Cara benarnya:
+
+1. Buka app Miapos → bakal muncul banner hijau
+   "Aktifkan Notifikasi Pagi" → ketuk IZINKAN →
+   popup izin Chrome muncul → pilih IZINKAN/ALLOW.
+   (Banner hilang? Buka Pengaturan → baris
+   "Notifikasi Resto ☀️🌙" → ketuk → minta izin lagi.
+   Atau tombol "Kirim Notifikasi Tes" — sekarang
+   sekaligus minta izin.)
+
+2. KALAU POPUP IZIN GAK MAU MUNCUL LAGI / PERNAH DITOLAK:
+   Chrome gak boleh nanya 2x — harus buka blokir manual:
+   • LEWAT APP (kalau Miapos dipasang dari Play Store):
+     Setelan HP → Aplikasi → Miapos → Notifikasi →
+     nyalakan "Semua notifikasi".
+   • LEWAT CHROME (kalau buka lewat browser):
+     Chrome → titik tiga → Setelan → Setelan situs →
+     Notifikasi → cari miapos / url Vercel lu → Izinkan.
+     (Atau: setelan HP → Aplikasi → Chrome → Notifikasi
+     → izinkan dulu.)
+3. HPnya juga jangan kasih "Jangan Ganggu / Focus mode"
+   ke app Chrome/Miapos, dan hemat baterai jangan "dibatasi"
+   total buat Chrome — biar notif gak ditahan.
+
+CARA CEK IZINNYA UDAH MASUK APA BELUM:
+Pengaturan → "Notifikasi Resto ☀️🌙" → tulisannya harus
+"Aktif — notif buka jam 08.00 & tutup jam 21.00".
+Kalau masih "Ketuk untuk izinkan" → belum granted.
+
+================================================
+B. NOTIF WALAU APP DITUTUP (PUSH SERVER) — SETELAN
+================================================
+Yang dibutuhin cuma 1: env GITHUB_TOKEN di Vercel.
+(Kalau backup cloud udah jalan → berarti udah siap,
+gak perlu apa-apa lagi.)
+
+LANGKAH LENKAP (SEKALI AJA):
+1. Push semua isi zip v2.10 ke repo GitHub
+   (api/push-subscribe.js, api/push-send.js,
+   api/_pushlib.js, vercel.json, package.json WAJIB ikut).
+   → Vercel otomatis deploy + otomatis pasang jadwal cron
+     (lihat Vercel → project → tab "Cron Jobs": harus muncul
+     2 jadwal: /api/push-send 01:00 UTC & 14:00 UTC).
+2. Pastikan env (Vercel → Settings → Environment Variables):
+   - GITHUB_TOKEN  : WAJIB (sama dengan backup cloud)
+   - BACKUP_KEY    : disarankan (buat tombol tes server)
+3. Buka app Miapos (online) 1x → HP otomatis daftar ke
+   server push. Statusnya bisa dicek di Owner Zone →
+   seksi "Notif Walau App Ditutup": harus tulis
+   "HP ini sudah terdaftar di server push ✅".
+4. TES SEKALI-KALI:
+   Owner Zone → seksi "Notif Walau App Ditutup" →
+   ketuk "☁️ Tes dari Server (Buka)".
+   → Notif harus muncul di HP dalam beberapa detik.
+   → Sekarang TUTUP TOTAL app-nya (swap habis), besok jam
+     08.00 & 21.00 WIB notif datang sendiri.
+
+CATATAN JUJUR SOAL JAM:
+- Notif dari SERVER jalan jam 08.00 & 21.00 WIB (bawaan).
+- Jam yang lu atur di Owner Zone dipakai notif LOKAL
+  (saat app dibuka/di-background) — bisa beda-jam.
+- Mau jam server digeser juga? Bilang aja, tinggal gua
+  ubah jadwalnya di vercel.json.
+
+TROUBLESHOOTING
+---------------
+- Tes server bilang "SERVER_BELUM_DISET" → env
+  GITHUB_TOKEN belum di-set di Vercel (lihat
+  PANDUAN-BACKUP-CLOUD.txt langkah env).
+- Tes server bilang "Isi dulu password backup" →
+  BACKUP_KEY belum diisi di app (Pengaturan → Backup
+  Cloud & Mesin Lokal → isi password yang sama dengan
+  env BACKUP_KEY).
+- Cron gak jalan → cek tab "Cron Jobs" di dashboard
+  Vercel; plan gratis (Hobby) dukung 2 jadwal per hari,
+  pas banget buat buka & tutup.
+- Notif muncul tapi dobel (lokal + server) → normal kalau
+  app lagi dibuka pas jam jadwal; tag-nya sama jadi HP
+  nimpain yang lama, gak numpuk.
+
+KESIMPULANNYA
+-------------
+Izin notif = kunci nomor satu. Udah izinkan + env
+GITHUB_TOKEN terpasang + app dibuka 1x pas online =
+komplit. Notif bakal datang walau app ditutup.

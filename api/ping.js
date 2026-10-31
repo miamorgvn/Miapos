@@ -1,5 +1,5 @@
 /* ============================================================
-   MIAPOS v2.9 — API PING (Vercel Serverless)
+   MIAPOS v2.10 — API PING (Vercel Serverless)
    ------------------------------------------------------------
    Dipanggil aplikasi saat buka untuk deteksi mode:
    - Kalau endpoint ini jawab → app tahu sedang berjalan di
@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
     app: 'miapos',
     server: 'vercel',
     engine: 'cloud',
-    version: '2.9',
+    version: '2.10',
     time: new Date().toISOString()
   });
 };

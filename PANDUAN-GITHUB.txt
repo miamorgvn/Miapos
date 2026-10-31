@@ -1,6 +1,6 @@
 ================================================
   MIAPOS — PANDUAN GITHUB & UPDATE APLIKASI
-  (dipperbarui untuk v2.9 — dibikin detail biar jelas)
+  (dipperbarui untuk v2.10 — dibikin detail biar jelas)
 ================================================
 
 PRINSIP DASARNYA CUMA 1
@@ -49,7 +49,19 @@ Gampangnya gini — ikut tabel ini:
            lagi kecuali gua bilang filenya berubah.
   backups/ → JANGAN dibikin manual, JANGAN dihapus. Folder
            ini dibikin otomatis oleh api/backup.js pas
-           backup pertama jalan. Isinya data backup kamu.
+           backup pertama jalan. Isinya data backup kamu +
+           file miapos-push.json (daftar HP penerima notif).
+
+  FILE BARU v2.10 — WAJIB IKUT DIPUSH (semuanya di zip):
+    api/push-subscribe.js  → mesin daftar HP penerima notif
+    api/push-send.js       → mesin kirim notif jam buka/tutup
+    api/_pushlib.js        → helper bareng (wajib ada!)
+    package.json           → biar Vercel pasang web-push
+    vercel.json            → jadwal cron notif 08.00 & 21.00 WIB
+    .well-known/assetlinks.json → biar app Play Store full
+        screen (tanpa topbar Chrome). FOLDER TITIK (diawali
+        titik) kadang kelewat pas upload web — makanya
+        sekarang ikut di zip. Kalau ragu, push SEMUA isi zip.
 
 INTINYA: Kalau bingung, PUSHA SEMUA ISI ZIP. Nggak ada
 efek sampingnya — yang sama otomatis ketimpa, yang belum
@@ -59,15 +71,19 @@ ada otomatis kebikin. Aman 100%.
 1. Extract zip Miapos terbaru di HP/PC kamu.
 2. Buka github.com → masuk repo miapos kamu.
 3. Klik "Add file" → "Upload files".
-4. Drag SEMUA file di root (luar folder):
+4. Drag SEMUA file di root (luar folder) — v2.10 artinya:
       index.html, sw.js, manifest.json, favicon.ico,
       icon-192.png, icon-512.png, README.txt,
       PANDUAN-GITHUB.txt, PANDUAN-PLAYSTORE.txt,
-      PANDUAN-BACKUP-CLOUD.txt, CHECKLIST-UPDATE.txt,
-      main.py, install.sh, start.sh
+      PANDUAN-BACKUP-CLOUD.txt, PANDUAN-NOTIF.txt,
+      CHECKLIST-UPDATE.txt, main.py, install.sh, start.sh,
+      package.json, vercel.json
    File lama yang namanya sama OTOMATIS KETIMPA.
-5. KALAU REPO KAMU BELUM PUNYA folder lib/ dan folder api/
-   → drag FOLDER lib/ dan FOLDER api/ sekalian dari PC
+5. Drag FOLDER-FOLDER ini sekalian (yang sudah ada di
+   repo juga boleh ditimpa isi barunya):
+      lib/  api/  .well-known/
+   → folder .well-known WAJIB ada di repo biar app Play
+     Store full screen. Zip v2.10 udah nyertain foldernya.
    (GitHub otomatis meng-upload isi foldernya).
    Kalau foldernya SUDAH ada di repo → lewati, nggak usah.
    CATATAN v2.9: folder api/ WAJIB ada di repo — folder ini
@@ -289,9 +305,11 @@ YANG BARU DI v2.9 (biar nggak bingung pas buka app)
   "Kirim Notifikasi Tes" buat mastiin notifikasinya jalan.
 - Jujur-juragan: notifikasi ini dikirim oleh HP sendiri pas
   app dibuka pagi. Karena Miapos 100% offline & tanpa server,
-  notif yang muncul PADAHAL app-nya ditutup total butuh
-  layanan push server (FCM) — itu ranah app online; kalau
-  nanti mau, bisa jadi fitur tambahan terpisah.
+  UPDATE v2.10: notif walau app ditutup SUDAH ADA —
+  pakai push server (Vercel cron 08.00 & 21.00 WIB → FCM).
+  Tinggal push file zip ini (api/ + vercel.json +
+  package.json ikut) dan pastikan env GITHUB_TOKEN terpasang
+  (sama dengan backup cloud). Detail: PANDUAN-NOTIF.txt.
 
 Mau rilis ke PLAY STORE? Ikuti file PANDUAN-PLAYSTORE.txt
 (tinggal isi URL Vercel ke PWABuilder).

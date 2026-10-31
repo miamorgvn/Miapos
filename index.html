@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
 <title>Miapos - POS & Manajemen Restoran</title>
-<meta name="description" content="Sistem POS, KDS, Inventory, dan Multi-Outlet untuk restoran modern" />
+<meta name="description" content="Aplikasi POS kasir, laporan menu, inventory, dan multi-outlet untuk restoran modern" />
 <meta name="theme-color" content="#f8fafc" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
@@ -237,6 +237,49 @@ const CATEGORY_ICONS = { FOOD:'utensils-crossed', BEVERAGE:'coffee', DESSERT:'ic
 const CATEGORY_EMOJI = { FOOD:'🍜', BEVERAGE:'☕', DESSERT:'🍰', SNACK:'🍪' };
 const CATEGORY_COLORS = { FOOD:'from-amber-100 to-orange-50 text-amber-600', BEVERAGE:'from-emerald-100 to-cyan-50 text-emerald-600', DESSERT:'from-pink-100 to-emerald-50 text-pink-600', SNACK:'from-emerald-100 to-green-50 text-emerald-600' };
 
+// ===== v2.10: KATEGORI CUSTOM — input menu manual bisa atur/hapus kategori sendiri =====
+// Kategori bawaan (FOOD/BEVERAGE/DESSERT/SNACK) gak bisa dihapus; kategori buatan
+// owner disimpan di settings.customCategories [{key,label,emoji}].
+function getCustomCats(settings) { return (settings && settings.customCategories) || []; }
+function allCatList(settings) {
+  var base = Object.keys(CATEGORY_LABELS).map(function(k){ return { key:k, label:CATEGORY_LABELS[k], emoji:CATEGORY_EMOJI[k], base:true }; });
+  var custom = getCustomCats(settings).map(function(c){ return { key:c.key, label:c.label, emoji:c.emoji || '\uD83C\uDF7D\uFE0F', base:false }; });
+  return base.concat(custom);
+}
+function catMeta(settings, key) {
+  var list = allCatList(settings);
+  for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
+  return { key:key, label:CATEGORY_LABELS[key] || key || '-', emoji:CATEGORY_EMOJI[key] || '\uD83C\uDF7D\uFE0F', base:!!CATEGORY_LABELS[key] };
+}
+
+// ===== v2.10: TOTAL PESANAN ANTI-NaN =====
+// Kalau data total/subtotal/discount rusak (string '100.000', undefined, dll),
+// tampilan tetap keluar angka yang bener — bukan RpNaN.
+function orderItemsSum(o) { return (o && o.items ? o.items : []).reduce(function(s,it){ return s + (Number(it.quantity)||0)*(Number(it.price)||0); }, 0); }
+function orderSubtotalOf(o) {
+  if (!o) return 0;
+  var s = Number(o.subtotal);
+  return (o.subtotal !== undefined && o.subtotal !== null && o.subtotal !== '' && Number.isFinite(s)) ? s : orderItemsSum(o);
+}
+function orderTotalOf(o) {
+  if (!o) return 0;
+  var t = Number(o.total);
+  if (!Number.isFinite(t)) t = orderSubtotalOf(o) - (Number(o.discount) || 0);
+  if (!Number.isFinite(t)) t = orderItemsSum(o);
+  return Math.max(0, Math.round(t));
+}
+
+// ===== v2.10: ITEM "TAMBAHAN" =====
+// Item pesanan yang dimasukin BELAKANGAN (lewat Tambah Menu di detail pesanan),
+// setelah pesanan dibuat / setelah nota dapur terakhir dicetak.
+// Labelnya CUMA tampil di aplikasi — nota cetakan tetap bersih tanpa label.
+function itemAddedAt(order, it) {
+  if (!order || !it) return false;
+  var base = order.kitchenPrintedAt ? new Date(order.kitchenPrintedAt).getTime() : (new Date(order.createdAt || 0).getTime() + 1500);
+  var t = new Date(it.createdAt || 0).getTime();
+  return t > base;
+}
+
 // ===== v2.6 THEME ENGINE — 3 tema aplikasi =====
 const MD_THEMES = {
   emerald:  { key:'emerald',  name:'Emerald & Slate', desc:'Fokus & kesuksesan transaksi',  main:'#10B981', cta:'#059669', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
@@ -350,7 +393,7 @@ function generateSeed() {
 // ===== STORE (Context API based) =====
 const STORAGE_KEY = 'miapos-store-v4';
 const LEGACY_STORAGE_KEY = 'miapos-store-v3';
-// v2.9: default notifikasi buka/tutup resto — teks & jamnya bisa diubah owner
+// v2.9→v2.10: default notifikasi buka/tutup resto — teks & jamnya bisa diubah owner
 // lewat Owner Zone (Pengaturan → Owner Zone, pakai password).
 const NOTIF_DEFAULTS = {
   notifOpenTime: '08:00',  // jam buka resto → notif salam pagi
@@ -359,6 +402,9 @@ const NOTIF_DEFAULTS = {
   notifMorningText: 'Selamat pagi, saatnya memulai kembali bisnis yaaa! Semangat ya hari ini! ☀️',
   notifNightText: 'Sudah jam 9 malam, waktunya tutup. Capek kan? Rest dulu, besok gas lagi! 😴',
   notifNightVibrate: true, // getar pendek di notif jam tutup
+  wxCardText: '',          // v2.10: teks custom kartu cuaca (kosong = salam otomatis)
+  pushServer: true,        // v2.10: push dari server (notif muncul walau app ditutup)
+  qrisImage: ''            // v2.10: gambar QRIS resto (dataURL) — tampil saat pembayaran
 };
 const AppContext = React.createContext(null);
 const useAppStore = () => React.useContext(AppContext);
@@ -401,9 +447,26 @@ function AppProvider({ children }) {
     }
     if (!loaded) loaded = generateSeed();
     // Normalisasi settings: field baru (mis. theme) dapat default aman utk data lama
-    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true }, NOTIF_DEFAULTS, loaded.settings || {});
+    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', morningNotif:true, wxCardText:'', pushServer:true, qrisImage:'' }, NOTIF_DEFAULTS, loaded.settings || {});
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     loaded.archivedOrders = loaded.archivedOrders || [];
+    // v2.10 NORMALISASI DATA — perbaiki layar blank putih di Stok & Bahan → tab
+    // Produk: data lama/backup kadang punya produk TANPA varian (p.variants
+    // undefined) → p.variants.length meledak → React unmount → layar putih.
+    (loaded.products || []).forEach(function(p) {
+      if (!Array.isArray(p.variants) || p.variants.length === 0) {
+        p.variants = [{ id: 'var-' + p.id + '-1', productId: p.id, name: 'Reguler', priceMod: 0 }];
+      }
+      if (!Array.isArray(p.recipeItems)) p.recipeItems = [];
+      if (typeof p.available !== 'boolean') p.available = true;
+      if (typeof p.price !== 'number') p.price = Number(p.price) || 0;
+    });
+    (loaded.materials || []).forEach(function(m) {
+      if (typeof m.stock !== 'number') m.stock = Number(m.stock) || 0;
+      if (typeof m.minStock !== 'number') m.minStock = Number(m.minStock) || 0;
+      if (typeof m.cost !== 'number') m.cost = Number(m.cost) || 0;
+      if (!m.unit) m.unit = 'pcs';
+    });
     return applyRollover(loaded);
   });
   const [cart, setCart] = React.useState([]);
@@ -518,6 +581,7 @@ function AppProvider({ children }) {
     clearCart: () => { setCart([]); setCartTableId(undefined); setCartOrderType('DINE_IN'); },
     checkout: ({ method, paid, discount=0, customerName='', notes='', tempat='' }) => {
       if (cart.length === 0) return null;
+      discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
@@ -557,6 +621,7 @@ function AppProvider({ children }) {
     },
     saveUnpaidOrder: ({ discount=0, customerName='', notes='', tempat='' }) => {
       if (cart.length === 0) return null;
+      discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
@@ -602,7 +667,7 @@ function AppProvider({ children }) {
     markOrderPaid: (orderId, method, paid) => setState(s => {
       const order = s.orders.find(o => o.id === orderId);
       if (!order) return s;
-      const change = Math.max(0, paid - order.total);
+      const change = Math.max(0, paid - orderTotalOf(order));
       const orders = s.orders.map(o => o.id===orderId ? { ...o, paymentStatus:'PAID', paymentMethod:method, paid, change, status:'PAID', paidAt:new Date().toISOString(), updatedAt:new Date().toISOString() } : o);
       const tables = s.tables.map(t => t.currentOrderId === orderId ? { ...t, status:'DIRTY', currentOrderId:undefined } : t);
       return { ...s, orders, tables };
@@ -633,6 +698,18 @@ function AppProvider({ children }) {
     updateOrderItemNotes: (orderId, itemId, notes) => setState(s => ({
       ...s,
       orders: s.orders.map(o => o.id === orderId ? { ...o, items: o.items.map(it => it.id === itemId ? { ...it, notes } : it), updatedAt: new Date().toISOString() } : o)
+    })),
+    // v2.10: catat waktu cetak dapur terakhir — jadi dasar penanda "Tambahan"
+    // dan daftar item buat Cetak Tambahan (cuma menu yang belum kecetak)
+    markKitchenPrinted: (orderId) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => o.id === orderId ? { ...o, kitchenPrintedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : o)
+    })),
+    // v2.10: hapus kategori custom — menu di dalamnya pindah ke Makanan biar gak hilang
+    deleteCategory: (key) => setState(s => ({
+      ...s,
+      settings: { ...s.settings, customCategories: (s.settings.customCategories || []).filter(c => c.key !== key) },
+      products: s.products.map(p => p.category === key ? { ...p, category:'FOOD' } : p),
     })),
     updateOrderItemStatus: (orderId, itemId, status) => setState(s => ({ ...s, orders: s.orders.map(o => o.id===orderId ? { ...o, items:o.items.map(it => it.id===itemId ? { ...it, status } : it), updatedAt:new Date().toISOString() } : o) })),
     updateOrderStatus: (orderId, status) => setState(s => {
@@ -897,7 +974,7 @@ function Sidebar({ active, onChange }) {
     { key:'settings', label:'Pengaturan', icon:'settings', mobile:true },
     { key:'produk', label:'Produk', icon:'package', divider:true },
     { key:'more', label:'Lainnya', icon:'layout-grid' },
-    { key:'kitchen', label:'Dapur (KDS)', icon:'chef-hat' },
+    { key:'kitchen', label:'Laporan Menu', icon:'utensils-crossed' },
     { key:'outlets', label:'Outlet & Staf', icon:'store' },
   ];
   function mobTab(key, label, icon) {
@@ -920,7 +997,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.9')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.10')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -1038,12 +1115,23 @@ var Notif = {
   fire: function(title, body, tag, vibrate) {
     try {
       if (!('Notification' in window) || Notification.permission !== 'granted') return false;
-      var opts = { body: body, tag: tag || 'miapos', icon: './icon-192.png', badge: './icon-192.png', vibrate: vibrate || [80, 40, 80], dir: 'id' };
-      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
-        navigator.serviceWorker.getRegistration().then(function(reg) {
-          if (reg && reg.showNotification) { try { reg.showNotification(title, opts); } catch (e) {} }
-          else { try { new Notification(title, opts); } catch (e) {} }
-        }).catch(function() { try { new Notification(title, opts); } catch (e) {} });
+      var opts = { body: body, tag: tag || 'miapos', icon: './icon-192.png', badge: './icon-192.png',
+        vibrate: vibrate || [80, 40, 80], dir: 'id', renotify: true, requireInteraction: false, data: { url: './' } };
+      // v2.10: pakai serviceWorker.ready (reg aktif YAKIN ADA) — bukan getRegistration()
+      // yang bisa null saat SW belum aktif. Ada TIMEOUT fallback 1,2 detik biar
+      // notif tetap keluar walau SW-nya lama/nggak aktif (mis. browser aneh).
+      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+        var fired = false;
+        var fallbackNotify = function() {
+          if (fired) return; fired = true;
+          try { new Notification(title, opts); } catch (e) {}
+        };
+        var ft = setTimeout(fallbackNotify, 1200);
+        navigator.serviceWorker.ready.then(function(reg) {
+          if (fired) return; fired = true; clearTimeout(ft);
+          if (reg && reg.showNotification) { try { reg.showNotification(title, opts); } catch (e) { try { new Notification(title, opts); } catch (e2) {} } }
+          else fallbackNotify();
+        }).catch(function() { clearTimeout(ft); fallbackNotify(); });
       } else { try { new Notification(title, opts); } catch (e) {} }
       return true;
     } catch (e) { return false; }
@@ -1094,7 +1182,102 @@ var Notif = {
     } catch (e) {}
   },
   // nama lama yang dipakai beberapa tempat — sekarang delegasi ke mesin jadwal v2.9
-  maybeMorning: function() { return this.tick(); }
+  maybeMorning: function() { return this.tick(); },
+
+  // ===== v2.10: PUSH DARI SERVER — notif muncul WALAU APP DITUTUP =====
+  // Cara kerjanya: HP daftar ke layanan push Chrome (FCM) sekali, lalu server
+  // (Vercel cron jam 08.00 & 21.00 WIB) ngirim notif ke HP lewat internet.
+  // Yang jalan terus di HP cuma sistem notifikasi Android-nya — bukan app
+  // Miapos — jadi baterai & kuota aman (inilah cara WA/notif bank bekerja).
+  PUSH_KEY: 'BOvogKOEW16o1CBz_kntLf7-RV0CRPsQe_A_6LmjOeh5VaZZoPfIRNd12EcUkfeJJBhYpt0xzt2jth_dBTysD7k',
+  pushFlagKey: 'miapos-push-ok',
+  pushSyncPending: 'miapos-push-sync-pending',
+  urlB64ToUint8: function(b64) {
+    try {
+      var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+      var s = (b64 + pad).replace(/-/g, '+').replace(/_/g, '/');
+      var raw = atob(s); var out = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+      return out;
+    } catch (e) { return null; }
+  },
+  pushSupported: function() {
+  try { return 'serviceWorker' in navigator && 'PushManager' in window && ('Notification' in window); } catch (e) { return false; }
+  },
+  pushOk: function() { try { return localStorage.getItem(this.pushFlagKey) === '1'; } catch (e) { return false; } },
+  // Daftarkan HP ini ke server (subscribe push + unggah config terbaru).
+  // Panggil tiap app dibuka (kalau izin sudah granted) — idempoten & aman offline.
+  pushEnsure: function() {
+    var self = this;
+    try {
+      if (!this.pushSupported()) return Promise.resolve(false);
+      if (Notification.permission !== 'granted') return Promise.resolve(false);
+      if (!(ServerBridge && ServerBridge.isHttp && ServerBridge.isHttp())) return Promise.resolve(false);
+      return navigator.serviceWorker.ready.then(function(reg) {
+        return reg.pushManager.getSubscription().then(function(sub) {
+          if (!sub) {
+            var k = self.urlB64ToUint8(self.PUSH_KEY);
+            if (!k) return null;
+            return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: k });
+          }
+          return sub;
+        });
+      }).then(function(sub) {
+        if (!sub) return false;
+        var j = sub.toJSON();
+        if (!j.endpoint || !j.keys) return false;
+        return fetch('/api/push-subscribe', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sub: { endpoint: j.endpoint, keys: j.keys } })
+        }).then(function(r) { return r.json().catch(function() { return null; }); })
+          .then(function(res) {
+            if (res && res.ok) {
+              try { localStorage.setItem(self.pushFlagKey, '1'); localStorage.removeItem(self.pushSyncPending); } catch (e) {}
+              // sekalian unggah config notif terakhir biar server pakai teks terbaru
+              self.pushUploadConfig(null, true);
+              return true;
+            }
+            return false;
+          }).catch(function() { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} return false; });
+      }).catch(function() { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} return false; });
+    } catch (e) { return Promise.resolve(false); }
+  },
+  // Kirim teks/jam notif versi owner ke server (dipakai cron push).
+  // cfg null → baca dari localStorage; silent=true → tanpa rekam pending.
+  pushUploadConfig: function(cfg, silent) {
+    var self = this;
+    try {
+      if (!(ServerBridge && ServerBridge.isHttp && ServerBridge.isHttp())) return Promise.resolve(false);
+      var s = cfg || this.readSettings();
+      var body = { config: {
+        notifOwnerName: String(s.notifOwnerName || 'morgvn').slice(0, 24),
+        notifMorningText: String(s.notifMorningText || NOTIF_DEFAULTS.notifMorningText).slice(0, 200),
+        notifNightText: String(s.notifNightText || NOTIF_DEFAULTS.notifNightText).slice(0, 200),
+        notifNightVibrate: s.notifNightVibrate !== false,
+        notifOpenTime: String(s.notifOpenTime || '08:00').slice(0, 5),
+        notifCloseTime: String(s.notifCloseTime || '21:00').slice(0, 5),
+        pushServer: s.pushServer !== false
+      } };
+      return fetch('/api/push-subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      }).then(function(r) { return r.json().catch(function() { return null; }); })
+        .then(function(res) {
+          if (res && res.ok && !silent) { try { localStorage.removeItem(self.pushSyncPending); } catch (e) {} }
+          if (res && res.ok && silent) { try { localStorage.removeItem(self.pushSyncPending); } catch (e) {} }
+          return !!(res && res.ok);
+        }).catch(function() { if (!silent) { try { localStorage.setItem(self.pushSyncPending, '1'); } catch (e) {} } return false; });
+    } catch (e) { return Promise.resolve(false); }
+  },
+  // Tes notif dari server (sirkuit penuh: server → FCM → HP walau app ditutup nanti)
+  pushTestFromServer: function(kind) {
+    try {
+      var key = (ServerBridge && CloudStore && CloudStore.getKey()) || '';
+      if (!key) return Promise.resolve({ ok: false, error: 'NO_KEY' });
+      return fetch('/api/push-send?kind=' + (kind === 'tutup' ? 'tutup' : 'buka'), { headers: { 'x-backup-key': key } })
+        .then(function(r) { return r.json().catch(function() { return { ok: false, error: 'BAD_RESPONSE' }; }); })
+        .catch(function() { return { ok: false, error: 'OFFLINE' }; });
+    } catch (e) { return Promise.resolve({ ok: false, error: 'ERROR' }); }
+  }
 };
 
 // Kartu cuaca — dipasang di Dashboard (kompak: gambar cuaca + suhu + salam)
@@ -1124,6 +1307,9 @@ function WeatherCard() {
   var cw = wxMap(wx && wx.ok ? wx.code : -1);
   var g = greetParts(new Date().getHours());
   var nama = cashier ? cashier.name : '';
+  // v2.10: teks kartu cuaca bisa diatur owner (Owner Zone) — kosong = salam otomatis
+  var customText = String((settings && settings.wxCardText) || '').trim();
+  var salamLine = customText || (g.label + (nama ? ', ' + nama : '') + '! ' + g.sub + ' ' + g.emoji);
   var jam = wx && wx.at ? new Date(wx.at).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : '';
   var detail;
   if (!wx || !wx.ok) detail = 'Sambungkan internet sebentar buat ambil cuaca — app tetap jalan offline';
@@ -1138,8 +1324,7 @@ function WeatherCard() {
           React.createElement('span', { className:'text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900' }, wx && wx.ok ? wx.temp + '°C' : '—'),
           React.createElement('span', { className:'text-xs md:text-sm font-bold text-sky-700' }, wx && wx.ok ? cw.l : 'Cuaca belum tersedia')
         ),
-        React.createElement('p', { className:'text-xs md:text-sm font-semibold text-slate-700 mt-0.5 leading-snug' },
-          g.label + (nama ? ', ' + nama : '') + '! ' + g.sub + ' ' + g.emoji),
+        React.createElement('p', { className:'text-xs md:text-sm font-semibold text-slate-700 mt-0.5 leading-snug' }, salamLine),
         React.createElement('p', { className:'text-[10px] md:text-[11px] text-slate-400 mt-0.5 truncate' }, detail)
       ),
       wx && wx.ok && wx.hum != null && React.createElement('div', { className:'shrink-0 text-right' },
@@ -1167,7 +1352,9 @@ function NotifPromptCard() {
           show('🔔 Notifikasi aktif — salam pagi siap muncul');
           var cash = state.employees.find(function(e) { return e.id === state.settings.cashierId; });
           Notif.maybeMorning(cash ? cash.name : '', state.settings.morningNotif !== false);
-        } else { setHidden(true); }
+          // v2.10: sekalian daftarkan push server (notif walau app ditutup)
+          Notif.pushEnsure();
+        } else { setHidden(true); show('Izin notif ditolak — bisa diaktifkan lagi di baris "Notifikasi Resto" (Pengaturan)', 'error'); }
       }).catch(function() { setHidden(true); });
     } catch (e) { setHidden(true); }
   }
@@ -1197,7 +1384,7 @@ function DashboardView({ onNavigate }) {
   const outletEmployees = employees.filter(e => e.outletId === settings.outletId || (!e.outletId && e.role === 'OWNER'));
   const today = new Date().toISOString().slice(0,10);
   const todayOrders = outletOrders.filter(o => o.createdAt.slice(0,10) === today);
-  const todayRevenue = todayOrders.reduce((s,o) => s+o.total, 0);
+  const todayRevenue = todayOrders.reduce((s,o) => s+orderTotalOf(o), 0);
   const activeOrders = orders.filter(o => o.outletId === settings.outletId && ['PENDING','COOKING','READY'].includes(o.status));
   const lowStock = outletMaterials.filter(m => m.stock <= m.minStock * 1.5);
   const avgOrder = todayOrders.length > 0 ? todayRevenue / todayOrders.length : 0;
@@ -1207,7 +1394,7 @@ function DashboardView({ onNavigate }) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().slice(0,10);
     const dayOrders = outletOrders.filter(o => o.createdAt.slice(0,10) === ds);
-    revenueTrend.push({ day: d.toLocaleDateString('id-ID', { weekday:'short', day:'numeric' }), revenue: dayOrders.reduce((s,o)=>s+o.total,0), orders: dayOrders.length });
+    revenueTrend.push({ day: d.toLocaleDateString('id-ID', { weekday:'short', day:'numeric' }), revenue: dayOrders.reduce((s,o)=>s+orderTotalOf(o),0), orders: dayOrders.length });
   }
   const sellerMap = new Map();
   outletOrders.forEach(o => o.items.forEach(it => {
@@ -1226,14 +1413,15 @@ function DashboardView({ onNavigate }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Dashboard', subtitle:'Ringkasan - ' + (outlet?.name || '') }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 pb-24 md:pb-6 min-h-full' },
+      // v2.10: kartu cuaca NAIK ke paling atas (permintaan owner) — 4 kotak di bawahnya
+      React.createElement(WeatherCard, null),
       React.createElement('div', { className:'grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mp-stagger' },
         React.createElement(KpiCard, { label:'Omzet Hari Ini', value: formatRupiah(todayRevenue), sub: todayOrders.length + ' transaksi · AOV ' + formatRupiah(avgOrder), icon:'trending-up', color:'blue' }),
         React.createElement(KpiCard, { label:'Antrian Dapur', value: String(activeOrders.length), sub:'pesanan aktif', icon:'chef-hat', color:'amber' }),
         React.createElement(KpiCard, { label:'Stok Menipis', value: String(lowStock.length), sub:'bahan baku restock', icon:'triangle-alert', color:'red' }),
         React.createElement(KpiCard, { label:'Staf Aktif', value: String(outletEmployees.filter(e => e.active).length), sub:'karyawan outlet', icon:'users', color:'violet' })
       ),
-      // v2.8: kartu cuaca + salam sesuai jam, lalu banner izin notifikasi pagi
-      React.createElement(WeatherCard, null),
+      // v2.10: banner izin notifikasi tetap setelah kotak-kotak ringkasan
       React.createElement(NotifPromptCard, null),
       React.createElement('div', { className:'grid grid-cols-1 lg:grid-cols-3 gap-4 mp-stagger' },
         React.createElement(Card, { className:'lg:col-span-2' },
@@ -1282,7 +1470,7 @@ function DashboardView({ onNavigate }) {
                 React.createElement('h3', { className:'text-base font-semibold' }, 'Pesanan Dapur Aktif'),
                 React.createElement('p', { className:'text-xs text-slate-500' }, 'Antrian diproses')
               ),
-              React.createElement('button', { onClick: () => onNavigate('kitchen'), className:'text-xs text-slate-900 underline' }, 'Buka KDS →')
+              React.createElement('button', { onClick: () => onNavigate('orders'), className:'text-xs text-slate-900 underline' }, 'Kelola →')
             ),
             React.createElement('div', { className:'space-y-2 max-h-[300px] overflow-y-auto' },
               activeOrders.length === 0 && React.createElement('p', { className:'text-sm text-slate-500 text-center py-4' }, 'Tidak ada antrian'),
@@ -1387,6 +1575,7 @@ const BarChartSimple = ({ data, xKey, yKey, color='#0f172a' }) => {
 };
 
 const PieChartSimple = ({ data }) => {
+  const settings = useAppStore().state.settings; // v2.10: nama kategori custom ikut kebaca
   if (!data || data.length === 0) return React.createElement('div', { className:'h-[200px] grid place-items-center text-slate-400 text-sm' }, 'No data');
   const colors = [themeMainHex(),'#f59e0b',themeMainHex(),'#8b5cf6','#06b6d4','#ec4899'];
   const total = data.reduce((s,d) => s + d.value, 0);
@@ -1407,7 +1596,7 @@ const PieChartSimple = ({ data }) => {
     React.createElement('div', { className:'mt-2 flex flex-wrap gap-2 justify-center' },
       data.map((d, i) => React.createElement('div', { key: i, className:'flex items-center gap-1 text-xs' },
         React.createElement('span', { className:'w-2 h-2 rounded-full', style: { backgroundColor: colors[i % colors.length] } }),
-        React.createElement('span', null, CATEGORY_LABELS[d.name] || d.name, ' (', d.value, ')')
+        React.createElement('span', null, catMeta(settings, d.name).label, ' (', d.value, ')')
       ))
     )
   );
@@ -1419,7 +1608,7 @@ console.log('Miapos: layout + dashboard ready');
 <script type="text/babel" data-presets="react">
 // ===== POS VIEW =====
 function POSView({ onBack }) {
-  const { state, cart, cartTableId, cartOrderType, addToCart, updateCartQty, updateCartItemNotes, removeFromCart, setCartTable, setCartOrderType, clearCart, checkout, saveUnpaidOrder } = useAppStore();
+  const { state, cart, cartTableId, cartOrderType, addToCart, updateCartQty, updateCartItemNotes, removeFromCart, setCartTable, setCartOrderType, clearCart, checkout, saveUnpaidOrder, markKitchenPrinted } = useAppStore();
   const { settings, products, tables, employees } = state;
   const cashier = employees.find(e => e.id === settings.cashierId);
   const outletProducts = products.filter(p => p.outletId === settings.outletId && p.available);
@@ -1504,6 +1693,7 @@ function POSView({ onBack }) {
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber,
       createdAt: order.createdAt, serviceCharge: order.serviceCharge, discount: order.discount || 0, cashierName: order.cashierName,
     };
+    markKitchenPrinted(order.id); // v2.10: nota dapur pertama = baseline item tambahan
     show('Pesanan #' + order.number + ' dibuat. Mencetak nota dapur...');
     setTimeout(() => printReceipt(receipt, 'dapur'), 300);
   }
@@ -1534,9 +1724,9 @@ function POSView({ onBack }) {
           ),
           React.createElement('div', { className:'flex gap-1 overflow-x-auto no-scrollbar max-w-full' },
             React.createElement(Button, { size:'sm', variant: activeCat==='ALL' ? 'default':'outline', onClick: () => setActiveCat('ALL'), className:'h-9 shrink-0' }, 'Semua'),
-            Object.keys(CATEGORY_LABELS).map(c => React.createElement(Button, { key: c, size:'sm', variant: activeCat===c ? 'default':'outline', onClick: () => setActiveCat(c), className:'h-9 shrink-0 gap-1.5' },
-              React.createElement('span', { className:'text-xs' }, CATEGORY_EMOJI[c]),
-              React.createElement('span', null, CATEGORY_LABELS[c])
+            allCatList(settings).map(c => React.createElement(Button, { key: c.key, size:'sm', variant: activeCat===c.key ? 'default':'outline', onClick: () => setActiveCat(c.key), className:'h-9 shrink-0 gap-1.5' },
+              React.createElement('span', { className:'text-xs' }, c.emoji),
+              React.createElement('span', null, c.label)
             ))
           )
         ),
@@ -1553,7 +1743,7 @@ function POSView({ onBack }) {
                 },
                   React.createElement('button', { onClick: () => handleClick(p.id), className:'flex flex-1 min-w-0 items-center gap-3 text-left' },
                     React.createElement('div', { className: cn('grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-gradient-to-br text-2xl', CATEGORY_COLORS[p.category] || 'from-slate-100 to-slate-50 text-slate-400') },
-                      React.createElement('span', { className:'select-none' }, CATEGORY_EMOJI[p.category] || '🍽️')
+                      React.createElement('span', { className:'select-none' }, catMeta(settings, p.category).emoji)
                     ),
                     React.createElement('div', { className:'flex-1 min-w-0' },
                       React.createElement('p', { className:'font-medium text-sm truncate' }, p.name),
@@ -1585,7 +1775,7 @@ function POSView({ onBack }) {
                 const basePrice = p.price + (p.variants[0]?.priceMod || 0);
                 return React.createElement('button', { key: p.id, onClick: () => handleClick(p.id), className:'group flex flex-col rounded-xl border bg-white p-1.5 md:p-2.5 text-left transition-all hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-0.5 active:scale-[0.98]' },
                   React.createElement('div', { className: cn('aspect-square w-full rounded-lg bg-gradient-to-br grid place-items-center mb-1.5 text-2xl md:text-3xl transition-transform duration-200 group-hover:scale-105', CATEGORY_COLORS[p.category] || 'from-slate-100 to-slate-50 text-slate-400') },
-                    React.createElement('span', { className:'select-none' }, CATEGORY_EMOJI[p.category] || '🍽️')
+                    React.createElement('span', { className:'select-none' }, catMeta(settings, p.category).emoji)
                   ),
                   React.createElement('p', { className:'text-[10px] md:text-xs font-medium line-clamp-2 leading-tight' }, p.name),
                   React.createElement('p', { className:'text-[10px] md:text-xs font-bold text-slate-900 mt-1' }, formatRupiah(basePrice))
@@ -1757,7 +1947,7 @@ const ItemNotesEditor = ({ item, onClose, onSave }) => {
 };
 
 const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
-  const { state, upsertProduct } = useAppStore();
+  const { state, upsertProduct, deleteCategory, updateSettings } = useAppStore();
   const { settings } = state;
   const hpp = !!settings.fiturHPP;
   const [name, setName] = React.useState('');
@@ -1765,6 +1955,7 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
   const [price, setPrice] = React.useState('');
   const [cost, setCost] = React.useState('');
   const [variants, setVariants] = React.useState([{ id: uid(), name: 'Reguler', priceMod: 0 }]);
+  const [catModalOpen, setCatModalOpen] = React.useState(false); // v2.10: bikin kategori baru
   const { show } = useToast();
   const isEdit = !!editProduct;
 
@@ -1814,6 +2005,13 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
     onSaved();
   }
 
+  // v2.10: hapus kategori custom — semua menu di dalamnya otomatis pindah ke Makanan
+  function delCat(c) {
+    if (!confirm('Hapus kategori "' + c.label + '"?\nSemua menu di dalamnya otomatis pindah ke kategori Makanan.')) return;
+    deleteCategory(c.key);
+    if (category === c.key) setCategory('FOOD');
+    show('Kategori "' + c.label + '" dihapus');
+  }
   return React.createElement(Modal, { open, onClose: () => { reset(); onClose(); }, className:'sm:max-w-lg max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
       React.createElement('h2', { className:'text-lg font-bold mb-1 flex items-center gap-2' },
@@ -1826,20 +2024,32 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
           React.createElement(Label, null, 'Nama Menu'),
           React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Nasi Goreng Spesial', autoFocus: true })
         ),
-        // Kategori - dengan emoji & warna
+        // Kategori - dengan emoji & warna — v2.10: bisa BIKIN kategori sendiri (+ Kategori)
+        // dan HAPUS kategori buatan sendiri (tombol x merah). Kategori bawaan gak bisa dihapus.
         React.createElement('div', null,
           React.createElement(Label, null, 'Kategori'),
           React.createElement('div', { className:'grid grid-cols-4 gap-2 mt-1' },
-            Object.keys(CATEGORY_LABELS).map(c => React.createElement('button', {
-              key: c, onClick: () => setCategory(c),
-              className: cn('flex flex-col items-center gap-1 py-2.5 rounded-lg border-2 transition-all',
-                category === c
-                  ? cn('border-emerald-500 ring-1 ring-emerald-500/30 bg-gradient-to-br', CATEGORY_COLORS[c])
-                  : 'border-slate-200 hover:border-slate-300')
-            },
-              React.createElement('span', { className:'text-2xl' }, CATEGORY_EMOJI[c]),
-              React.createElement('span', { className:'text-[10px] font-medium' }, CATEGORY_LABELS[c])
-            ))
+            allCatList(settings).map(c => React.createElement('div', { key: c.key, className:'relative' },
+              React.createElement('button', {
+                onClick: () => setCategory(c.key),
+                className: cn('w-full flex flex-col items-center gap-1 py-2.5 rounded-lg border-2 transition-all',
+                  category === c.key
+                    ? cn('border-emerald-500 ring-1 ring-emerald-500/30 bg-gradient-to-br', CATEGORY_COLORS[c.key] || 'from-slate-100 to-slate-50 text-slate-600')
+                    : 'border-slate-200 hover:border-slate-300')
+              },
+                React.createElement('span', { className:'text-2xl' }, c.emoji),
+                React.createElement('span', { className:'text-[10px] font-medium' }, c.label)
+              ),
+              !c.base && React.createElement('button', { onClick: () => delCat(c), title:'Hapus kategori ' + c.label,
+                className:'absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow active:scale-90 transition-transform' },
+                React.createElement(Icon, { name:'x', className:'w-3 h-3' })
+              )
+            )),
+            React.createElement('button', { onClick: () => setCatModalOpen(true), title:'Bikin kategori baru',
+              className:'flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg border-2 border-dashed border-slate-300 text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all' },
+              React.createElement(Icon, { name:'plus', className:'w-5 h-5' }),
+              React.createElement('span', { className:'text-[10px] font-medium' }, 'Kategori')
+            )
           )
         ),
         // Harga & HPP (field HPP hanya muncul kalau Fitur Modal & HPP aktif)
@@ -1859,6 +2069,45 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
         React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: save },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan Perubahan' : 'Simpan Menu'
         )
+      ),
+      // v2.10: modal bikin kategori baru — nama + pilih emoji ikon
+      catModalOpen && React.createElement(CategoryModal, {
+        onClose: () => setCatModalOpen(false),
+        onSave: function(lbl, emoji) {
+          const key = 'cat-' + Date.now();
+          updateSettings({ customCategories: (settings.customCategories || []).concat([{ key: key, label: lbl, emoji: emoji }]) });
+          setCategory(key);
+          setCatModalOpen(false);
+          show('Kategori "' + lbl + '" ditambahkan');
+        },
+      })
+    )
+  );
+};
+
+// ===== v2.10: MODAL KATEGORI BARU (input menu manual bisa atur kategori) =====
+const CAT_EMOJI_CHOICES = ['\uD83C\uDF7D\uFE0F','\uD83C\uDF5C','\uD83C\uDF5A','\uD83C\uDF55','\uD83C\uDF62','\uD83E\uDD57','\uD83C\uDF5E','\uD83E\uDD90','\uD83D\uDC1F','\uD83D\uDC14','\uD83E\uDD69','\u2615','\uD83E\uDDCB','\uD83E\uDD64','\uD83C\uDF7A','\uD83C\uDF70','\uD83C\uDF69','\uD83C\uDF66','\uD83C\uDF6A','\uD83E\uDDC1','\uD83D\uDD25','\u2B50','\uD83E\uDD63','\uD83C\uDF6D'];
+function CategoryModal({ onClose, onSave }) {
+  const [lbl, setLbl] = React.useState('');
+  const [emoji, setEmoji] = React.useState('\uD83C\uDF7D\uFE0F');
+  return React.createElement(Modal, { open: true, onClose: onClose, className:'sm:max-w-sm' },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('h2', { className:'text-base font-bold mb-1' }, 'Kategori Baru'),
+      React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Bikin kategori sendiri — nanti langsung muncul di semua pilihan kategori & layar pesanan.'),
+      React.createElement(Label, null, 'Nama Kategori'),
+      React.createElement(Input, { value: lbl, onChange: function(e) { setLbl(e.target.value); }, placeholder:'cth: Seafood, Paket Hemat, Merchandise', autoFocus: true }),
+      React.createElement(Label, null, 'Ikon (emoji)'),
+      React.createElement('div', { className:'grid grid-cols-8 gap-1.5' },
+        CAT_EMOJI_CHOICES.map(function(em) {
+          return React.createElement('button', { key: em, onClick: function() { setEmoji(em); },
+            className: cn('grid h-9 place-items-center rounded-lg text-xl border-2 transition-all', emoji === em ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300') }, em);
+        })
+      ),
+      React.createElement('div', { className:'flex gap-2 mt-4 pt-3 border-t' },
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !(lbl || '').trim(),
+          onClick: function() { if (!(lbl || '').trim()) return; onSave(lbl.trim(), emoji); } },
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan Kategori')
       )
     )
   );
@@ -1995,8 +2244,11 @@ function formatReceiptESCPOS(receipt, type) {
   const waktu = new Date(receipt.createdAt || Date.now()).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 
   // === HEADER (BEDA: nota kasir = info resto; nota dapur = bersih tanpa info resto) ===
-  if (type === 'dapur') {
-    lines.push(center('DAPUR'));
+  if (type === 'dapur' || type === 'dapur-tambahan') {
+    // v2.10: nota tambahan tetap bilang "DAPUR" di kepala nota — biar dapur tahu
+    // ini tugas masak, tapi ditandai TAMBAHAN biar gak ketuker sama nota full.
+    // (label "Tambahan" per item emang sengaja GAK dicetak — permintaan owner)
+    lines.push(center(type === 'dapur-tambahan' ? 'DAPUR - TAMBAHAN' : 'DAPUR'));
   } else {
     lines.push(center(resto.name || 'waroeng semilirr'));
     // Alamat & telepon HANYA di nota kasir
@@ -2018,13 +2270,13 @@ function formatReceiptESCPOS(receipt, type) {
   if (receipt.tempat || receipt.tableNumber) {
     lines.push(padLeft('Tempat', receipt.tempat || receipt.tableNumber));
   }
-  if (type === 'dapur' && receipt.notes) {
+  if ((type === 'dapur' || type === 'dapur-tambahan') && receipt.notes) {
     lines.push(padLeft('Catatan', receipt.notes.slice(0, W-12)));
   }
   lines.push('-'.repeat(W));
 
   // === ITEM PESANAN ===
-  if (type === 'dapur') {
+  if (type === 'dapur' || type === 'dapur-tambahan') {
     // Nota dapur: qty + nama, no harga, pakai UPPERCASE
     receipt.items.forEach(it => {
       const baseName = (it.name || '').split(' (')[0];
@@ -2046,7 +2298,7 @@ function formatReceiptESCPOS(receipt, type) {
   }
 
   // === FOOTER (kasir saja, dapur cukup No. Antrian) ===
-  if (type !== 'dapur') {
+  if (type !== 'dapur' && type !== 'dapur-tambahan') {
     lines.push('-'.repeat(W));
     const subtotalCalc = receipt.items.reduce((s, it) => s + it.qty * it.price, 0);
     lines.push(padLeft('Subtotal', formatRupiah(subtotalCalc).replace('Rp', '')));
@@ -2063,7 +2315,7 @@ function formatReceiptESCPOS(receipt, type) {
   // Mode DOUBLE HEIGHT saja (ESC ! 0x10 / byte 0x1B 0x21 0x10):
   // font meregang lonjong ke bawah (tinggi dobel, lebar normal) — beda dari font menu.
   // Setelah baris antrian, reset font ke normal (ESC ! 0x00 / byte 0x1B 0x21 0x00).
-  if (type === 'dapur') {
+  if (type === 'dapur' || type === 'dapur-tambahan') {
     const ESC = '\u001B';
     const TALL = ESC + '!' + '\u0010';   // ESC ! 0x10 = Select Print Mode: Double-Height only
     const NORMAL = ESC + '!' + '\u0000'; // ESC ! 0x00 = reset font ke normal
@@ -2073,7 +2325,7 @@ function formatReceiptESCPOS(receipt, type) {
   }
   lines.push('');
 
-  if (type !== 'dapur') {
+  if (type !== 'dapur' && type !== 'dapur-tambahan') {
     lines.push('');
     if (resto.footerText) {
       // Word-wrap (bukan char-wrap) supaya kata tidak terpotong di tengah
@@ -2104,12 +2356,16 @@ function formatReceiptESCPOS(receipt, type) {
 const _printerDeviceCache = {};
 
 async function printReceipt(receipt, printerType) {
+  // v2.10: nota tambahan gak punya printer sendiri — pakai printer dapur yang sama,
+  // formatnya beda (cuma item tambahan + kepala nota DAPUR - TAMBAHAN)
+  const pType = printerType === 'dapur-tambahan' ? 'dapur' : printerType;
+  const printerLabel = (printerType === 'dapur' || printerType === 'dapur-tambahan') ? 'Dapur' : 'Kasir/Struk';
   const printers = getPrinters();
-  const saved = printers[printerType];
+  const saved = printers[pType];
   // Strip escape chars untuk display manual
   const stripEsc = stripEscForPreview;
   if (!saved) {
-    alert('Printer ' + (printerType === 'dapur' ? 'Dapur' : 'Kasir/Struk') + ' belum dipilih.\n\nBuka menu Pengaturan → Printer Bluetooth untuk memilih printer terlebih dahulu.');
+    alert('Printer ' + printerLabel + ' belum dipilih.\n\nBuka menu Pengaturan → Printer Bluetooth untuk memilih printer terlebih dahulu.');
     return;
   }
   if (!navigator.bluetooth) {
@@ -2118,7 +2374,7 @@ async function printReceipt(receipt, printerType) {
     return;
   }
   try {
-    let device = _printerDeviceCache[printerType];
+    let device = _printerDeviceCache[pType];
     // Jika device sudah di-cache dan masih connected, langsung print
     if (device && device.gatt && device.gatt.connected) {
       const text = formatReceiptESCPOS(receipt, printerType);
@@ -2133,7 +2389,7 @@ async function printReceipt(receipt, printerType) {
         return;
       } catch(e) {
         // Reconnect gagal, fallback ke requestDevice
-        _printerDeviceCache[printerType] = null;
+        _printerDeviceCache[pType] = null;
       }
     }
     // First time atau reconnect gagal — pilih device
@@ -2142,12 +2398,12 @@ async function printReceipt(receipt, printerType) {
       optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '00001101-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '49535343-fe7d-4ae5-8fa9-9fafd205e455']
     }).catch(() => null);
     if (!device) return;
-    _printerDeviceCache[printerType] = device; // Cache untuk next print
+    _printerDeviceCache[pType] = device; // Cache untuk next print
     const text = formatReceiptESCPOS(receipt, printerType);
     await printText(device, text);
     // Silent success (tidak alert kalau sukses, biar cepat)
   } catch (e) {
-    _printerDeviceCache[printerType] = null; // Clear cache kalau gagal
+    _printerDeviceCache[pType] = null; // Clear cache kalau gagal
     alert('Gagal print: ' + e.message + '\n\nNota bisa disalin manual:');
     prompt('Isi nota (' + printerType + '):', stripEsc(formatReceiptESCPOS(receipt, printerType)));
   }
@@ -2294,8 +2550,9 @@ const CartActions = ({ total, onPay, onSaveLater, onCetakStruk, onCetakDapur }) 
     React.createElement(Button, { className:'md-cta w-full h-12 text-base font-semibold gap-2 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
       React.createElement(Icon, { name:'banknote', className:'w-5 h-5' }), 'Bayar ', formatRupiah(total)
     ),
-    // Row 3: Bayar Nanti
-    React.createElement(Button, { variant:'outline', className:'w-full h-10 gap-1.5 text-sm', onClick: onSaveLater },
+    // Row 3: Bayar Nanti — v2.10 FIX RpNaN: onClick membungkus pemanggilan biar
+    // event click GAK ikut ke kirim sebagai diskon (dulu: subtotal - event = NaN)
+    React.createElement(Button, { variant:'outline', className:'w-full h-10 gap-1.5 text-sm', onClick: () => onSaveLater() },
       React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), 'Bayar Nanti (Simpan ke Pesanan)'
     )
   );
@@ -2314,6 +2571,8 @@ const CartSummary = ({ subtotal, total, cartOrderType, selectedTable, onSetOrder
 };
 
 const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
+  const { state } = useAppStore();
+  const qrisImg = (state.settings && state.settings.qrisImage) || '';
   const [method, setMethod] = React.useState('CASH');
   const [paidInput, setPaidInput] = React.useState('');
   const [discountInput, setDiscountInput] = React.useState('');
@@ -2342,8 +2601,11 @@ const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
           )
         ),
         method === 'QRIS' && React.createElement('div', { className:'rounded-lg border bg-slate-50 p-4 text-center' },
-          React.createElement('div', { className:'mx-auto w-32 h-32 grid place-items-center bg-white rounded-lg p-2' }, React.createElement(QRPattern, null)),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, 'Scan QRIS untuk membayar')
+          React.createElement('div', { className:'mx-auto w-40 h-40 grid place-items-center bg-white rounded-lg p-2' },
+            qrisImg
+              ? React.createElement('img', { src: qrisImg, alt:'QRIS Resto', className:'w-full h-full object-contain' })
+              : React.createElement(QRPattern, null)),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? 'Scan QRIS resto kamu untuk membayar' : 'Scan QRIS untuk membayar — (gambar QRIS belum diatur, upload di Pengaturan → Owner Zone → QRIS Resto)')
         ),
         method === 'TRANSFER' && React.createElement('div', { className:'rounded-lg border bg-emerald-50/60 p-4 text-center' },
           React.createElement(Icon, { name:'landmark', className:'w-8 h-8 mx-auto text-emerald-600 mb-1' }),
@@ -2484,7 +2746,7 @@ function OrdersView({ onNavigate, onBack }) {
                 React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'ORD' + String(o.number).padStart(9, '0').slice(-9)),
                 React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, formatDateTime(o.createdAt))
               ),
-              React.createElement('span', { className: cn('text-xs font-bold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(o.total))
+              React.createElement('span', { className: cn('text-xs font-bold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
             ),
             React.createElement('div', { className:'flex items-center justify-between gap-2' },
               React.createElement('div', { className:'flex items-center gap-2 min-w-0 flex-1' },
@@ -2521,7 +2783,7 @@ function OrdersView({ onNavigate, onBack }) {
         // Update order status & payment
         markOrderPaid(payOrder.id, method, paid);
         const newReceipt = {
-          id: payOrder.id, number: payOrder.number, total: payOrder.total, paid, change: Math.max(0, paid - payOrder.total), method,
+          id: payOrder.id, number: payOrder.number, total: orderTotalOf(payOrder), paid, change: Math.max(0, paid - orderTotalOf(payOrder)), method,
           items: payOrder.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
           customerName: payOrder.customerName, notes: payOrder.notes, orderType: payOrder.type, queueNumber: payOrder.queueNumber,
           createdAt: payOrder.createdAt, serviceCharge: payOrder.serviceCharge, discount: payOrder.discount || 0, cashierName: payOrder.cashierName,
@@ -2539,12 +2801,71 @@ function OrdersView({ onNavigate, onBack }) {
   );
 }
 
+// ===== v2.10: SHEET "TAMBAH MENU" DI DETAIL PESANAN =====
+// Tampilannya persis kaya layar Tambah Pesanan biasa (search + chip kategori +
+// daftar menu + tombol + hijau), tapi muncul di dalam kotak drag-handle.
+function AddItemsSheet({ order, products, onClose, onAdd }) {
+  const { state } = useAppStore();
+  const settings = state.settings;
+  const [q, setQ] = React.useState('');
+  const [cat, setCat] = React.useState('ALL');
+  const cats = allCatList(settings);
+  const list = products.filter(function(p) {
+    if (cat !== 'ALL' && p.category !== cat) return false;
+    return !q || p.name.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+  });
+  return React.createElement(Modal, { open: true, onClose: onClose, className:'sm:max-w-md' },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('div', { className:'flex justify-center mb-3' },
+        React.createElement('div', { className:'h-1.5 w-14 rounded-full bg-slate-300' })
+      ),
+      React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
+        React.createElement('div', null,
+          React.createElement('h2', { className:'text-base font-bold' }, 'Tambah Menu'),
+          React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, 'Pesanan #' + order.number + ' — ketuk menu buat nambahin')),
+        React.createElement('button', { onClick: onClose, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
+          React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
+      ),
+      React.createElement('div', { className:'relative mb-2' },
+        React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
+        React.createElement(Input, { placeholder:'Cari menu...', value: q, onChange: function(e) { setQ(e.target.value); }, className:'pl-9 h-10' })
+      ),
+      React.createElement('div', { className:'flex gap-1 overflow-x-auto no-scrollbar pb-2' },
+        React.createElement(Button, { size:'sm', variant: cat==='ALL' ? 'default':'outline', onClick: function(){ setCat('ALL'); }, className:'h-8 shrink-0' }, 'Semua'),
+        cats.map(function(c) {
+          return React.createElement(Button, { key: c.key, size:'sm', variant: cat===c.key ? 'default':'outline', onClick: function(){ setCat(c.key); }, className:'h-8 shrink-0 gap-1' },
+            React.createElement('span', { className:'text-xs' }, c.emoji),
+            React.createElement('span', null, c.label));
+        })
+      ),
+      React.createElement('div', { className:'max-h-[44vh] overflow-y-auto space-y-1.5 -mx-1 px-1' },
+        list.length === 0 && React.createElement('p', { className:'text-sm text-slate-400 text-center py-6' }, 'Menu gak ketemu'),
+        list.map(function(p) {
+          return React.createElement('div', { key: p.id, className:'flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2' },
+            React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 text-xl' },
+              React.createElement('span', { className:'select-none' }, catMeta(settings, p.category).emoji)),
+            React.createElement('div', { className:'flex-1 min-w-0' },
+              React.createElement('p', { className:'text-sm font-medium truncate' }, p.name),
+              React.createElement('p', { className:'text-xs font-bold text-slate-900 mt-0.5' }, formatRupiah(p.price))),
+            React.createElement('button', { onClick: function() { onAdd(p); }, title:'Tambah ke pesanan',
+              className:'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-md shadow-emerald-500/30 active:scale-90 transition-transform' },
+              React.createElement(Icon, { name:'plus', className:'w-4 h-4' }))
+          );
+        })
+      ),
+      React.createElement(Button, { className:'w-full mt-3 h-11 bg-emerald-500 hover:bg-emerald-600', onClick: onClose },
+        React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Selesai')
+    )
+  );
+}
+
 // ===== ORDER DETAIL MODAL =====
 function OrderDetailModal({ order, onClose, onPay, onCancel }) {
-  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote } = useAppStore();
+  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, markKitchenPrinted } = useAppStore();
   const { products, settings } = state;
-  const [showAddItem, setShowAddItem] = React.useState(false);
-  const [addItemSearch, setAddItemSearch] = React.useState('');
+  // v2.10: sheet tambah menu + menu cetak (dapur/tambahan) yang buka ke atas
+  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const [printMenuOpen, setPrintMenuOpen] = React.useState(false);
   const [editItemNotes, setEditItemNotes] = React.useState(null);
   // Get fresh order from state (in case it was updated)
   const currentOrder = state.orders.find(o => o.id === order.id) || (state.archivedOrders || []).find(o => o.id === order.id) || order;
@@ -2552,6 +2873,28 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
   const typeEmoji = currentOrder.type === 'TAKEAWAY' ? '📦' : '🍽️';
   const outletProducts = products.filter(p => p.outletId === settings.outletId && p.available);
   const { show } = useToast();
+  // v2.10: rakit nota dari daftar item — dipakai cetak struk / dapur / tambahan
+  function buildReceipt(items) {
+    return {
+      id: currentOrder.id, number: currentOrder.number, total: orderTotalOf(currentOrder), paid: currentOrder.paid, change: currentOrder.change, method: currentOrder.paymentMethod || 'UNPAID',
+      items: items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes })),
+      customerName: currentOrder.customerName, notes: currentOrder.notes, tempat: currentOrder.tableNumber, orderType: currentOrder.type, queueNumber: currentOrder.queueNumber,
+      createdAt: currentOrder.createdAt, serviceCharge: 0, discount: currentOrder.discount || 0, cashierName: currentOrder.cashierName,
+    };
+  }
+  // v2.10: Cetak Dapur = semua item | Cetak Tambahan = cuma item yang belum kecetak
+  function doPrintDapur(kind) {
+    setPrintMenuOpen(false);
+    const extra = currentOrder.items.filter(it => itemAddedAt(currentOrder, it));
+    if (kind === 'add') {
+      if (extra.length === 0) { show('Belum ada menu tambahan — semua item udah kecetak', 'info'); return; }
+      show('Nota tambahan: ' + extra.length + ' item kecetak');
+      setTimeout(() => printReceipt(buildReceipt(extra), 'dapur-tambahan'), 100);
+    } else {
+      setTimeout(() => printReceipt(buildReceipt(currentOrder.items), 'dapur'), 100);
+    }
+    markKitchenPrinted(currentOrder.id);
+  }
   return React.createElement(Modal, { open: true, onClose: onClose, className:'sm:max-w-full max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
       React.createElement('div', { className:'flex justify-center mb-2' },
@@ -2583,35 +2926,8 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       React.createElement('div', { className:'rounded-lg border p-3 mb-3' },
         React.createElement('div', { className:'flex items-center justify-between mb-2' },
           React.createElement('p', { className:'text-xs font-semibold text-slate-700' }, 'Item Pesanan'),
-          React.createElement('button', { onClick: () => setShowAddItem(!showAddItem), className:'text-xs text-emerald-600 font-medium hover:underline' },
-            showAddItem ? '✕ Tutup' : '+ Tambah Menu'
-          )
-        ),
-        showAddItem && React.createElement('div', { className:'mb-3 rounded-lg bg-slate-50 p-2' },
-          // Search bar di tambah menu
-          React.createElement('div', { className:'relative mb-2' },
-            React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
-            React.createElement(Input, { placeholder:'Cari menu...', value: addItemSearch, onChange: e => setAddItemSearch(e.target.value), className:'pl-9 h-9' })
-          ),
-          // Scrollable menu list
-          React.createElement('div', { className:'max-h-[300px] overflow-y-auto space-y-1' },
-            outletProducts.filter(p => !addItemSearch || p.name.toLowerCase().includes(addItemSearch.toLowerCase())).map(p => React.createElement('button', {
-              key: p.id, onClick: () => {
-                addOrderItem(currentOrder.id, p, p.variants[0]);
-                show(p.name + ' ditambahkan');
-              },
-              className:'w-full flex items-center justify-between gap-2 rounded p-2 text-left text-sm hover:bg-white transition-colors border border-transparent hover:border-slate-200'
-            },
-              React.createElement('span', { className:'flex items-center gap-1.5' },
-                React.createElement('span', null, CATEGORY_EMOJI[p.category] || '🍽️'),
-                React.createElement('span', null, p.name)
-              ),
-              React.createElement('span', { className:'font-medium text-slate-600' }, formatRupiah(p.price))
-            ))
-          ),
-          // Confirm button
-          React.createElement(Button, { className:'w-full mt-2 bg-emerald-500 hover:bg-emerald-600', onClick: () => { setShowAddItem(false); show('Item ditambahkan ke pesanan'); } },
-            React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Konfirmasi'
+          React.createElement('button', { onClick: () => setSheetOpen(true), className:'text-xs text-emerald-600 font-medium hover:underline inline-flex items-center gap-1' },
+            React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), 'Tambah Menu'
           )
         ),
         currentOrder.items.map((it, i) => React.createElement('div', { key: i, className:'py-2' + (i > 0 ? ' border-t border-slate-100' : '') },
@@ -2619,7 +2935,9 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
             React.createElement('div', { className:'flex-1 min-w-0' },
               React.createElement('span', { className:'font-bold text-slate-900 text-sm' }, it.quantity + '× '),
               React.createElement('span', { className:'text-sm' }, it.productName),
-              it.variantName && React.createElement('span', { className:'text-xs text-slate-500' }, ' (' + it.variantName + ')')
+              it.variantName && React.createElement('span', { className:'text-xs text-slate-500' }, ' (' + it.variantName + ')'),
+              // v2.10: label TAMBAHAN — cuma tampil di aplikasi, nota cetakan tetap bersih
+              itemAddedAt(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, 'Tambahan')
             ),
             React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
               React.createElement('button', { onClick: () => setEditItemNotes(it.id), className: cn('p-1 rounded', it.notes ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'), title:'Catatan item' }, React.createElement(Icon, { name:'pencil', className:'w-3 h-3' })),
@@ -2636,7 +2954,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between text-sm' },
           React.createElement('span', { className:'text-emerald-100' }, 'Subtotal'),
-          React.createElement('span', null, formatRupiah(currentOrder.subtotal || currentOrder.items.reduce(function(s,it){return s+(it.quantity*it.price);},0)))
+          React.createElement('span', null, formatRupiah(orderSubtotalOf(currentOrder)))
         ),
         currentOrder.discount > 0 && React.createElement('div', { className:'flex justify-between text-sm mt-1' },
           React.createElement('span', { className:'text-emerald-100' }, 'Diskon'),
@@ -2644,32 +2962,39 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
         ),
         React.createElement('div', { className:'flex justify-between font-bold text-lg mt-2 pt-2 border-t border-white/20' },
           React.createElement('span', null, 'Total'),
-          React.createElement('span', null, formatRupiah(currentOrder.total || (currentOrder.subtotal || currentOrder.items.reduce(function(s,it){return s+(it.quantity*it.price);},0)) - (currentOrder.discount||0)))
+          React.createElement('span', null, formatRupiah(orderTotalOf(currentOrder)))
         )
       ),
-      // Print buttons
-      React.createElement('div', { className:'grid grid-cols-2 gap-2' },
+      // Print buttons — v2.10: tombol Cetak Dapur sekarang punya menu yang BUKA KE ATAS
+      // (kaya sketsa owner): Cetak Dapur = semua item kecetak, Cetak Tambahan = cuma
+      // menu yang ditambahin belakangan. Struk kasir tetap 1 tombol.
+      React.createElement('div', { className:'grid grid-cols-2 gap-2 relative z-20' },
         React.createElement(Button, { variant:'outline', className:'gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => {
-          const receipt = {
-            id: currentOrder.id, number: currentOrder.number, total: currentOrder.total, paid: currentOrder.paid, change: currentOrder.change, method: currentOrder.paymentMethod || 'UNPAID',
-            items: currentOrder.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes })),
-            customerName: currentOrder.customerName, notes: currentOrder.notes, tempat: currentOrder.tableNumber, orderType: currentOrder.type, queueNumber: currentOrder.queueNumber,
-            createdAt: currentOrder.createdAt, serviceCharge: 0, discount: currentOrder.discount || 0, cashierName: currentOrder.cashierName,
-          };
-          printReceipt(receipt, 'kasir');
+          printReceipt(buildReceipt(currentOrder.items), 'kasir');
         } },
           React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), 'Cetak Struk'
         ),
-        React.createElement(Button, { variant:'outline', className:'gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50', onClick: () => {
-          const receipt = {
-            id: currentOrder.id, number: currentOrder.number, total: currentOrder.total, paid: currentOrder.paid, change: currentOrder.change, method: currentOrder.paymentMethod || 'UNPAID',
-            items: currentOrder.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes })),
-            customerName: currentOrder.customerName, notes: currentOrder.notes, tempat: currentOrder.tableNumber, orderType: currentOrder.type, queueNumber: currentOrder.queueNumber,
-            createdAt: currentOrder.createdAt, serviceCharge: 0, discount: currentOrder.discount || 0, cashierName: currentOrder.cashierName,
-          };
-          printReceipt(receipt, 'dapur');
-        } },
-          React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4' }), 'Cetak Dapur'
+        React.createElement('div', { className:'relative' },
+          printMenuOpen && React.createElement('div', { className:'absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-slate-900 text-white shadow-2xl overflow-hidden animate-mp-pop ring-1 ring-black/20' },
+            [
+              { k:'full', icon:'chef-hat', t:'Cetak Dapur', d:'Semua item kecetak' },
+              { k:'add', icon:'plus-circle', t:'Cetak Tambahan', d:'Cuma menu tambahan aja' },
+            ].map(function(opt) {
+              return React.createElement('button', { key: opt.k, onClick: () => doPrintDapur(opt.k),
+                className:'w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-slate-800 active:bg-slate-800 transition-colors border-b border-white/10 last:border-0' },
+                React.createElement(Icon, { name: opt.icon, className:'w-5 h-5 text-emerald-400 shrink-0' }),
+                React.createElement('span', { className:'min-w-0' },
+                  React.createElement('span', { className:'block text-sm font-bold' }, opt.t),
+                  React.createElement('span', { className:'block text-[10px] text-slate-400' }, opt.d))
+              );
+            })
+          ),
+          React.createElement(Button, { variant:'outline', className:'w-full justify-between gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50', onClick: () => setPrintMenuOpen(!printMenuOpen) },
+            React.createElement('span', { className:'flex items-center gap-1.5 min-w-0' },
+              React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4 shrink-0' }),
+              React.createElement('span', { className:'truncate' }, 'Cetak Dapur')),
+            React.createElement(Icon, { name: printMenuOpen ? 'chevron-down' : 'chevron-up', className:'w-4 h-4 shrink-0' })
+          )
         )
       ),
       // Action buttons
@@ -2679,6 +3004,12 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement(Icon, { name:'banknote', className:'w-4 h-4' }), 'Bayar Sekarang'
         )
       ),
+      // v2.10: sheet Tambah Menu (tampilan kaya layar Tambah Pesanan, kotak drag-handle)
+      sheetOpen && React.createElement(AddItemsSheet, {
+        order: currentOrder, products: outletProducts,
+        onClose: () => setSheetOpen(false),
+        onAdd: (p) => { addOrderItem(currentOrder.id, p, p.variants[0]); show(p.name + ' ditambahkan'); },
+      }),
       editItemNotes && React.createElement(Modal, { open: true, onClose: () => setEditItemNotes(null) },
         React.createElement(ItemNotesEditor, {
           item: currentOrder.items.find(function(it) { return it.id === editItemNotes; }),
@@ -2696,9 +3027,11 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
 
 // ===== PAY ORDER DIALOG (untuk pesanan belum bayar) =====
 function PayOrderDialog({ order, onClose, onConfirm }) {
+  const { state } = useAppStore();
+  const qrisImg = (state.settings && state.settings.qrisImage) || '';
   const [method, setMethod] = React.useState('CASH');
   const [paidInput, setPaidInput] = React.useState('');
-  const total = order.total;
+  const total = orderTotalOf(order); // v2.10: anti-NaN
   const paid = method === 'CASH' ? (parseFloat(paidInput) || 0) : total;
   const change = method === 'CASH' ? Math.max(0, paid - total) : 0;
   function reset() { setPaidInput(''); setMethod('CASH'); }
@@ -2728,8 +3061,11 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
           )
         ),
         method === 'QRIS' && React.createElement('div', { className:'rounded-lg border bg-slate-50 p-4 text-center' },
-          React.createElement('div', { className:'mx-auto w-32 h-32 grid place-items-center bg-white rounded-lg p-2' }, React.createElement(QRPattern, null)),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, 'Scan QRIS untuk membayar')
+          React.createElement('div', { className:'mx-auto w-40 h-40 grid place-items-center bg-white rounded-lg p-2' },
+            qrisImg
+              ? React.createElement('img', { src: qrisImg, alt:'QRIS Resto', className:'w-full h-full object-contain' })
+              : React.createElement(QRPattern, null)),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? 'Scan QRIS resto kamu untuk membayar' : 'Scan QRIS untuk membayar — (gambar QRIS belum diatur, upload di Pengaturan → Owner Zone → QRIS Resto)')
         ),
         method === 'TRANSFER' && React.createElement('div', { className:'rounded-lg border bg-emerald-50/60 p-4 text-center' },
           React.createElement(Icon, { name:'landmark', className:'w-8 h-8 mx-auto text-emerald-600 mb-1' }),
@@ -2754,102 +3090,70 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
 
 console.log('Miapos: Orders ready');
 
-// ===== KDS =====
-function KDSView({ onBack }) {
-  const { state, updateOrderItemStatus, updateOrderStatus } = useAppStore();
+// ===== v2.10: LAPORAN MENU (menggantikan layar Dapur/KDS) =====
+// Permintaan owner: layar dapur diganti laporan menu — biar kelihatan hari ini
+// kejual apa aja, banyaknya berapa, per item per quantity, langsung kesortir
+// dari yang paling banyak terjual. Gak perlu geser-geser riwayat pesanan lagi.
+function MenuSalesView({ onBack }) {
+  const { state } = useAppStore();
   const { settings, orders } = state;
-  const [soundOn, setSoundOn] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState('PENDING');
-  const prevCountRef = React.useRef(0);
-  const activeOrders = orders.filter(o => o.outletId === settings.outletId && ['PENDING','COOKING','READY'].includes(o.status));
-  const grouped = { PENDING: activeOrders.filter(o => o.status === 'PENDING'), COOKING: activeOrders.filter(o => o.status === 'COOKING'), READY: activeOrders.filter(o => o.status === 'READY') };
-
-  React.useEffect(() => {
-    if (activeOrders.length > prevCountRef.current && prevCountRef.current !== 0 && soundOn) {
-      try { const ctx = new (window.AudioContext||window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=880; gain.gain.setValueAtTime(0.1, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3); osc.start(); osc.stop(ctx.currentTime+0.3); } catch(e) {}
-    }
-    prevCountRef.current = activeOrders.length;
-  }, [activeOrders.length, soundOn]);
-
-  const COLUMNS = [{ key:'PENDING', title:'Antrian', color:'border-t-amber-500', icon:'clock' }, { key:'COOKING', title:'Masak', color:'border-t-emerald-500', icon:'flame' }, { key:'READY', title:'Siap', color:'border-t-emerald-500', icon:'check-circle-2' }];
-
+  const today = new Date().toISOString().slice(0,10);
+  const paidToday = orders.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID' && o.createdAt.slice(0,10) === today);
+  const map = new Map();
+  paidToday.forEach(o => (o.items || []).forEach(it => {
+    const cur = map.get(it.productId) || { name: it.productName, qty: 0, revenue: 0 };
+    cur.qty += it.quantity; cur.revenue += it.price * it.quantity; map.set(it.productId, cur);
+  }));
+  const rows = Array.from(map.entries()).map(([id, r]) => ({ id: id, name: r.name, qty: r.qty, revenue: r.revenue }))
+    .sort((a,b) => b.qty - a.qty || b.revenue - a.revenue);
+  const totalQty = rows.reduce((s,r) => s + r.qty, 0);
+  const totalRev = rows.reduce((s,r) => s + r.revenue, 0);
+  const MEDAL = ['🥇', '🥈', '🥉'];
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, {
-      title:'Layar Dapur (KDS)', subtitle:'Antrian pesanan real-time', onBack: onBack,
-      rightSlot: React.createElement(Button, { size:'sm', variant: soundOn ? 'outline' : 'ghost', onClick: () => setSoundOn(v => !v), className:'h-9 gap-1.5' },
-        React.createElement(Icon, { name: soundOn ? 'volume-2' : 'volume-x', className:'w-4 h-4' }),
-        React.createElement('span', { className:'hidden sm:inline' }, soundOn ? 'Sound' : 'Mute')
-      )
-    }),
-    React.createElement('main', { className:'flex-1 overflow-hidden p-2 md:p-4 pb-20 md:pb-4 flex flex-col min-h-full' },
-      React.createElement('div', { className:'md:hidden flex gap-1 mb-2 bg-slate-100 rounded-lg p-1' },
-        COLUMNS.map(col => React.createElement('button', { key: col.key, onClick: () => setActiveTab(col.key), className: cn('flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold min-h-[36px]', activeTab === col.key ? 'bg-white shadow-sm' : 'text-slate-500') },
-          React.createElement(Icon, { name: col.icon, className:'w-3.5 h-3.5' }), col.title,
-          grouped[col.key].length > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', activeTab === col.key ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white' : 'bg-slate-200') }, grouped[col.key].length)
-        ))
+    React.createElement(Topbar, { title:'Laporan Menu', subtitle:'Terjual hari ini · ' + paidToday.length + ' pesanan lunas', onBack: onBack }),
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+      React.createElement('div', { className:'grid grid-cols-3 gap-2 mb-3' },
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-2xl font-bold' }, String(totalQty)),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, 'Item Terjual'))),
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-2xl font-bold text-emerald-600' }, formatRupiah(totalRev)),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, 'Omzet Menu'))),
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-2xl font-bold' }, String(rows.length)),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, 'Jenis Menu')))
       ),
-      React.createElement('div', { className:'flex-1 grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-3 min-h-0 overflow-hidden' },
-        COLUMNS.map(col => React.createElement('div', { key: col.key, className: cn('flex flex-col min-h-0 rounded-xl bg-slate-50 border-t-4 overflow-hidden', col.color, activeTab === col.key ? '' : 'hidden md:flex') },
-          React.createElement('div', { className:'flex items-center justify-between px-3 py-2 border-b bg-white' },
-            React.createElement('div', { className:'flex items-center gap-2' }, React.createElement(Icon, { name: col.icon, className:'w-4 h-4' }), React.createElement('span', { className:'font-semibold text-sm' }, col.title)),
-            React.createElement(Badge, { variant:'secondary' }, grouped[col.key].length)
+      React.createElement(Card, null,
+        React.createElement('div', { className:'p-4' },
+          React.createElement('h3', { className:'text-base font-semibold' }, 'Peringkat Menu Hari Ini'),
+          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Diurutkan otomatis dari yang paling banyak terjual'),
+          rows.length === 0 && React.createElement('div', { className:'text-center py-10 text-slate-400' },
+            React.createElement(Icon, { name:'utensils-crossed', className:'w-10 h-10 mx-auto mb-2 opacity-25' }),
+            React.createElement('p', { className:'text-sm' }, 'Belum ada menu yang terjual hari ini'),
+            React.createElement('p', { className:'text-xs mt-1' }, 'Laporan terisi otomatis begitu ada pesanan lunas')),
+          React.createElement('div', { className:'space-y-2' },
+            rows.map(function(r, i) {
+              return React.createElement('div', { key: r.id, className: cn('flex items-center gap-3 rounded-xl border p-3', i === 0 && rows.length > 1 ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200') },
+                React.createElement('div', { className:'grid h-9 w-9 shrink-0 place-items-center rounded-full text-base ' + (i < 3 ? 'bg-white border border-amber-200 shadow-sm' : 'bg-slate-100 text-slate-500 text-sm font-bold') },
+                  i < 3 ? MEDAL[i] : String(i + 1)),
+                React.createElement('div', { className:'flex-1 min-w-0' },
+                  React.createElement('p', { className:'font-bold text-sm truncate' }, r.name),
+                  React.createElement('p', { className:'text-xs text-slate-500' }, formatRupiah(r.revenue) + ' omzet')),
+                React.createElement('div', { className:'shrink-0 text-right' },
+                  React.createElement('p', { className:'text-lg font-extrabold text-emerald-700 leading-none' }, String(r.qty) + '×'),
+                  React.createElement('p', { className:'text-[10px] text-slate-400' }, 'terjual'))
+              );
+            })
           ),
-          React.createElement('div', { className:'flex-1 overflow-y-auto p-2' },
-            React.createElement('div', { className:'space-y-2' },
-              grouped[col.key].length === 0 && React.createElement('div', { className:'text-center py-10 text-sm text-slate-400' }, React.createElement(Icon, { name:'chef-hat', className:'w-8 h-8 mx-auto mb-2 opacity-20' }), React.createElement('p', null, 'Tidak ada pesanan')),
-              grouped[col.key].map(o => React.createElement(KDSOrderCard, { key: o.id, order: o, onItemReady: updateOrderItemStatus, onItemServed: updateOrderItemStatus, onStartCooking: (id) => { updateOrderStatus(id, 'COOKING'); setActiveTab('COOKING'); }, onOrderReady: (id) => { updateOrderStatus(id, 'READY'); setActiveTab('READY'); }, onOrderServed: (id) => updateOrderStatus(id, 'SERVED') }))
-            )
-          )
-        ))
-      )
+          rows.length > 0 && React.createElement('p', { className:'text-[10px] text-slate-400 mt-3' }, 'Total ' + totalQty + ' item dari ' + rows.length + ' menu · omzet ' + formatRupiah(totalRev))
+        )
+      ),
+      React.createElement('p', { className:'text-[10px] text-slate-400 px-1 mt-2' }, 'Layar dapur (KDS) lama dipindah tugasnya ke menu Pesanan — status masak bisa diatur dari sana.')
     )
   );
 }
 
-const KDSOrderCard = ({ order, onItemReady, onItemServed, onStartCooking, onOrderReady, onOrderServed }) => {
-  const minutesAgo = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
-  const isUrgent = minutesAgo >= 10 && order.status === 'PENDING';
-  const isCritical = minutesAgo >= 15 && order.status !== 'READY';
-  const allItemsReady = order.items.every(i => i.status === 'READY' || i.status === 'SERVED');
-  return React.createElement(Card, { className: cn('p-2.5 shadow-sm', isCritical && 'border-emerald-500 bg-emerald-50', isUrgent && !isCritical && 'border-amber-500 bg-amber-50') },
-    React.createElement('div', { className:'flex items-start justify-between mb-2 gap-2' },
-      React.createElement('div', { className:'min-w-0 flex-1' },
-        React.createElement('div', { className:'flex items-center gap-1.5 flex-wrap' },
-          React.createElement('span', { className:'font-bold text-sm' }, '#' + order.number),
-          order.tableNumber && React.createElement(Badge, { variant:'outline', className:'text-[10px]' }, 'Meja ' + order.tableNumber),
-          order.type === 'TAKEAWAY' && React.createElement(Badge, { variant:'secondary', className:'text-[10px]' }, 'Takeaway'),
-          order.type === 'DELIVERY' && React.createElement(Badge, { variant:'secondary', className:'text-[10px]' }, 'Delivery')
-        ),
-        React.createElement('p', { className:'text-[10px] text-slate-500 mt-0.5' }, formatTime(order.createdAt) + ' · ' + timeAgo(order.createdAt))
-      ),
-      isCritical && React.createElement(Icon, { name:'bell', className:'w-4 h-4 text-emerald-500 pulse-soft' }),
-      !isCritical && isUrgent && React.createElement(Icon, { name:'circle-alert', className:'w-4 h-4 text-amber-500' })
-    ),
-    React.createElement('div', { className:'space-y-1.5 mb-3' },
-      order.items.map(it => React.createElement('div', { key: it.id, className: cn('rounded-lg border p-2 text-sm transition-colors', it.status === 'SERVED' && 'opacity-50 line-through', it.status === 'READY' && 'border-emerald-500 bg-emerald-50') },
-        React.createElement('div', { className:'flex items-start justify-between gap-2' },
-          React.createElement('div', { className:'flex items-start gap-2 flex-1 min-w-0' },
-            React.createElement('span', { className:'font-bold text-slate-900 shrink-0' }, it.quantity + '×'),
-            React.createElement('div', { className:'min-w-0 flex-1' },
-              React.createElement('p', { className:'font-medium leading-tight' }, it.productName),
-              it.variantName && React.createElement('p', { className:'text-[11px] text-slate-500' }, it.variantName),
-              it.notes && React.createElement('p', { className:'text-[11px] text-amber-600 italic mt-0.5' }, it.notes)
-            )
-          ),
-          it.status === 'PENDING' && order.status === 'COOKING' && React.createElement(Button, { size:'sm', variant:'outline', className:'h-7 text-xs shrink-0', onClick: () => onItemReady(order.id, it.id, 'READY') }, 'Siap'),
-          it.status === 'READY' && React.createElement(Button, { size:'sm', variant:'outline', className:'h-7 text-xs shrink-0', onClick: () => onItemServed(order.id, it.id, 'SERVED') }, 'Sajikan')
-        )
-      ))
-    ),
-    React.createElement('div', { className:'flex gap-2' },
-      order.status === 'PENDING' && React.createElement(Button, { size:'sm', className:'flex-1 h-10 text-sm', onClick: () => onStartCooking(order.id) }, React.createElement(Icon, { name:'flame', className:'w-4 h-4' }), 'Mulai Masak'),
-      order.status === 'COOKING' && React.createElement(Button, { size:'sm', className:'flex-1 h-10 text-sm', variant:'secondary', disabled: !allItemsReady, onClick: () => onOrderReady(order.id) }, React.createElement(Icon, { name:'check-circle-2', className:'w-4 h-4' }), 'Tandai Siap'),
-      order.status === 'READY' && React.createElement(Button, { size:'sm', className:'flex-1 h-10 text-sm', onClick: () => onOrderServed(order.id) }, React.createElement(Icon, { name:'check-circle-2', className:'w-4 h-4' }), 'Selesai Disajikan')
-    )
-  );
-};
-
-console.log('Miapos: KDS ready');
+console.log('Miapos: Laporan Menu siap');
 </script>
 
 <script type="text/babel" data-presets="react">
@@ -2857,6 +3161,10 @@ console.log('Miapos: KDS ready');
 function InventoryView({ onBack }) {
   const { state, adjustMaterial, addMaterial, updateMaterial, deleteMaterial, upsertProduct, updateRecipe, deleteProduct } = useAppStore();
   const { settings, products, materials } = state;
+  // v2.10 FIX BUG LAYAR PUTIH: hpp belum pernah didefinisikan di layar ini,
+  // tapi dipakai di tab Produk (margin) → ReferenceError → React unmount →
+  // layar blank putih pas klik tab "Produk" di Stok & Bahan.
+  const hpp = !!state.settings.fiturHPP;
   const outletProducts = products.filter(p => p.outletId === settings.outletId);
   const outletMaterials = materials.filter(m => m.outletId === settings.outletId);
   const [tab, setTab] = React.useState('materials');
@@ -2948,7 +3256,7 @@ function InventoryView({ onBack }) {
                     ),
                     React.createElement('div', { className:'flex-1 min-w-0' },
                       React.createElement('p', { className:'font-medium text-sm truncate' }, p.name),
-                      React.createElement('p', { className:'text-xs text-slate-500' }, p.variants.length + ' varian' + (hpp ? ' · Margin ' + marginPct.toFixed(0) + '%' : '')),
+                      React.createElement('p', { className:'text-xs text-slate-500' }, (p.variants || []).length + ' varian' + (hpp ? ' · Margin ' + marginPct.toFixed(0) + '%' : '')),
                       React.createElement('span', { className:'text-sm font-bold text-slate-900' }, formatRupiah(p.price))
                     ),
                     React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
@@ -3102,7 +3410,7 @@ function ReportsView({ onBack }) {
     return all.filter(o => (o.createdAt || '').slice(0, 10) === selectedDate).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [outletOrdersAll, mode, selectedDate, state.archivedOrders, settings.outletId]);
 
-  const totalRevenue = filtered.reduce((s,o) => s+o.total, 0);
+  const totalRevenue = filtered.reduce((s,o) => s+orderTotalOf(o), 0);
   const totalSubtotal = filtered.reduce((s,o) => s+o.subtotal, 0);
   const totalService = 0;
   const totalDiscount = filtered.reduce((s,o) => s+o.discount, 0);
@@ -3119,7 +3427,7 @@ function ReportsView({ onBack }) {
   filtered.forEach(o => {
     const day = o.createdAt.slice(0,10);
     const cur = dailyMap.get(day) || { revenue: 0, cost: 0 };
-    cur.revenue += o.total; cur.cost += o.items.reduce((s,it) => { const p = outletProducts.find(x => x.id === it.productId); return s + (p?.cost || 0) * it.quantity; }, 0);
+    cur.revenue += orderTotalOf(o); cur.cost += o.items.reduce((s,it) => { const p = outletProducts.find(x => x.id === it.productId); return s + (p?.cost || 0) * it.quantity; }, 0);
     dailyMap.set(day, cur);
   });
   const daily = Array.from(dailyMap.entries()).sort((a,b) => a[0].localeCompare(b[0])).map(([day, v]) => ({ day: new Date(day).toLocaleDateString('id-ID', { day:'2-digit', month:'short' }), revenue: v.revenue, cost: v.cost }));
@@ -3136,7 +3444,7 @@ function ReportsView({ onBack }) {
 
   // Payment methods
   const payMap = new Map();
-  filtered.forEach(o => { const m = o.paymentMethod || 'UNKNOWN'; const cur = payMap.get(m) || { count: 0, total: 0 }; cur.count += 1; cur.total += o.total; payMap.set(m, cur); });
+  filtered.forEach(o => { const m = o.paymentMethod || 'UNKNOWN'; const cur = payMap.get(m) || { count: 0, total: 0 }; cur.count += 1; cur.total += orderTotalOf(o); payMap.set(m, cur); });
   const paymentBreakdown = Array.from(payMap.entries()).map(([method, v]) => ({ method, ...v }));
   const payTotal = (m) => { const f = paymentBreakdown.find(p => p.method === m); return f ? f.total : 0; };
   const payCount = (m) => { const f = paymentBreakdown.find(p => p.method === m); return f ? f.count : 0; };
@@ -3260,7 +3568,7 @@ function ReportsView({ onBack }) {
                       React.createElement('p', { className:'font-bold text-sm text-slate-900' }, '#' + o.number, React.createElement('span', { className:'ml-1.5 text-[11px] font-medium text-slate-400' }, formatTime(o.createdAt))),
                       React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5 truncate' }, o.items.map(it => it.quantity + '\u00d7 ' + it.productName).join(', '))
                     ),
-                    React.createElement('span', { className: cn('text-sm font-extrabold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(o.total))
+                    React.createElement('span', { className: cn('text-sm font-extrabold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
                   ),
                   React.createElement('div', { className:'flex items-center justify-between gap-2' },
                     React.createElement('div', { className:'flex items-center gap-1.5 min-w-0 flex-1' },
@@ -3359,7 +3667,7 @@ function ReportsView({ onBack }) {
                 React.createElement('td', { className:'py-2 text-xs' }, formatDate(o.createdAt)),
                 React.createElement('td', { className:'py-2 text-xs text-slate-500' }, o.items.length + ' item (' + o.items.reduce((s,i) => s+i.quantity, 0) + ' porsi)'),
                 React.createElement('td', { className:'py-2' }, React.createElement(Badge, { variant:'secondary', className:'text-xs' }, o.paymentMethod)),
-                React.createElement('td', { className:'py-2 text-right font-semibold' }, formatRupiah(o.total))
+                React.createElement('td', { className:'py-2 text-right font-semibold' }, formatRupiah(orderTotalOf(o)))
               ))
             )
           )
@@ -3390,7 +3698,7 @@ function RiwayatPesananTab({ state }) {
     .filter(o => o.outletId === settings.outletId && o.createdAt.slice(0, 10) === selectedDate)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  const dayRevenue = dayOrders.filter(o => o.paymentStatus === 'PAID').reduce((s, o) => s + o.total, 0);
+  const dayRevenue = dayOrders.filter(o => o.paymentStatus === 'PAID').reduce((s, o) => s + orderTotalOf(o), 0);
   const dayPaidCount = dayOrders.filter(o => o.paymentStatus === 'PAID').length;
   const dayUnpaidCount = dayOrders.filter(o => o.paymentStatus === 'UNPAID').length;
   const dayItems = dayOrders.reduce((s, o) => s + o.items.reduce((q, i) => q + i.quantity, 0), 0);
@@ -3450,7 +3758,7 @@ function RiwayatPesananTab({ state }) {
                     React.createElement('p', { className:'font-bold text-sm' }, 'ORD' + String(o.number).padStart(9, '0').slice(-9)),
                     React.createElement('p', { className:'text-[11px] text-slate-500' }, formatTime(o.createdAt))
                   ),
-                  React.createElement('span', { className: cn('text-xs font-bold', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(o.total))
+                  React.createElement('span', { className: cn('text-xs font-bold', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
                 ),
                 React.createElement('div', { className:'flex items-center justify-between gap-2' },
                   React.createElement('div', { className:'flex items-center gap-2 min-w-0 flex-1' },
@@ -3520,6 +3828,179 @@ function ConfirmDialog({ open, title, message, confirmLabel, onClose, onConfirm,
 }
 
 // ===== PRODUK VIEW (kelola menu: tambah / edit / hapus / habiskan) =====
+// ===== v2.10: SCAN BARCODE — input menu cepat lewat kamera =====
+// Tombolnya di Pengaturan → Kelola Menu, di samping tombol + (sesuai sketsa owner).
+// Scan barcode/QR → isi nama + harga sekali → menu langsung masuk daftar —
+// lanjut scan lagi, sekali sesi bisa masuk BANYAK menu.
+// Pakai BarcodeDetector bawaan Chrome Android (100% OFFLINE, tanpa library
+// internet). Barcode yang sudah pernah diisi bakal dikenali (gak dobel).
+// Browser tanpa BarcodeDetector → fallback: ketik kode barcode manual.
+function BarcodeScanModal({ open, onClose }) {
+  const { state, upsertProduct } = useAppStore();
+  const { show } = useToast();
+  const { settings, products } = state;
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
+  const rafRef = React.useRef(0);
+  const lastRef = React.useRef({ code: '', at: 0 });
+  const aliveRef = React.useRef(false);
+  const [supported, setSupported] = React.useState(true);
+  const [camErr, setCamErr] = React.useState('');
+  const [manual, setManual] = React.useState('');
+  const fileRef = React.useRef(null); // v2.10: scan dari gambar di galeri
+  const [current, setCurrent] = React.useState(null); // { code }
+  const [name, setName] = React.useState('');
+  const [price, setPrice] = React.useState('');
+  const [cat, setCat] = React.useState('FOOD');
+  const [added, setAdded] = React.useState(0);
+
+  function stopCam() {
+    aliveRef.current = false;
+    try { if (rafRef.current) cancelAnimationFrame(rafRef.current); } catch (e) {}
+    try { if (streamRef.current) streamRef.current.getTracks().forEach(function(t) { t.stop(); }); } catch (e) {}
+    streamRef.current = null;
+  }
+  React.useEffect(function() {
+    if (!open) { stopCam(); return function() {}; }
+    var Detector = window.BarcodeDetector;
+    if (!Detector) { setSupported(false); return function() {}; }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setSupported(false); return function() {}; }
+    setSupported(true); setCamErr('');
+    var det = null;
+    try { det = new Detector({ formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf'] }); }
+    catch (e) { try { det = new Detector(); } catch (e2) { setSupported(false); return function() {}; } }
+    aliveRef.current = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
+      if (!aliveRef.current) { stream.getTracks().forEach(function(t) { t.stop(); }); return; }
+      streamRef.current = stream;
+      var v = videoRef.current;
+      if (v) { try { v.srcObject = stream; v.setAttribute('playsinline', 'true'); v.muted = true; v.play().catch(function() {}); } catch (e) {} }
+      var last = 0;
+      function tick() {
+        if (!aliveRef.current) return;
+        rafRef.current = requestAnimationFrame(tick);
+        var vv = videoRef.current;
+        if (!vv || vv.readyState < 2) return;
+        var t = Date.now();
+        if (t - last < 350) return; last = t;
+        det.detect(vv).then(function(codes) {
+          if (codes && codes.length) onDetect(String(codes[0].rawValue || '').trim());
+        }).catch(function() {});
+      }
+      tick();
+    }).catch(function() { setCamErr('Kamera tidak bisa dibuka — izinkan akses kamera di browser, atau ketik kodenya manual di bawah.'); });
+    return function() { stopCam(); };
+  }, [open]);
+
+  // v2.10: scan dari GAMBAR di galeri — buka file picker, deteksi barcode/QR
+  // pakai BarcodeDetector yang sama (100% offline). Buat QRIS/barcode yang
+  // cuma ada bentuk screenshot-nya.
+  function onPickFile(ev) {
+    var f = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!f) return;
+    var Detector = window.BarcodeDetector;
+    if (!Detector) { show('Scan gambar butuh BarcodeDetector (Chrome Android). Ketik kodenya manual ya.', 'error'); return; }
+    var det = null;
+    try { det = new Detector({ formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e','qr_code','itf'] }); }
+    catch (e) { try { det = new Detector(); } catch (e2) { show('Browser tidak mendukung deteksi barcode', 'error'); return; } }
+    show('Membaca gambar...', 'info');
+    var readBmp = (window.createImageBitmap ? window.createImageBitmap(f) : Promise.reject(new Error('no-createImageBitmap')));
+    readBmp.then(function(bmp) {
+      return det.detect(bmp).then(function(codes) { try { bmp.close(); } catch (e) {} return codes; });
+    }).catch(function() {
+      // fallback: lewat <img> biasa
+      return new Promise(function(res, rej) {
+        var img = new Image();
+        var url = URL.createObjectURL(f);
+        img.onload = function() { det.detect(img).then(function(c) { URL.revokeObjectURL(url); res(c); }).catch(function(err) { URL.revokeObjectURL(url); rej(err); }); };
+        img.onerror = function() { URL.revokeObjectURL(url); rej(new Error('img-gagal')); };
+        img.src = url;
+      });
+    }).then(function(codes) {
+      if (codes && codes.length) onDetect(String(codes[0].rawValue || '').trim());
+      else show('Barcode/QR gak ketemu di gambar itu — coba gambar yang lebih dekat & jelas', 'error');
+    }).catch(function() { show('Gambar gak bisa discan — coba screenshot yang lebih jelas', 'error'); });
+  }
+  function onDetect(code) {
+    if (!code) return;
+    var now = Date.now();
+    if (code === lastRef.current.code && now - lastRef.current.at < 2500) return; // anti dobel deteksi
+    lastRef.current = { code: code, at: now };
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    var exist = products.find(function(p) { return String(p.barcode || '') === code; });
+    if (exist) { show('Barcode sudah terdaftar: ' + exist.name + ' (' + formatRupiah(exist.price) + ')', 'info'); return; }
+    setName(''); setPrice('');
+    setCurrent({ code: code });
+  }
+  function simpan(lanjut) {
+    if (!current) return;
+    var nm = (name || '').trim();
+    var pr = parseFloat(price) || 0;
+    if (!nm || pr <= 0) { show('Isi nama menu & harganya dulu ya', 'error'); return; }
+    var pid = 'prod-' + settings.outletId + '-bc' + Date.now();
+    upsertProduct({ id: pid, outletId: settings.outletId, name: nm, category: cat, price: pr, cost: 0, available: true,
+      barcode: current.code, variants: [{ id: 'var-' + pid + '-1', productId: pid, name: 'Reguler', priceMod: 0 }],
+      recipeItems: [], createdAt: new Date().toISOString() });
+    setAdded(function(n) { return n + 1; });
+    show('\u2705 Menu "' + nm + '" masuk daftar — barcode tersimpan');
+    setCurrent(null); setName(''); setPrice('');
+    if (!lanjut) tutup();
+  }
+  function tutup() { stopCam(); onClose(); }
+  if (!open) return null;
+  return React.createElement(Modal, { open: open, onClose: tutup },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('input', { ref: fileRef, type: 'file', accept: 'image/*', className: 'hidden', onChange: onPickFile }),
+      React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
+        React.createElement('div', null,
+          React.createElement('h2', { className:'text-lg font-bold' }, 'Scan Barcode Menu'),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, 'Arahkan barcode/QR produk ke kamera — sekali scan, menu langsung kebikin. Bisa lanjut scan menu berikutnya.')),
+        React.createElement('button', { onClick: tutup, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
+          React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
+      ),
+      added > 0 && React.createElement('div', { className:'rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 mb-2 flex items-center gap-2' },
+        React.createElement(Icon, { name:'check-circle-2', className:'w-4 h-4 text-emerald-600 shrink-0' }),
+        React.createElement('p', { className:'text-xs font-bold text-emerald-700' }, added + ' menu ditambahkan di sesi ini')),
+      React.createElement('div', { className:'rounded-xl overflow-hidden bg-slate-900 relative', style: { aspectRatio: '4/3' } },
+        supported && !camErr ? React.createElement('video', { ref: videoRef, className:'w-full h-full object-cover', playsInline: true, muted: true })
+          : React.createElement('div', { className:'w-full h-full grid place-items-center p-4 text-center' },
+              React.createElement('div', null,
+                React.createElement(Icon, { name:'camera', className:'w-8 h-8 mx-auto text-slate-500 mb-2' }),
+                React.createElement('p', { className:'text-xs text-slate-300 leading-relaxed' }, camErr || 'Browser ini tidak mendukung scan kamera (pakai Chrome Android). Ketik kode barcode manual di bawah.'))),
+        supported && !camErr && React.createElement('div', { className:'absolute inset-0 grid place-items-center pointer-events-none' },
+          React.createElement('div', { className:'w-56 h-20 border-2 border-emerald-400/80 rounded-lg', style: { boxShadow: '0 0 0 2000px rgba(0,0,0,0.25)' } })),
+        // v2.10: tombol GALERI di samping KIRI bawah kamera — scan dari gambar galeri
+        React.createElement('button', { onClick: function() { if (fileRef.current) fileRef.current.click(); },
+          className:'absolute left-2 bottom-2 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-[11px] font-bold text-white shadow-lg active:scale-95 transition-transform' },
+          React.createElement(Icon, { name:'image', className:'w-4 h-4 text-emerald-400' }), 'Galeri'),
+        current && React.createElement('div', { className:'absolute left-2 top-2 rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-bold text-white shadow' }, 'Kode: ' + current.code)
+      ),
+      current && React.createElement('div', { className:'mt-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-2 animate-mp-pop' },
+        React.createElement('p', { className:'text-xs font-bold text-slate-700' }, 'Menu baru dari barcode ' + current.code),
+        React.createElement(Input, { value: name, onChange: function(e) { setName(e.target.value); }, placeholder:'Nama menu (mis. Indomie Goreng)', autoFocus: true }),
+        React.createElement(Input, { type:'number', value: price, onChange: function(e) { setPrice(e.target.value); }, placeholder:'Harga jual (mis. 10000)', inputMode:'numeric' }),
+        React.createElement('div', { className:'flex gap-1 flex-wrap' },
+          allCatList(settings).map(function(c) {
+            return React.createElement('button', { key: c.key, onClick: function() { setCat(c.key); },
+              className: cn('rounded-full px-2.5 py-1 text-[11px] font-bold border transition-colors', cat === c.key ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-slate-200 text-slate-600') },
+              c.emoji + ' ' + c.label);
+          })),
+        React.createElement('div', { className:'grid grid-cols-2 gap-2 pt-1' },
+          React.createElement(Button, { onClick: function() { simpan(true); } }, React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), 'Simpan & Scan Lagi'),
+          React.createElement(Button, { variant:'outline', onClick: function() { simpan(false); } }, 'Simpan & Selesai'))
+      ),
+      !current && React.createElement('div', { className:'mt-3 flex gap-2' },
+        React.createElement(Input, { value: manual, onChange: function(e) { setManual(e.target.value); },
+          onKeyDown: function(e) { if (e.key === 'Enter' && manual.trim()) { onDetect(manual.trim()); setManual(''); } },
+          placeholder:'Ketik kode barcode manual (mis. 8991234567890)', inputMode:'numeric' }),
+        React.createElement(Button, { variant:'outline', className:'shrink-0', onClick: function() { if (manual.trim()) { onDetect(manual.trim()); setManual(''); } } }, 'Cek')
+      ),
+      React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Scan jalan 100% offline (BarcodeDetector bawaan Chrome). Menu yang dibikin lewat scan langsung punya barcode tersimpan — scan ulang nanti bakal dikenali.')
+    )
+  );
+}
+
 function ProductsView({ onBack }) {
   const { state, upsertProduct, deleteProduct } = useAppStore();
   const hpp = !!state.settings.fiturHPP;
@@ -3527,6 +4008,7 @@ function ProductsView({ onBack }) {
   const [search, setSearch] = React.useState('');
   const [activeCat, setActiveCat] = React.useState('ALL');
   const [addOpen, setAddOpen] = React.useState(false);
+  const [scanOpen, setScanOpen] = React.useState(false);
   const [editProduct, setEditProduct] = React.useState(null);
   const [deleteTarget, setDeleteTarget] = React.useState(null);
   const { show } = useToast();
@@ -3546,9 +4028,15 @@ function ProductsView({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, {
       title:'Produk', subtitle: outletProducts.length + ' menu · ' + outletProducts.filter(p => !p.available).length + ' habis', onBack: onBack,
-      rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => setAddOpen(true) },
-        React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
-        React.createElement('span', { className:'hidden sm:inline' }, 'Tambah')
+      rightSlot: React.createElement('div', { className:'flex items-center gap-1.5' },
+        // v2.10: tombol SCAN BARCODE di samping tombol + (sesuai sketsa owner)
+        React.createElement(Button, { size:'sm', variant:'outline', className:'h-9 w-9 p-0 shrink-0', title:'Scan barcode menu', onClick: () => setScanOpen(true) },
+          React.createElement(Icon, { name:'scan-barcode', className:'w-4 h-4' })
+        ),
+        React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => setAddOpen(true) },
+          React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
+          React.createElement('span', { className:'hidden sm:inline' }, 'Tambah')
+        )
       )
     }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
@@ -3560,14 +4048,14 @@ function ProductsView({ onBack }) {
       ),
       React.createElement('div', { className:'flex gap-1 overflow-x-auto no-scrollbar mb-3' },
         React.createElement(Button, { size:'sm', variant: activeCat==='ALL' ? 'default':'outline', onClick: () => setActiveCat('ALL'), className:'h-9 shrink-0' }, 'Semua'),
-        Object.keys(CATEGORY_LABELS).map(c => React.createElement(Button, { key: c, size:'sm', variant: activeCat===c ? 'default':'outline', onClick: () => setActiveCat(c), className:'h-9 shrink-0 gap-1.5' },
-          React.createElement('span', { className:'text-xs' }, CATEGORY_EMOJI[c]),
-          React.createElement('span', null, CATEGORY_LABELS[c])
+        allCatList(settings).map(c => React.createElement(Button, { key: c.key, size:'sm', variant: activeCat===c.key ? 'default':'outline', onClick: () => setActiveCat(c.key), className:'h-9 shrink-0 gap-1.5' },
+          React.createElement('span', { className:'text-xs' }, c.emoji),
+          React.createElement('span', null, c.label)
         ))
       ),
       React.createElement('div', { className:'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2' },
         filtered.map(function(p) {
-          const emoji = CATEGORY_EMOJI[p.category] || '\ud83c\udf7d\ufe0f';
+          const emoji = catMeta(settings, p.category).emoji;
           return React.createElement('div', { key: p.id, className: cn('group relative rounded-xl border bg-white p-2 transition-all hover:shadow-lg hover:shadow-emerald-500/5', !p.available && 'opacity-70') },
             React.createElement('div', { className:'absolute top-1.5 right-1.5 z-10 flex gap-1' },
               React.createElement('button', { onClick: () => setEditProduct(p), className:'grid h-7 w-7 place-items-center rounded-lg bg-white/90 border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300 shadow-sm', title:'Edit produk' },
@@ -3595,6 +4083,7 @@ function ProductsView({ onBack }) {
         )
       )
     ),
+    React.createElement(BarcodeScanModal, { open: scanOpen, onClose: () => setScanOpen(false) }),
     React.createElement(AddMenuDialog, { open: addOpen, onClose: () => setAddOpen(false), onSaved: () => { setAddOpen(false); show('Menu baru ditambahkan'); } }),
     React.createElement(AddMenuDialog, { open: !!editProduct, editProduct: editProduct, onClose: () => setEditProduct(null), onSaved: () => { setEditProduct(null); show('Perubahan produk disimpan'); } }),
     React.createElement(ConfirmDialog, {
@@ -3617,7 +4106,7 @@ function MoreView({ onNavigate }) {
   const outlet = state.outlets.find(o => o.id === settings.outletId);
   const items = [
     { key:'orders', icon:'clipboard-list', label:'Pesanan', desc:'Pesanan hari ini, bayar & batalkan', badge: unpaidCount > 0 ? unpaidCount + ' belum bayar' : null, badgeCls:'bg-emerald-100 text-emerald-700' },
-    { key:'kitchen', icon:'chef-hat', label:'Dapur (KDS)', desc:'Antrian masak real-time', badge: activeKitchen > 0 ? activeKitchen + ' aktif' : null, badgeCls:'bg-amber-100 text-amber-700' },
+    { key:'kitchen', icon:'utensils-crossed', label:'Laporan Menu', desc:'Menu terjual hari ini — per item & qty, auto sortir' },
     { key:'inventory', icon:'boxes', label:'Stok & Resep', desc:'Bahan baku, stok masuk/keluar' },
     { key:'outlets', icon:'store', label:'Outlet & Staf', desc:'Multi-cabang & karyawan' },
     { key:'settings', icon:'settings', label:'Pengaturan', desc:'Printer, info resto, mesin & data' },
@@ -3837,20 +4326,24 @@ function NotifToggleRow() {
   const perm = Notif.perm();
   var desc;
   if (perm === 'unsupported') desc = 'Browser tidak mendukung notifikasi (jalan di Chrome/app HP)';
-  else if (perm === 'denied') desc = 'Izin diblokir — aktifkan izin notifikasi utk Miapos di setelan browser';
+  else if (perm === 'denied') desc = 'Izin diblokir — ketuk di sini utk cara membuka blokirnya';
   else if (perm === 'default') desc = 'Ketuk untuk izinkan notifikasi dulu';
-  else desc = on ? 'Aktif — notif buka jam ' + (state.settings.notifOpenTime || '08:00') + ' & tutup jam ' + (state.settings.notifCloseTime || '21:00') + ' (atur di Owner Zone)' : 'Mati — semua notif buka/tutup tidak dikirim';
+  else desc = on ? 'Aktif — notif buka jam ' + (state.settings.notifOpenTime || '08:00') + ' & tutup jam ' + (state.settings.notifCloseTime || '21:00') + (Notif.pushOk() ? ' · push server ✅ (walau app ditutup)' : ' (atur di Owner Zone)') : 'Mati — semua notif buka/tutup tidak dikirim';
   function klik() {
     if (perm === 'default') {
       try {
         Notification.requestPermission().then(function(p) {
-          if (p === 'granted') { show('🔔 Izin notifikasi diberikan — salam pagi aktif'); Notif.maybeMorning(); }
+          if (p === 'granted') { show('🔔 Izin notifikasi diberikan — salam pagi aktif'); Notif.maybeMorning(); Notif.pushEnsure(); }
+          else if (p === 'denied') { show('Izin DITOLAK. Cek setelan HP: Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error'); }
           else show('Izin notifikasi belum diberikan', 'error');
-        }).catch(function() {});
+        }).catch(function() { show('Popup izin gagal muncul — buka Miapos dari app/Chrome biasa lalu coba lagi', 'error'); });
       } catch (e) {}
       return;
     }
-    if (perm === 'denied') { show('Buka setelan browser → Notifikasi → izinkan Miapos', 'error'); return; }
+    if (perm === 'denied') {
+      show('Buka blokir: Setelan HP → Aplikasi → Miapos → Notifikasi → Izinkan (atau Chrome → ⋮ → Setelan → Setelan situs → Notifikasi)', 'error');
+      return;
+    }
     if (perm === 'unsupported') { show('Browser ini tidak mendukung notifikasi', 'error'); return; }
     toggleMorningNotif();
     show(on ? 'Salam pagi dimatikan' : 'Salam pagi diaktifkan ☀️');
@@ -3876,7 +4369,20 @@ function NotifTestRow() {
   const { show } = useToast();
   const perm = Notif.perm();
   function kirim() {
-    if (perm !== 'granted') { show('Izinkan notifikasi dulu di baris "Salam Pagi" atasnya', 'error'); return; }
+    if (perm === 'default') {
+      // v2.10: langsung minta izin DI SINI (dalam ketukan) — dulu baru kirim notif tes
+      try {
+        Notification.requestPermission().then(function(p) {
+          if (p === 'granted') { setTimeout(function() { tes(); }, 350); }
+          else show('Izin DITOLAK. Setelan HP → Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error');
+        }).catch(function() { show('Popup izin gagal muncul — coba lagi', 'error'); });
+      } catch (e) {}
+      return;
+    }
+    if (perm !== 'granted') { show('Izin notif diblokir. Setelan HP → Aplikasi → Miapos/Chrome → Notifikasi → izinkan', 'error'); return; }
+    tes();
+  }
+  function tes() {
     var ok = Notif.fire('🔔 Tes Notifikasi Miapos', 'Notifikasi jalan! Salam pagi akan muncul otomatis tiap pagi ☀️', 'miapos-tes');
     show(ok ? 'Notifikasi tes terkirim — cek bilah notifikasi HP' : 'Notifikasi gagal dikirim', ok ? 'success' : 'error');
   }
@@ -3917,8 +4423,16 @@ function OwnerZoneScreen({ onBack }) {
   const [morningText, setMorningText] = React.useState(s.notifMorningText || NOTIF_DEFAULTS.notifMorningText);
   const [nightText, setNightText] = React.useState(s.notifNightText || NOTIF_DEFAULTS.notifNightText);
   const [vib, setVib] = React.useState(s.notifNightVibrate !== false);
+  // v2.10: teks kartu cuaca + push server (walau app ditutup)
+  const [wxText, setWxText] = React.useState(s.wxCardText || '');
+  const [pushOn, setPushOn] = React.useState(s.pushServer !== false);
+  const [pushBusy, setPushBusy] = React.useState(false);
   const [pwLama, setPwLama] = React.useState('');
   const [pwBaru, setPwBaru] = React.useState('');
+  // v2.10: seksi gulung — cuma 1 yang kebuka, biar rapih & gak panjang turun
+  const [sect, setSect] = React.useState('');
+  const [qrisBusy, setQrisBusy] = React.useState(false);
+  const qrisImg = s.qrisImage || '';
 
   function bukaKunci() {
     if (pw === ownerGetPw()) {
@@ -3931,9 +4445,13 @@ function OwnerZoneScreen({ onBack }) {
     var ot = (openTime || '').trim() || '08:00';
     var ct = (closeTime || '').trim() || '21:00';
     var nm = (ownerName || '').trim() || 'morgvn';
-    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib });
-    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm);
+    var wxt = (wxText || '').trim();
+    updateSettings({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, wxCardText: wxt, pushServer: pushOn });
+    setOpenTime(ot); setCloseTime(ct); setOwnerName(nm); setWxText(wxt);
     show('Tersimpan ✅ Notif buka jam ' + ot + ' · notif tutup jam ' + ct);
+    // v2.10: sinkron ke server biar push (walau app ditutup) pakai teks/jam terbaru
+    Notif.pushUploadConfig({ notifOpenTime: ot, notifCloseTime: ct, notifOwnerName: nm, notifMorningText: (morningText || '').trim() || NOTIF_DEFAULTS.notifMorningText, notifNightText: (nightText || '').trim() || NOTIF_DEFAULTS.notifNightText, notifNightVibrate: vib, pushServer: pushOn }, false)
+      .then(function(ok) { if (ok) show('☁️ Teks notif tersinkron ke server push'); });
   }
   function gantiPw() {
     if (pwLama !== ownerGetPw()) { show('Password lama salah', 'error'); return; }
@@ -3947,6 +4465,57 @@ function OwnerZoneScreen({ onBack }) {
     var ok = Notif.sendOwner(kind, draft);
     show(ok ? 'Notifikasi tes terkirim — cek bilah notif HP' : 'Izin notifikasi belum aktif — ketuk baris \"Notifikasi\" dulu', ok ? 'success' : 'error');
   }
+  // v2.10: tes sirkuit penuh dari SERVER — notif muncul walau app nanti ditutup
+  function tesServer(kind) {
+    if (pushBusy) return;
+    setPushBusy(true);
+    Notif.pushTestFromServer(kind).then(function(res) {
+      setPushBusy(false);
+      if (res && res.ok) show('☁️ Dikirim dari server ke ' + (res.sent || 0) + ' HP — notif bakal muncul walau app ditutup', 'success');
+      else if (res && res.error === 'NO_KEY') show('Isi dulu password backup di Pengaturan → Backup Cloud & Mesin Lokal (dipakai buat tes server)', 'error');
+      else if (res && res.error === 'SERVER_BELUM_DISET') show('Server belum siap — set env GITHUB_TOKEN & BACKUP_KEY di Vercel (lihat PANDUAN-NOTIF.txt)', 'error');
+      else show('Tes server gagal (' + ((res && res.error) || 'offline') + ') — cek internet / deploy Vercel', 'error');
+    });
+  }
+  // v2.10: upload gambar QRIS (dipangkas otomatis biar localStorage aman)
+  function pickQris(e) {
+    var f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type)) { show('File harus gambar (JPG/PNG)', 'error'); return; }
+    setQrisBusy(true);
+    var fr = new FileReader();
+    fr.onload = function() {
+      var img = new Image();
+      img.onload = function() {
+        try {
+          var MAX = 900; var sc = Math.min(1, MAX / Math.max(img.width, img.height));
+          var cv = document.createElement('canvas');
+          cv.width = Math.max(1, Math.round(img.width * sc)); cv.height = Math.max(1, Math.round(img.height * sc));
+          cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+          var data = cv.toDataURL('image/jpeg', 0.85);
+          updateSettings({ qrisImage: data });
+          setQrisBusy(false);
+          show('QRIS tersimpan ✅ — muncul otomatis saat kasir pilih metode QRIS');
+        } catch (err) { setQrisBusy(false); show('Gagal memproses gambar', 'error'); }
+      };
+      img.onerror = function() { setQrisBusy(false); show('Gambar tidak bisa dibaca', 'error'); };
+      img.src = String(fr.result);
+    };
+    fr.onerror = function() { setQrisBusy(false); show('Gagal membaca file', 'error'); };
+    fr.readAsDataURL(f);
+    try { e.target.value = ''; } catch (err) {}
+  }
+  function hapusQris() { updateSettings({ qrisImage: '' }); show('Gambar QRIS dihapus'); }
+  function SectHead(_id, icon, title, hint) {
+    return React.createElement('button', { onClick: function() { setSect(sect === _id ? '' : _id); },
+        className:'w-full flex items-center gap-3 text-left p-3.5' },
+      React.createElement('div', { className:'grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70 text-slate-700' },
+        React.createElement(Icon, { name: icon, className:'w-4 h-4' })),
+      React.createElement('div', { className:'flex-1 min-w-0' },
+        React.createElement('p', { className:'font-bold text-sm text-slate-900' }, title),
+        React.createElement('p', { className:'text-[11px] text-slate-500 truncate' }, hint)),
+      React.createElement(Icon, { name:'chevron-down', className: cn('w-4 h-4 text-slate-400 shrink-0 transition-transform', sect === _id && 'rotate-180') }));
+  }
 
   // ---- Tampilan terkunci: minta password ----
   if (!unlocked) {
@@ -3957,8 +4526,8 @@ function OwnerZoneScreen({ onBack }) {
           React.createElement('div', { className:'p-5 text-center' },
             React.createElement('div', { className:'mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-900 text-white shadow-lg' },
               React.createElement(Icon, { name:'lock', className:'w-7 h-7' })),
-            React.createElement('h3', { className:'mt-3 font-extrabold text-slate-900' }, 'Area Khusus Owner'),
-            React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, 'Atur notifikasi buka/tutup resto & teks salamnya. Fitur ini dikunci biar cuma owner yang bisa ubah.'),
+            React.createElement('h3', { className:'mt-3 font-extrabold text-slate-900' }, 'Owner Zone'),
+            React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, 'Masukkan password owner untuk masuk.'),
             React.createElement('input', { type:'password', value: pw, onChange: function(e) { setPw(e.target.value); setErr(''); },
               onKeyDown: function(e) { if (e.key === 'Enter') bukaKunci(); },
               placeholder:'Password owner...', className:'mt-4 w-full text-center tracking-widest' }),
@@ -3971,75 +4540,137 @@ function OwnerZoneScreen({ onBack }) {
     );
   }
 
-  // ---- Terbuka: panel aturan notif ----
+  // ---- Terbuka: panel owner — disortir jadi SEKSI GULUNG (klik = layarnya kebuka) ----
+  function simpanCuaca() {
+    var wxt = (wxText || '').trim();
+    updateSettings({ wxCardText: wxt });
+    show(wxt ? 'Teks kartu cuaca tersimpan ✅' : 'Kartu cuaca balik ke salam otomatis ✅');
+  }
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Owner Zone', subtitle:'Notifikasi buka & tutup resto — milik owner', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-4' },
-      // Ringkasan jadwal
-      React.createElement(Card, { className:'p-4' },
-        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), 'Jam Buka & Tutup Resto'),
-        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Notif buka muncul di jam buka; notif tutup muncul di jam tutup + getar pendek. Ubah jamnya di sini kalau jam buka resto berubah.'),
-        React.createElement('div', { className:'grid grid-cols-2 gap-3' },
-          React.createElement('div', null,
-            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '☀️ Jam Buka'),
-            React.createElement(Input, { type:'time', value: openTime, onChange: function(e) { setOpenTime(e.target.value); } })),
-          React.createElement('div', null,
-            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '🌙 Jam Tutup'),
-            React.createElement(Input, { type:'time', value: closeTime, onChange: function(e) { setCloseTime(e.target.value); } }))
-        )
-      ),
-      // Teks notifikasi
-      React.createElement(Card, { className:'p-4' },
-        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'bell', className:'w-4 h-4' }), 'Teks Notifikasi'),
-        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Isi notif otomatis diawali nama kamu, jadi bentuknya: \"nama: teks ucapan\".'),
-        React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, 'Nama pengirim (nama kamu)'),
-        React.createElement(Input, { value: ownerName, onChange: function(e) { setOwnerName(e.target.value); }, placeholder:'morgvn', maxLength: 24 }),
-        React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-3 mb-1 block' }, 'Teks notif BUKA (pagi)'),
-        React.createElement('textarea', { value: morningText, onChange: function(e) { setMorningText(e.target.value); }, rows: 2,
-          className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
-        React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-3 mb-1 block' }, 'Teks notif TUTUP (malam)'),
-        React.createElement('textarea', { value: nightText, onChange: function(e) { setNightText(e.target.value); }, rows: 2,
-          className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
-        React.createElement('button', { onClick: function() { setVib(!vib); }, className:'w-full flex items-center justify-between gap-3 mt-4 py-2 text-left' },
-          React.createElement('div', { className:'min-w-0' },
-            React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Getar saat notif tutup'),
-            React.createElement('p', { className:'text-xs text-slate-500' }, vib ? 'Aktif — getar pendek bentar aja, gak lama' : 'Mati — notif tutup tanpa getar kuat')),
-          React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', vib ? 'bg-emerald-500' : 'bg-slate-300') },
-            React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', vib && 'translate-x-5') }))
-        ),
-        React.createElement('div', { className:'rounded-xl bg-slate-50 border border-slate-200/70 p-3 mt-3' },
-          React.createElement('p', { className:'text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1' }, 'Pratinjau isi notif'),
-          React.createElement('p', { className:'text-sm font-semibold text-slate-800' }, '☀️ Miapos · Buka Resto'),
-          React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (morningText || '')),
-          React.createElement('p', { className:'text-sm font-semibold text-slate-800 mt-2' }, '🌙 Miapos · Waktunya Tutup'),
-          React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (nightText || ''))
-        )
-      ),
-      // Tombol aksi
-      React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-2' },
-        React.createElement(Button, { onClick: simpan, className:'sm:col-span-1' }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan'),
-        React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('buka'); } }, '☀️ Tes Notif Buka'),
-        React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('tutup'); } }, '🌙 Tes Notif Tutup')
-      ),
-      // Master saklar
+    React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner', onBack: onBack }),
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-3' },
+      // Saklar utama — selalu kelihatan di paling atas
       React.createElement(Card, { className:'divide-y divide-slate-100 overflow-hidden' },
         React.createElement('div', { className:'px-3.5' }, React.createElement(NotifToggleRow, null))
       ),
-      // Keamanan
-      React.createElement(Card, { className:'p-4' },
-        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-1' }, React.createElement(Icon, { name:'shield', className:'w-4 h-4' }), 'Keamanan'),
-        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Ganti password Owner Zone — biar cuma kamu yang bisa buka area ini.'),
-        React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-2' },
-          React.createElement(Input, { type:'password', value: pwLama, onChange: function(e) { setPwLama(e.target.value); }, placeholder:'Password lama' }),
-          React.createElement(Input, { type:'password', value: pwBaru, onChange: function(e) { setPwBaru(e.target.value); }, placeholder:'Password baru (min. 4)' })
-        ),
-        React.createElement(Button, { variant:'outline', className:'mt-2 w-full sm:w-auto', onClick: gantiPw }, React.createElement(Icon, { name:'key-round', className:'w-4 h-4' }), 'Ganti Password')
+      // ===== SEKSI 1 — NOTIFIKASI BUKA & TUTUP =====
+      React.createElement(Card, { className:'overflow-hidden' },
+        SectHead('notif', 'bell', '🔔 Notifikasi Buka & Tutup', 'Jam, teks salam, getar & tes notif'),
+        sect === 'notif' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-3' },
+          React.createElement('div', null,
+            React.createElement('p', { className:'text-xs font-bold text-slate-700 mb-1.5' }, 'Jam buka & tutup resto'),
+            React.createElement('div', { className:'grid grid-cols-2 gap-3' },
+              React.createElement('div', null,
+                React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '\u2600\uFE0F Jam Buka'),
+                React.createElement(Input, { type:'time', value: openTime, onChange: function(e) { setOpenTime(e.target.value); } })),
+              React.createElement('div', null,
+                React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, '🌙 Jam Tutup'),
+                React.createElement(Input, { type:'time', value: closeTime, onChange: function(e) { setCloseTime(e.target.value); } }))
+            ),
+            React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Notif saat app DIBUKA ikut jam di atas. Notif dari SERVER (walau app ditutup) jalan jam 08.00 & 21.00 WIB \u2014 kalau jam resto berubah, bilang aja ke yang bikin app buat digeser.')
+          ),
+          React.createElement('div', null,
+            React.createElement('p', { className:'text-xs font-bold text-slate-700 mb-1.5' }, 'Teks notifikasi \u2014 isi: "nama: teks ucapan"'),
+            React.createElement('label', { className:'text-xs font-bold text-slate-700 mb-1 block' }, 'Nama pengirim (nama kamu)'),
+            React.createElement(Input, { value: ownerName, onChange: function(e) { setOwnerName(e.target.value); }, placeholder:'morgvn', maxLength: 24 }),
+            React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-2 mb-1 block' }, 'Teks notif BUKA (pagi)'),
+            React.createElement('textarea', { value: morningText, onChange: function(e) { setMorningText(e.target.value); }, rows: 2,
+              className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
+            React.createElement('label', { className:'text-xs font-bold text-slate-700 mt-2 mb-1 block' }, 'Teks notif TUTUP (malam)'),
+            React.createElement('textarea', { value: nightText, onChange: function(e) { setNightText(e.target.value); }, rows: 2,
+              className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
+            React.createElement('button', { onClick: function() { setVib(!vib); }, className:'w-full flex items-center justify-between gap-3 mt-2 py-1.5 text-left' },
+              React.createElement('div', { className:'min-w-0' },
+                React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Getar saat notif tutup'),
+                React.createElement('p', { className:'text-xs text-slate-500' }, vib ? 'Aktif \u2014 getar pendek bentar aja, gak lama' : 'Mati \u2014 notif tutup tanpa getar kuat')),
+              React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', vib ? 'bg-emerald-500' : 'bg-slate-300') },
+                React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', vib && 'translate-x-5') }))
+            ),
+            React.createElement('div', { className:'rounded-xl bg-slate-50 border border-slate-200/70 p-3 mt-2' },
+              React.createElement('p', { className:'text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1' }, 'Pratinjau isi notif'),
+              React.createElement('p', { className:'text-sm font-semibold text-slate-800' }, '\u2600\uFE0F Miapos \u00b7 Buka Resto'),
+              React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (morningText || '')),
+              React.createElement('p', { className:'text-sm font-semibold text-slate-800 mt-2' }, '🌙 Miapos \u00b7 Waktunya Tutup'),
+              React.createElement('p', { className:'text-xs text-slate-600' }, (ownerName || 'morgvn') + ': ' + (nightText || ''))
+            )
+          ),
+          React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-2' },
+            React.createElement(Button, { onClick: simpan }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan'),
+            React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('buka'); } }, '\u2600\uFE0F Tes Buka'),
+            React.createElement(Button, { variant:'outline', onClick: function() { tesNotif('tutup'); } }, '🌙 Tes Tutup')
+          )
+        )
       ),
-      // Catatan jujur soal cara kerja
+      // ===== SEKSI 2 — TEKS KARTU CUACA =====
+      React.createElement(Card, { className:'overflow-hidden' },
+        SectHead('cuaca', 'cloud-sun', '\u2601\uFE0F Teks Kartu Cuaca', 'Teks dashboard \u2014 kosong = salam otomatis'),
+        sect === 'cuaca' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-2' },
+          React.createElement('p', { className:'text-xs text-slate-500 leading-relaxed' }, 'Teks di kartu cuaca paling atas Dashboard. Kosongkan = salam otomatis (Selamat pagi, Chelsa! \u2026) yang ganti sendiri pagi/siang/sore/malam & ikut nama kasir yang lagi aktif.'),
+          React.createElement('textarea', { value: wxText, onChange: function(e) { setWxText(e.target.value); }, rows: 2, maxLength: 120,
+            placeholder:'Contoh: Hari cerah, semangat jualan yuk! \u2600\uFE0F',
+            className:'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500' }),
+          React.createElement(Button, { onClick: simpanCuaca }, React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan Teks Cuaca')
+        )
+      ),
+      // ===== SEKSI 3 — NOTIF WALAU APP DITUTUP (PUSH SERVER) =====
+      React.createElement(Card, { className:'overflow-hidden' },
+        SectHead('push', 'satellite-dish', '📴 Notif Walau App Ditutup', 'Push server \u2014 jam 08.00 & 21.00 WIB'),
+        sect === 'push' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-3' },
+          React.createElement('p', { className:'text-xs text-slate-500 leading-relaxed' }, 'Server Miapos ngirim notif langsung ke HP walau app-nya ditutup total \u2014 kayak notif WA. Yang jalan di HP cuma sistem notifikasi Android-nya, jadi baterai & kuota tetap aman.'),
+          React.createElement('button', { onClick: function() { setPushOn(!pushOn); }, className:'w-full flex items-center justify-between gap-3 py-1.5 text-left' },
+            React.createElement('div', { className:'min-w-0' },
+              React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'Push dari server'),
+              React.createElement('p', { className:'text-xs text-slate-500' }, pushOn ? 'Aktif \u2014 notif tetap muncul walau app ditutup (butuh internet di HP)' : 'Mati \u2014 notif cuma muncul saat app dibuka/di-background')),
+            React.createElement('span', { className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', pushOn ? 'bg-emerald-500' : 'bg-slate-300') },
+              React.createElement('span', { className: cn('absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow', pushOn && 'translate-x-5') }))
+          ),
+          React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-2' },
+            React.createElement(Button, { variant:'outline', onClick: function() { tesServer('buka'); }, disabled: pushBusy }, '\u2601\uFE0F Tes dari Server (Buka)'),
+            React.createElement(Button, { variant:'outline', onClick: function() { tesServer('tutup'); }, disabled: pushBusy }, '\u2601\uFE0F Tes dari Server (Tutup)')
+          ),
+          React.createElement('p', { className:'text-[10px] text-slate-400 leading-relaxed' }, Notif.pushOk() ? 'Status: HP ini sudah terdaftar di server push \u2705' : 'Status: HP belum terdaftar \u2014 izinkan notifikasi dulu, lalu buka app saat online, otomatis terdaftar.'),
+          React.createElement('p', { className:'text-[10px] text-slate-400 leading-relaxed' }, 'Butuh deploy di Vercel (api/push-subscribe.js + push-send.js + vercel.json) \u2014 langkah lengkap di PANDUAN-NOTIF.txt. Tes dari server butuh password backup yang diisi dulu di menu Backup Cloud.')
+        )
+      ),
+      // ===== SEKSI 4 — QRIS RESTO =====
+      React.createElement(Card, { className:'overflow-hidden' },
+        SectHead('qris', 'qr-code', 'QRIS Resto', 'Upload QRIS \u2014 muncul saat pembayaran'),
+        sect === 'qris' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100' },
+          React.createElement('div', { className:'flex items-start gap-3' },
+            qrisImg
+              ? React.createElement('img', { src: qrisImg, alt:'QRIS', className:'w-24 h-24 rounded-lg border bg-white object-contain p-1 shrink-0' })
+              : React.createElement('div', { className:'w-24 h-24 rounded-lg border-2 border-dashed border-slate-200 grid place-items-center text-slate-300 shrink-0' },
+                  React.createElement(Icon, { name:'qr-code', className:'w-8 h-8' })),
+            React.createElement('div', { className:'flex-1 min-w-0 space-y-2' },
+              React.createElement('p', { className:'text-xs text-slate-500 leading-relaxed' }, 'Upload gambar QRIS kamu (screenshot QRIS dari bank / e-wallet). Nanti otomatis tampil di layar pembayaran saat kasir pilih metode QRIS \u2014 customer tinggal scan.'),
+              React.createElement('div', { className:'flex gap-2 flex-wrap' },
+                React.createElement('label', { className: cn('inline-flex items-center gap-1.5 h-10 px-3.5 rounded-xl text-sm font-semibold cursor-pointer text-white bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 shadow-md shadow-emerald-500/25', qrisBusy && 'opacity-60 pointer-events-none') },
+                  React.createElement(Icon, { name:'image-plus', className:'w-4 h-4' }),
+                  qrisBusy ? 'Memproses\u2026' : 'Upload QRIS',
+                  React.createElement('input', { type:'file', accept:'image/*', onChange: pickQris, className:'hidden' })),
+                qrisImg && React.createElement(Button, { variant:'outline', onClick: hapusQris }, 'Hapus')
+              )
+            )
+          )
+        )
+      ),
+      // ===== SEKSI 5 — KEAMANAN =====
+      React.createElement(Card, { className:'overflow-hidden' },
+        SectHead('keamanan', 'shield', '🔒 Keamanan', 'Ganti password Owner Zone'),
+        sect === 'keamanan' && React.createElement('div', { className:'p-4 pt-3 border-t border-slate-100 space-y-2' },
+          React.createElement('p', { className:'text-xs text-slate-500' }, 'Ganti password Owner Zone \u2014 biar cuma kamu yang bisa buka area ini.'),
+          React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-2' },
+            React.createElement(Input, { type:'password', value: pwLama, onChange: function(e) { setPwLama(e.target.value); }, placeholder:'Password lama' }),
+            React.createElement(Input, { type:'password', value: pwBaru, onChange: function(e) { setPwBaru(e.target.value); }, placeholder:'Password baru (min. 4)' })
+          ),
+          React.createElement(Button, { variant:'outline', className:'w-full sm:w-auto', onClick: gantiPw }, React.createElement(Icon, { name:'key-round', className:'w-4 h-4' }), 'Ganti Password')
+        )
+      ),
+      // Info singkat
       React.createElement(Card, { className:'p-4 border-sky-100 bg-sky-50/50' },
-        React.createElement('p', { className:'text-xs font-bold text-sky-800 mb-1' }, 'ℹ️ Cara kerja notifikasinya'),
-        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed' }, 'Selama app Miapos jalan di HP (dibuka atau baru di-background), notif muncul tepat di jam buka & jam tutup — cek tiap 20 detik, maksimal 1x sehari per jenis. Kalau HP dimatiin total atau app di-swap habis, notif muncul pas app dibuka lagi (dikejar otomatis kalau masih dalam 1 jam dari jadwal).'),
-        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed mt-2' }, 'Saklar \"Notifikasi\" di atas itu saklar utama — kalau dimatikan, semua notif buka/tutup ikut berhenti.')
+        React.createElement('p', { className:'text-xs font-bold text-sky-800 mb-1' }, '\u2139\uFE0F Cara kerja notifikasinya'),
+        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed' }, 'Ada 2 jalur: (1) NOTIF LOKAL \u2014 muncul saat app dibuka/di-background di jam buka & tutup, cek tiap 20 detik, maks 1x sehari per jenis. (2) PUSH SERVER \u2014 muncul walau app ditutup total, dikirim server Miapos jam 08.00 & 21.00 WIB lewat internet (pakai layanan push Chrome, bukan app yang jalan terus \u2014 baterai aman).'),
+        React.createElement('p', { className:'text-xs text-sky-700 leading-relaxed mt-2' }, 'Saklar "Notifikasi" di atas itu saklar utama \u2014 kalau dimatikan, semua notif buka/tutup ikut berhenti. Semua pengaturan di sini tersimpan otomatis di HP ini.')
       )
     )
   );
@@ -4149,7 +4780,7 @@ function SettingsView({ onBack }) {
   if (sub === 'engine') return React.createElement(EngineScreen, { onBack: function() { setSub(null); } });
   if (sub === 'produk') return React.createElement(ProductsView, { onBack: function() { setSub(null); } });
   if (sub === 'inventory') return React.createElement(InventoryView, { onBack: function() { setSub(null); } });
-  if (sub === 'kitchen') return React.createElement(KDSView, { onBack: function() { setSub(null); } });
+  if (sub === 'kitchen') return React.createElement(MenuSalesView, { onBack: function() { setSub(null); } });
   if (sub === 'outlets') return React.createElement(OutletsView, { onBack: function() { setSub(null); } });
   if (sub === 'owner') return React.createElement(OwnerZoneScreen, { onBack: function() { setSub(null); } });
 
@@ -4157,7 +4788,7 @@ function SettingsView({ onBack }) {
     { title:'Kelola', items: [
       { key:'produk', icon:'package', label:'Kelola Menu', desc:'Tambah, edit & hapus menu' },
       { key:'inventory', icon:'boxes', label:'Stok & Bahan', desc:'Bahan baku, stok masuk/keluar' },
-      { key:'kitchen', icon:'chef-hat', label:'Dapur (KDS)', desc:'Antrian masak real-time' },
+      { key:'kitchen', icon:'utensils-crossed', label:'Laporan Menu', desc:'Menu terjual hari ini — per item & qty' },
       { key:'kasir', icon:'users', label:'Kasir & Karyawan', desc:'Kelola kasir, PIN & hak akses' },
       { key:'outlets', icon:'store', label:'Cabang & Outlet', desc:'Multi-cabang & data per outlet' },
     ]},
@@ -4169,7 +4800,7 @@ function SettingsView({ onBack }) {
       { key:'engine', icon:'cpu', label:'Backup Cloud & Mesin Lokal', desc:'Auto-backup GitHub · mesin lokal opsional' },
     ]},
     { title:'Khusus Owner', items: [
-      { key:'owner', icon:'lock', label:'Owner Zone 🔒', desc:'Notif jam buka/tutup, teks salam & nama pengirim — proteksi password' },
+      { key:'owner', icon:'lock', label:'Owner Zone', desc:'' },
     ]},
   ];
 
@@ -4190,7 +4821,7 @@ function SettingsView({ onBack }) {
                 ),
                 React.createElement('div', { className:'flex-1 min-w-0' },
                   React.createElement('p', { className:'font-bold text-sm text-slate-900' }, it.label),
-                  React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, it.desc)
+                  it.desc ? React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, it.desc) : null
                 ),
                 it.key === 'tema' && React.createElement('span', { className:'h-4 w-4 rounded-full shrink-0 border border-black/10', style: { background: (MD_THEMES[settings.theme] || MD_THEMES.emerald).main } }),
                 React.createElement(Icon, { name:'chevron-right', className:'w-4 h-4 text-slate-300 shrink-0' })
@@ -4235,7 +4866,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.9 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.10 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
         React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
       ),
@@ -4968,11 +5599,14 @@ function App() {
   // selama app jalan. Juga dikejar pas tab balik aktif. Maks 1x/hari per jenis (lihat Notif.tick).
   React.useEffect(function() {
     if (loading || !mounted) return;
+    // v2.10: daftarkan HP ke push server (walau app nanti ditutup, notif tetap
+    // bisa muncul) — jalan kalau izin notif sudah granted & sedang online.
+    var tp = setTimeout(function() { try { Notif.pushEnsure(); } catch (e) {} }, 5000);
     var t = setTimeout(function() { try { Notif.tick(); } catch (e) {} }, 2500);
     var iv = setInterval(function() { try { Notif.tick(); } catch (e) {} }, 20000);
     var onVis = function() { if (!document.hidden) { try { Notif.tick(); } catch (e) {} } };
     document.addEventListener('visibilitychange', onVis);
-    return function() { clearTimeout(t); clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
+    return function() { clearTimeout(tp); clearTimeout(t); clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   }, [loading, mounted]);
   // v2.6 THEME ENGINE: class html.theme-* + warna bilah status/notif ikut tema aktif.
   // Tema terang = putih tulang (#f8fafc) nyatu sama header putih (habis masalah blend
@@ -5003,7 +5637,7 @@ function App() {
         active === 'pos' && React.createElement(POSView, { onBack: function() { setActive('dashboard'); } }),
         active === 'more' && React.createElement(MoreView, { onNavigate: setActive }),
         active === 'orders' && React.createElement(OrdersView, { onNavigate: setActive, onBack: goMore }),
-        active === 'kitchen' && React.createElement(KDSView, { onBack: goMore }),
+        active === 'kitchen' && React.createElement(MenuSalesView, { onBack: goMore }),
         active === 'inventory' && React.createElement(InventoryView, { onBack: goMore }),
         active === 'reports' && React.createElement(ReportsView, { onBack: goMore }),
         active === 'outlets' && React.createElement(OutletsView, { onBack: goMore }),

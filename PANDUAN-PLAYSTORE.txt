@@ -18,6 +18,19 @@ Play Store langsung ke-update sendiri dalam ±1 menit.
 TIDAK PERLU upload ulang APK/AAB tiap update (untuk update
 biasa). mantep kan.
 
+UPDATE v2.10:
+------------
+Folder .well-known/assetlinks.json SEKARANG SUDAH IKUT
+di dalam zip Miapos (file isinya persis yang dulu lu
+bikin manual di GitHub: package com.miaposv2.app +
+SHA-256). Jadi:
+  - Push lewat Termux/git → folder ini otomatis ikut,
+    GAK BISA hilang lagi kejadian timpa.
+  - Upload lewat website GitHub → drag folder
+    .well-known sekalian (GitHub web udah dukung drag
+    folder). Kalau foldernya udah ada di repo dan lu
+    cuma nimpain file lain, BIARKAN — jangan dihapus.
+
 YANG DIPERSIAPIN
 ----------------
 1. URL Vercel yang udah jalan, contoh:

@@ -1,7 +1,100 @@
 ================================================
-  MIAPOS v2.9 — CHECKLIST PWABUILDER 6/6 + NOTIF BUKA/TUTUP
-     + OWNER ZONE + CUACA + BACKUP CLOUD + 3 TEMA + SIAP PLAY STORE
+  MIAPOS v2.10 — SCAN BARCODE + LAPORAN MENU + QRIS
+     + NOTIF WALAU APP DITUTUP + OWNER ZONE + CUACA
+     + BACKUP CLOUD + 3 TEMA + SIAP PLAY STORE
 ================================================
+
+APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + push server)
+------------------------------------------------------------
+1. SCAN BARCODE BUAT INPUT MENU:
+   • Pengaturan → Kelola Menu → tombol SCAN (ikon barcode)
+     di SAMPING tombol +.
+   • Scan barcode/QR pakai kamera → tinggal isi nama + harga
+     → menu langsung masuk daftar. Lanjut scan lagi-lagi,
+     sekali sesi bisa masuk BANYAK menu sekaligus.
+   • 100% OFFLINE — pakai BarcodeDetector bawaan Chrome
+     Android, tanpa library internet.
+   • Menu yang dibikin lewat scan langsung nyimpen barcodenya
+     — scan ulang nanti dikenali (gak dobel).
+   • Browser gak dukung kamera? Ada input kode manual.
+2. LAPORAN MENU (MENGGANTIKAN LAYAR DAPUR/KDS):
+   • Menu "Dapur (KDS)" diganti "Laporan Menu" — kelihatan
+     hari ini kejual APA aja, BANYAKNYA berapa, per item per
+     qty, langsung keSORTIR dari yang paling banyak terjual
+     (+ omzet per menu + medali 3 besar).
+   • Gak perlu geser-geser riwayat pesanan satu-satu lagi.
+3. QRIS RESTO:
+   • Owner Zone → seksi "QRIS Resto" → upload gambar QRIS
+     (screenshot QRIS dari bank/e-wallet).
+   • Otomatis muncul di layar pembayaran saat kasir pilih
+     metode QRIS — customer tinggal scan.
+4. NOTIF WALAU APP DITUTUP (PUSH SERVER):
+   • Server Miapos ngirim notif buka (08.00 WIB) & tutup
+     (21.00 WIB) langsung ke HP walau app-nya ditutup total
+     — kayak notif WA. Yang jalan di HP cuma sistem
+     notifikasi Android-nya (bukan app), baterai aman.
+   • Butuh deploy: api/push-subscribe.js + api/push-send.js +
+     vercel.json + package.json (sudah ada di zip ini) —
+     langkahnya di PANDUAN-NOTIF.txt.
+5. FIX BUG LAYAR PUTIH:
+   • Stok & Bahan → tab Produk kadang blank putih (data
+     lama/backup tanpa varian) — sudah dibaliki lapis
+     normalisasi otomatis. Gak blank lagi.
+6. OWNER ZONE MAKIN RAPIH:
+   • Isinya sekarang SEKSI GULUNG: Notifikasi / Kartu Cuaca /
+     Push Server / QRIS / Keamanan — klik baru layarnya
+     kebuka, gak numpuk panjang ke bawah.
+   • Teks kartu cuaca bisa diatur owner (kosong = salam
+     otomatis yang ikut jam & nama kasir).
+   • Kartu cuaca NAIK ke paling atas Dashboard (di atas
+     4 kotak ringkasan) — sesuai permintaan.
+7. IZIN NOTIFIKASI MAKIN GAMPANG:
+   • Tombol Tes Notifikasi sekarang sekaligus minta izin
+     (gak perlu nyari baris lain dulu).
+   • Kalau izin diblokir, app kasih tahu langkah buka blokir
+     di setelan HP. Detail: PANDUAN-NOTIF.txt.
+8. SHEET "TAMBAH MENU" DI DETAIL PESANAN:
+   • Buka pesanan (menu Pesanan) → "+ Tambah Menu" → muncul
+     KOTAK BAWAH (drag-handle) yang tampilannya sama persis
+     kaya layar Tambah Pesanan: search + chip kategori +
+     daftar menu dengan tombol + hijau.
+   • Menu yang ditambahin belakangan dikasih label "Tambahan"
+     DI APLIKASI aja — di nota cetakan GAK ada tulisan
+     tambahan (nota tetap bersih), sesuai permintaan.
+9. CETAK DAPUR & CETAK TAMBAHAN (menu buka ke ATAS):
+   • Di detail pesanan, tombol Cetak Dapur sekarang ada
+     tanda panah ke ATAS — diklik muncul menu gelap ke atas:
+     - CETAK DAPUR → semua item kecetak (nota dapur biasa).
+     - CETAK TAMBAHAN → cuma menu yang ditambahin belakangan
+       aja yang kecetak (kepala nota: "DAPUR - TAMBAHAN",
+       nama menu tetap polos tanpa label tambahan).
+   • Setelah cetak (dapur/tambahan), daftar "yang belum
+     kecetak" direset — item tambahan berikutnya yang
+     kecetak pas Cetak Tambahan selanjutnya.
+   • Nota tambahan pakai printer DAPUR yang sama (gak perlu
+     set printer baru).
+10. SCAN QR/BARCODE DARI GAMBAR GALERI:
+   • Layar scan sekarang ada tombol "Galeri" di samping KIRI
+     kamera. Klik → pilih gambar/screenshot dari galeri HP →
+     kodenya kebaca sama kaya scan kamera.
+   • Berguna buat QR/barcode yang cuma punya bentuk
+     screenshot-nya.
+11. KATEGORI BISA DIBUAT & DIHAPUS (input menu manual):
+   • Form Tambah/Edit Menu → grid kategori ada tile
+     "+ Kategori" (garis putus-putus) → bikin kategori sendiri
+     (nama + pilih ikon emoji).
+   • Kategori buatan sendiri punya tombol x merah buat hapus
+     — semua menu di dalamnya otomatis pindah ke Makanan
+     (gak ada menu yang hilang).
+   • Kategori baru langsung muncul di semua tempat: chip
+     layar Tambah Pesanan, sheet Tambah Menu, scan barcode,
+     Kelola Menu & grafik dashboard.
+12. FIX BUG RpNaN:
+   • Total pesanan kadang nampil "RpNaN" (screenshot owner
+     31 Okt). Penyebabnya ketemu: tombol "Bayar Nanti" ikut
+     ngirim event klik sebagai diskon. Udah dibenerin
+     (diskon aneh otomatis dianggap 0) + semua tampilan
+     total sekarang kebal NaN.
 
 APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
 ------------------------------------------------------------
@@ -283,4 +376,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.9
+SELAMAT PAKAI! — Miapos v2.10
