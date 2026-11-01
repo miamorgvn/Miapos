@@ -1,8 +1,47 @@
 ================================================
-  MIAPOS v2.11 — FIX TULISAN BAWAH KEPOTONG
-     (di atas: scan barcode + laporan menu + QRIS
-     + tambah menu & cetak tambahan + owner zone + cuaca
-     + backup cloud + 3 tema + siap Play Store)
+  MIAPOS v2.12 — RESET DATA PAKAI KONFIRMASI 5 DETIK
+     + README.md BARU BUAT HALAMAN GITHUB
+     (di atas: fix tulisan bawah + scan barcode + laporan
+     menu + QRIS + owner zone + cuaca + backup cloud)
+================================================
+
+APA YANG BARU DI v2.12 (reset anti ke pencet + README GitHub)
+------------------------------------------------------------
+1. RESET DATA SEKARANG WAJIB KONFIRMASI + JEDA 5 DETIK:
+   • Kejadian dulu: tombol Reset Data di Pengaturan
+     DIPENCET GAK SENGAJA pas naruh HP → semua menu
+     yang udah diinput ilang seketika. Sakit hati 😭
+   • Sekarang: klik Reset Data → muncul popup
+     "Yakin Reset Data?" — ada peringatan jelas:
+     semua menu/pesanan/stok balik ke data awal &
+     GAK BISA DIKEMBALIKAN.
+   • Tombol merah "Ya, Reset Data" TERKUNCI 5 DETIK
+     (tampil "Tunggu 5 detik…" terus menghitung
+     mundur). Abis 5 detik baru bisa diklik. Jadi
+     kalau gak sengaja kepencet, masih sempat nekankan
+     BATAL — datamu aman.
+   • Tombol Batal selalu aktif — nutup tanpa ngapa-
+     ngapain.
+   • Bonus: ikon reset (panah muter) di Topbar versi
+     desktop/web — yang tadinya LANGSUNG ngereset
+     tanpa tanya — sekarang pakai popup & jeda yang
+     sama. Gak ada lagi jalur reset langsung.
+   • Tombol merah "Hapus Semua Data Lokal" emang udah
+     ada dialog konfirmasi bawaan dari dulu — tetap.
+2. README.md BARU BUAT HALAMAN GITHUB:
+   • Halaman depan repo sekarang ada README.md yang
+     rapih & enak dibaca: ada emoji, badge versi,
+     penjelasan fitur per seksi, cara pakai, struktur
+     file, teknologi & riwayat versi singkat.
+   • README.txt tetap ada — jadi catatan lengkap
+     per versi (file ini).
+3. VERSI NAIK:
+   • Versi app jadi v2.12 (sidebar + kartu bawah
+     Pengaturan). Cache sw.js jadi miapos-v2.12-r1.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.11 (rilis sebelumnya)
 ================================================
 
 APA YANG BARU DI v2.11 (fix tulisan bawah kepotong)
@@ -494,4 +533,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.11
+SELAMAT PAKAI! — Miapos v2.12

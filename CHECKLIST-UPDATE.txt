@@ -1,11 +1,34 @@
 ================================================
-  MIAPOS v2.11 — CHECKLIST
+  MIAPOS v2.12 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.11 — FIX TULISAN BAWAH KEPOTONG
+0. REVISI v2.12 — RESET DATA PAKAI KONFIRMASI 5 DETIK
+=====================================================
+[x] 1. RESET GAK BISA ASAL KLIK LAGI:
+       • Klik Reset Data (Pengaturan → Data Lokal) →
+         popup "Yakin Reset Data?" + peringatan menu
+         bakal HILANG gak bisa dikembalikan.
+       • Tombol "Ya, Reset Data" terkunci 5 detik
+         (menghitung mundur: Tunggu 5→4→3… detik).
+         Habis itu baru bisa diklik. Nyesel? Klik
+         BATAL — data aman 100%.
+[x] 2. IKON RESET DI TOPBAR DESKTOP IKUT DIAMANIN:
+       • Dulu ikon panah muter di web/desktop LANGSUNG
+         ngereset tanpa tanya. Sekarang popup + jeda
+         yang sama kaya di Pengaturan.
+[x] 3. README.md BARU BUAT GITHUB:
+       • Halaman repo sekarang rapih: emoji, badge,
+       penjelasan fitur, cara pakai, struktur file,
+       riwayat versi. README.txt tetap ada (catatan
+       lengkap per versi).
+[x] 4. VERSI v2.12 + cache sw.js miapos-v2.12-r1
+       (aturan tetap: tiap update versi terus naik).
+
+=====================================================
+1. REVISI v2.11 — FIX TULISAN BAWAH KEPOTONG
 =====================================================
 [x] 1. TULISAN BAWAH KELIHATAN SEMUA:
        • Kartu "Miapos F&B Suite v2.x" di dasar layar
@@ -31,7 +54,7 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
          ikut diganti — biar app lama auto-refresh.
 
 =====================================================
-1. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
+2. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
 =====================================================
 [x] 1. SEMUA NOTIF DIHAPUS (permintaan owner: "hapus
        aja deh"):
