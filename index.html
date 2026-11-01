@@ -257,6 +257,27 @@ function catMeta(settings, key) {
   return { key:key, label:CATEGORY_LABELS[key] || key || '-', emoji:CATEGORY_EMOJI[key] || '🍽️', base:!!CATEGORY_LABELS[key] };
 }
 
+// ===== v2.10 revisi 2: parser harga INDONESIA (dipake QR satuan & QR massal) =====
+// "15000" / "15.000" / "15,000" / "Rp 15.000" / "25rb" / "25k" → angka bener.
+// Titik/koma = pemisah ribuan (khas harga IDR), bukan desimal — biar "15,000"
+// gak salah kebaca jadi Rp15.
+function parsePriceIDR(v) {
+  if (typeof v === 'number') return (Number.isFinite(v) && v > 0) ? Math.round(v) : 0;
+  var s = String(v == null ? '' : v).toLowerCase().trim();
+  if (!s) return 0;
+  var mult = 1;
+  if (/(rb|ribu|k)[.,;!?)]*\s*$/.test(s)) mult = 1000; // "25rb" / "25ribu" / "25k" → ×1000
+  var clean = s.replace(/[^0-9.,]/g, '');
+  if (!clean) return 0;
+  if (/^[0-9]{1,3}([.,][0-9]{3})+$/.test(clean)) clean = clean.replace(/[.,]/g, ''); // 15.000 / 15,000 / 1.250.000
+  else if (/[.,]/.test(clean)) {
+    var m = clean.match(/^(.+)([.,])(\d{1,2})$/); // ada desimal di ujung, mis. "15.000,50"
+    clean = m ? (m[1].replace(/[.,]/g, '') + '.' + m[3]) : clean.replace(/[.,]/g, '');
+  }
+  var n = parseFloat(clean);
+  return (Number.isFinite(n) && n > 0) ? Math.round(n * mult) : 0;
+}
+
 // ===== v2.10: QR MENU FORMAT "MIAPOS|Nama|Harga|Kategori" =====
 // Owner bisa bikin QR massal dari Excel/Google Sheets (panduan lengkap ada di
 // PANDUAN-SCAN.txt). Sekali scan → menu langsung masuk lengkap + otomatis
@@ -267,9 +288,8 @@ function parseMenuQR(code) {
   var parts = s.split('|');
   var nm = (parts[1] || '').trim();
   if (!nm) return null;
-  // harga: terima "15000", "15.000", "15,000" — titik/koma dianggap pemisah ribuan
-  var rawPr = String(parts[2] || '').replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(/,/g, '.');
-  var pr = parseFloat(rawPr) || 0;
+  // harga: terima "15000", "15.000", "15,000", "Rp15.000" — titik/koma = pemisah ribuan
+  var pr = parsePriceIDR(parts[2]);
   var ct = (parts[3] || '').trim();
   return { name: nm, price: pr, category: ct };
 }
@@ -283,6 +303,127 @@ function matchCatKey(settings, label) {
   }
   return null;
 }
+
+// ===== v2.10 revisi 2: QR MASSAL — 1 QR bisa berisi BANYAK menu sekaligus =====
+// Owner resto punya 90+ menu → gak mungkin scan satu-satu. Bikin SATU QR yang
+// isinya daftar semua menu, scan sekali → semua kebaca, kepreview rapih, tinggal
+// tekan "Import Semua". Datanya kepanjangan buat 1 QR (±2.900 huruf)? Pecah
+// jadi 2-3 QR — scan-nya berurutan, app nge-GABUNGIN otomatis sebelum import.
+// Format yang diterima (pilih yang paling gampang dibikin):
+//   1. Multi-baris MIAPOS (rekomendasi):
+//        MIAPOS|Ayam Bakar Madu|27000|Makanan
+//        MIAPOS|Es Teh Manis|8000|Minuman
+//   2. Tabel/CSV — pemisah koma, titik-koma, |, atau tab:
+//        Nama,Harga,Kategori
+//        Ayam Bakar Madu,27000,Makanan
+//   3. JSON:
+//        [{"nama":"Ayam Bakar Madu","harga":27000,"kategori":"Makanan"}]
+function parseMenuListText(text) {
+  var s = String(text || '').trim();
+  if (!s) return null;
+  var items = [], skipped = 0, incomplete = false;
+  function pushItem(it) {
+    var nm = String(it && it.name || '').trim();
+    if (!nm) { skipped++; return; }
+    var pr = parsePriceIDR(it && it.price);
+    if (pr <= 0) { skipped++; return; } // harga gak valid → dilewatin tapi dihitung
+    items.push({ name: nm, price: pr, category: String(it && it.category || '').trim() });
+  }
+  // baris tabel: kolom terakhir yang isinya angka masuk akal = harga,
+  // kolom pertama selain harga = nama, sisanya (kalau ada) = kategori
+  function rowFromFields(fields) {
+    var pi = -1, j;
+    for (var i = fields.length - 1; i >= 0; i--) { if (parsePriceIDR(fields[i]) > 0) { pi = i; break; } }
+    if (pi < 0) return null;
+    var others = [];
+    for (j = 0; j < fields.length; j++) {
+      if (j === pi) continue;
+      var f = String(fields[j] || '').trim();
+      if (f && f.toLowerCase() !== 'rp') others.push(f);
+    }
+    if (!others.length) return null;
+    var cat = others.length > 1 ? others[others.length - 1] : '';
+    if (parsePriceIDR(cat) > 0) cat = ''; // kategori jangan keambil dari kolom angka
+    return { name: others[0], price: parsePriceIDR(fields[pi]), category: cat };
+  }
+  if (s[0] === '[' || s[0] === '{') {
+    // proses isi array menu — elemennya bisa string, item langsung, atau
+    // objek pembungkus lagi ({"menu":[...]} di dalam array) → ngulik ke dalam
+    function handleArr(arr) {
+      arr.forEach(function(o) {
+        if (typeof o === 'string') { var sub = parseMenuListText(o); if (sub) { items = items.concat(sub.items); skipped += sub.skipped; } return; }
+        if (!o || typeof o !== 'object') { skipped++; return; }
+        var looksLikeItem = o.nama != null || o.name != null || o.menu === undefined && (o.harga != null || o.price != null || o.hrg != null || o.h != null);
+        if (!looksLikeItem) {
+          var ks2 = Object.keys(o); // pembungkus: {"menu":[...]} / {"data":[...]} / {"items":[...]}
+          for (var k2 = 0; k2 < ks2.length; k2++) {
+            if (Array.isArray(o[ks2[k2]])) { handleArr(o[ks2[k2]]); return; }
+          }
+        }
+        pushItem({
+          name: o.nama != null ? o.nama : (o.name != null ? o.name : (o.menu != null && typeof o.menu === 'string' ? o.menu : (o.n != null ? o.n : (o.item != null ? o.item : o.produk)))),
+          price: o.harga != null ? o.harga : (o.price != null ? o.price : (o.hrg != null ? o.hrg : (o.h != null ? o.h : o.hargaJual))),
+          category: o.kategori || o.category || o.kat || o.k || o.jenis || o.cat || ''
+        });
+      });
+    }
+    try {
+      var data = JSON.parse(s);
+      var arr = Array.isArray(data) ? data : null;
+      if (!arr && data && typeof data === 'object') {
+        var ks = Object.keys(data); // {"menu":[...]} / {"data":[...]} / {"items":[...]}
+        for (var k = 0; k < ks.length; k++) if (Array.isArray(data[ks[k]])) { arr = data[ks[k]]; break; }
+      }
+      if (arr) handleArr(arr);
+      else skipped++;
+    } catch (e) { incomplete = true; } // JSON kepotong → QR-nya dipecah beberapa bagian
+    return { items: items, skipped: skipped, incomplete: incomplete };
+  }
+  // teks biasa — proses per baris
+  s.split(/\r?\n/).forEach(function(line) {
+    var t = line.trim();
+    if (!t) return;
+    if (/^(no\.?|nomor|#)\b/i.test(t)) return; // kolom nomor urut
+    if (t.toUpperCase().slice(0, 7) === 'MIAPOS|') {
+      var pq = parseMenuQR(t);
+      if (pq) pushItem(pq); else skipped++;
+      return;
+    }
+    // pilih pemisah yang ngasih kolom paling masuk akal: tab → | → ; → koma
+    var seps = ['\t', '|', ';', ','], done = false;
+    for (var si = 0; si < seps.length && !done; si++) {
+      var parts = t.split(seps[si]);
+      if (parts.length < 2) continue;
+      var fields = parts.map(function(x) { return x.trim(); });
+      var h0 = (fields[0] || '').toLowerCase();
+      if (h0 === 'nama' || h0 === 'name' || h0 === 'menu' || h0 === 'item' || h0 === 'produk' || h0 === 'product' || h0 === 'menu item' || h0 === 'nama menu' || h0 === 'harga' || h0 === 'kategori') return; // baris header
+      var it2 = rowFromFields(fields);
+      if (it2) pushItem(it2); else skipped++;
+      done = true;
+    }
+    if (!done) skipped++; // cuma 1 kolom, gak bisa ditebak → dilewatin
+  });
+  return { items: items, skipped: skipped, incomplete: incomplete };
+}
+// tebak emoji buat kategori baru dari namanya — biar lucu & langsung nyambung
+function guessCatEmoji(label) {
+  var l = String(label || '').toLowerCase();
+  if (/(sambal|cabe|cabai|pedas|sambel)/.test(l)) return '🌶️';
+  if (/(minuman|drink|jus|juice|es teh|teh|kopi|coffee|soda|lemon|coklat|matcha|smoothie)/.test(l)) return '☕';
+  if (/(camilan|snack|gorengan|keripik|kriuk|cipratan)/.test(l)) return '🍪';
+  if (/(kue|dessert|desert|cake|manis|es krim|puding|gelato|pancake)/.test(l)) return '🍰';
+  if (/(seafood|ikan|udang|cumi|kepiting|salmon|tuna|kerang)/.test(l)) return '🦐';
+  if (/(ayam|bebek|telur|chicken|duck)/.test(l)) return '🍗';
+  if (/(mie|mi |mi-|noodle|ramen|bakso|pangsit|yamin)/.test(l)) return '🍜';
+  if (/(nasi|rice|bento|geprek)/.test(l)) return '🍚';
+  if (/(sayur|sayur |vegetable|salad|tahu|tempe|capcay)/.test(l)) return '🥗';
+  if (/(roti|bread|bakery|toast|burger|sandwich|pizza|pasta|spagheti)/.test(l)) return '🍞';
+  if (/(sup|sop|kuah|soup|soto|rawon|gulai|kari|curry)/.test(l)) return '🍲';
+  if (/(paket|combo|bundling|hemat|promo|porsi keluarga)/.test(l)) return '🍱';
+  return '🍽️';
+}
+// diekspos buat pengetesan otomatis (Playwright) — gak ngaruh ke app
+if (typeof window !== 'undefined') { window.__miaParseBulk = parseMenuListText; window.__miaParsePrice = parsePriceIDR; }
 
 // ===== v2.10: TOTAL PESANAN ANTI-NaN =====
 // Kalau data total/subtotal/discount rusak (string '100.000', undefined, dll),
@@ -760,6 +901,9 @@ function AppProvider({ children }) {
       if (idx < 0) return { ...s, products:[...s.products, p] };
       return { ...s, products: s.products.map(x => x.id === p.id ? p : x) };
     }),
+    // v2.10 revisi 2: import BANYAK menu sekaligus (QR massal) — sekali setState
+    // biar 94 menu masuk rapih atomik, gak 94× update berantakan.
+    importProducts: (list) => setState(s => ({ ...s, products: [...s.products, ...list] })),
     updateRecipe: (productId, recipe) => setState(s => ({ ...s, products: s.products.map(p => p.id===productId ? { ...p, recipeItems:recipe } : p) })),
     deleteProduct: (productId) => setState(s => ({ ...s, products: s.products.filter(p => p.id !== productId) })),
     addOutlet: (o) => setState(s => ({ ...s, outlets:[...s.outlets, { ...o, id:'outlet-'+Date.now(), createdAt:new Date().toISOString() }] })),
@@ -1025,7 +1169,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.10')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.11')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -1367,7 +1511,7 @@ function DashboardView({ onNavigate }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Dashboard', subtitle:'Ringkasan - ' + (outlet?.name || '') }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 pb-40 md:pb-6 min-h-0' },
       // v2.10: kartu cuaca NAIK ke paling atas (permintaan owner) — 4 kotak di bawahnya
       React.createElement(WeatherCard, null),
       React.createElement('div', { className:'grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mp-stagger' },
@@ -2660,7 +2804,7 @@ function OrdersView({ onNavigate, onBack }) {
         React.createElement('span', { className:'hidden sm:inline' }, 'Pesanan Baru')
       )
     }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       // Search bar
       React.createElement('div', { className:'relative mb-3' },
         React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
@@ -3093,7 +3237,7 @@ function MenuSalesView({ onBack }) {
   var dayWord = isToday ? 'Hari Ini' : (isYesterday ? 'Kemarin' : formatDate(selectedDate + 'T12:00:00Z'));
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Laporan Menu', subtitle: dayWord + ' · ' + paidSel.length + ' pesanan lunas', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       // ===== v2.10: NAVIGATOR TANGGAL — panah maju/mundur + klik label buat
       // buka kalender native + tombol cepat Hari Ini / Kemarin =====
       React.createElement(Card, { className:'border-emerald-100 mb-3' }, React.createElement('div', { className:'p-3 space-y-2' },
@@ -3187,7 +3331,7 @@ function InventoryView({ onBack }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Stok & Resep', subtitle:'Manajemen bahan baku, produk, dan resep', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'flex gap-1 bg-slate-100 rounded-lg p-1 mb-4 max-w-full' },
         [['materials','Bahan Baku'],['products','Produk'],['history','Riwayat']].map(([t, label]) => React.createElement('button', { key: t, onClick: () => setTab(t), className: cn('flex-1 py-2 rounded-md text-xs font-semibold', tab === t ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
       ),
@@ -3506,7 +3650,7 @@ function ReportsView({ onBack }) {
         React.createElement('span', { className:'hidden sm:inline' }, 'Export Excel')
       )
     }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 space-y-4 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 space-y-4 min-h-0' },
       // ===== NAVIGATOR TANGGAL + MODE (ala aplikasi kasir) =====
       React.createElement('div', { className:'flex gap-1 bg-emerald-600/95 rounded-xl p-1' },
         [['day','Harian'],['7d','7 Hari'],['30d','30 Hari']].map(function([r, label]) {
@@ -3842,7 +3986,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, onClose, onConfirm,
 // internet). Barcode yang sudah pernah diisi bakal dikenali (gak dobel).
 // Browser tanpa BarcodeDetector → fallback: ketik kode barcode manual.
 function BarcodeScanModal({ open, onClose }) {
-  const { state, upsertProduct, updateSettings } = useAppStore();
+  const { state, upsertProduct, updateSettings, importProducts } = useAppStore();
   const { show } = useToast();
   const { settings, products } = state;
   const videoRef = React.useRef(null);
@@ -3859,6 +4003,21 @@ function BarcodeScanModal({ open, onClose }) {
   const [price, setPrice] = React.useState('');
   const [cat, setCat] = React.useState('FOOD');
   const [added, setAdded] = React.useState(0);
+  // v2.10 revisi 2: QR MASSAL — QR/teks berisi banyak menu ditumpuk dulu di
+  // staging, tinggal tekan "Import Semua". Scan QR bagian 2, bagian 3 (data
+  // dipecah karena kepanjangan)? Otomatis NGGABUNG — teks mentahnya disimpen utuh.
+  const [bulkTexts, setBulkTexts] = React.useState([]);
+  const bulkTextsRef = React.useRef([]); // sync buat closure kamera (yang lama suka basi)
+  const [pasteOpen, setPasteOpen] = React.useState(false);
+  const [pasteText, setPasteText] = React.useState('');
+  // snapshot settings/products TERBARU tiap render — onDetect dipanggil dari
+  // loop kamera yang closure-nya masih dari render pertama, jadi wajib lewat ref
+  const liveRef = React.useRef({});
+  liveRef.current = { settings: settings, products: products };
+  const bulkParsed = React.useMemo(function() {
+    if (!bulkTexts.length) return null;
+    return parseMenuListText(bulkTexts.join('\n'));
+  }, [bulkTexts]);
 
   function stopCam() {
     aliveRef.current = false;
@@ -3934,22 +4093,36 @@ function BarcodeScanModal({ open, onClose }) {
     if (code === lastRef.current.code && now - lastRef.current.at < 2500) return; // anti dobel deteksi
     lastRef.current = { code: code, at: now };
     try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
-    var exist = products.find(function(p) { return String(p.barcode || '') === code; });
+    var S = liveRef.current; // settings & products TERBARU (closure kamera gampang basi)
+    var exist = S.products.find(function(p) { return String(p.barcode || '') === code; });
     if (exist) { show('Barcode sudah terdaftar: ' + exist.name + ' (' + formatRupiah(exist.price) + ')', 'info'); return; }
+    // v2.10 revisi 2: CEK QR MASSAL DULU — isinya banyak menu (≥2) atau data
+    // kepotong (QR dipecah beberapa bagian) → masukin staging, JANGAN dianggap
+    // 1 menu. Nanti kegabung sama scan/tempel berikutnya, lalu Import Semua.
+    var bl = parseMenuListText(code);
+    if (bl && (bl.items.length >= 2 || (bl.incomplete && code.length > 80))) {
+      if (bulkTextsRef.current.indexOf(code) >= 0) { show('QR massal ini udah ada di daftar import — gak di dobel', 'info'); return; }
+      var next = bulkTextsRef.current.concat([code]);
+      bulkTextsRef.current = next;
+      setBulkTexts(next);
+      var fresh = parseMenuListText(next.join('\n'));
+      show('📦 QR massal: ' + fresh.items.length + ' menu kebaca' + (fresh.incomplete ? ' — data belum lengkap, lanjut scan/tempel bagian berikutnya' : '') + ' — cek daftarnya terus tekan Import Semua', 'info');
+      return;
+    }
     // v2.10 revisi: QR isi data menu "MIAPOS|Nama|Harga|Kategori" → sekali scan
     // LANGSUNG masuk lengkap + kesortir di kategorinya (gak perlu ketik apa-apa).
     // Kategori belum ada? Otomatis dibikinin. Harga kosong? Form keisi nama+kategori
     // tinggal isi harga. QR biasa/barcode produk? Form kosong kaya biasa.
     var pq = parseMenuQR(code);
     if (pq && pq.price > 0) {
-      var catKey = matchCatKey(settings, pq.category);
+      var catKey = matchCatKey(S.settings, pq.category);
       if (!catKey && pq.category) {
         catKey = 'cat-' + Date.now();
-        updateSettings({ customCategories: getCustomCats(settings).concat([{ key: catKey, label: pq.category, emoji: '🍽️' }]) });
+        updateSettings({ customCategories: getCustomCats(S.settings).concat([{ key: catKey, label: pq.category, emoji: guessCatEmoji(pq.category) }]) });
       }
       var keyDipakai = catKey || 'FOOD';
-      var pid = 'prod-' + settings.outletId + '-bc' + Date.now();
-      upsertProduct({ id: pid, outletId: settings.outletId, name: pq.name, category: keyDipakai, price: pq.price, cost: 0, available: true,
+      var pid = 'prod-' + S.settings.outletId + '-bc' + Date.now();
+      upsertProduct({ id: pid, outletId: S.settings.outletId, name: pq.name, category: keyDipakai, price: pq.price, cost: 0, available: true,
         barcode: code, variants: [{ id: 'var-' + pid + '-1', productId: pid, name: 'Reguler', priceMod: 0 }],
         recipeItems: [], createdAt: new Date().toISOString() });
       setAdded(function(n) { return n + 1; });
@@ -3958,7 +4131,7 @@ function BarcodeScanModal({ open, onClose }) {
     }
     setName(pq ? pq.name : '');
     setPrice('');
-    setCat(pq ? (matchCatKey(settings, pq.category) || 'FOOD') : 'FOOD');
+    setCat(pq ? (matchCatKey(S.settings, pq.category) || 'FOOD') : 'FOOD');
     setCurrent({ code: code });
   }
   function simpan(lanjut) {
@@ -3976,6 +4149,49 @@ function BarcodeScanModal({ open, onClose }) {
     if (!lanjut) tutup();
   }
   function tutup() { stopCam(); onClose(); }
+  // v2.10 revisi 2: IMPORT SEMUA dari staging QR massal — duplikat nama ditolak,
+  // kategori yang belum ada DIBIKIN OTOMATIS (lengkap sama emoji nyambungan).
+  function importBulk() {
+    var bl = bulkParsed;
+    if (!bl || !bl.items.length) { show('Belum ada menu yang kebaca — scan/tempel dulu QR daftar menunya', 'error'); return; }
+    var catMap = {};
+    allCatList(settings).forEach(function(c) { catMap[String(c.label).toLowerCase()] = c.key; });
+    var custom = getCustomCats(settings).slice();
+    var taken = {};
+    products.forEach(function(p) { taken[String(p.name || '').toLowerCase()] = 1; });
+    var toAdd = [], skipped = 0, newCat = 0, baseTs = Date.now();
+    bl.items.forEach(function(it, i) {
+      var nm = String(it.name || '').trim();
+      if (!nm) { skipped++; return; }
+      var pr = Number(it.price) || 0;
+      if (pr <= 0) { skipped++; return; }
+      if (taken[nm.toLowerCase()]) { skipped++; return; } // nama sama = duplikat, ditolak
+      taken[nm.toLowerCase()] = 1;
+      var catLabel = String(it.category || '').trim();
+      var key = catLabel ? catMap[catLabel.toLowerCase()] : 'FOOD';
+      if (catLabel && !key) {
+        key = 'cat-' + baseTs + '-' + i;
+        custom.push({ key: key, label: catLabel, emoji: guessCatEmoji(catLabel) });
+        catMap[catLabel.toLowerCase()] = key;
+        newCat++;
+      }
+      if (!key) key = 'FOOD';
+      var pid = 'prod-' + settings.outletId + '-bc' + baseTs + '-' + i;
+      toAdd.push({ id: pid, outletId: settings.outletId, name: nm, category: key, price: pr, cost: 0, available: true,
+        barcode: 'MIAPOS|' + nm + '|' + pr + '|' + catLabel, variants: [{ id: 'var-' + pid + '-1', productId: pid, name: 'Reguler', priceMod: 0 }],
+        recipeItems: [], createdAt: new Date().toISOString() });
+    });
+    if (!toAdd.length) { show('Semua ' + skipped + ' menu gak bisa masuk (nama duplikat / harga kosong)', 'error'); return; }
+    if (newCat) updateSettings({ customCategories: custom });
+    importProducts(toAdd);
+    setAdded(function(n) { return n + toAdd.length; });
+    bulkTextsRef.current = [];
+    setBulkTexts([]);
+    var msg = '✅ ' + toAdd.length + ' menu langsung masuk semua!';
+    if (newCat) msg += ' ' + newCat + ' kategori baru dibikinin otomatis.';
+    if (skipped) msg += ' ' + skipped + ' dilewatin (duplikat/harga kosong).';
+    show(msg);
+  }
   if (!open) return null;
   return React.createElement(Modal, { open: open, onClose: tutup },
     React.createElement('div', { className:'p-4' },
@@ -3983,7 +4199,7 @@ function BarcodeScanModal({ open, onClose }) {
       React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
         React.createElement('div', null,
           React.createElement('h2', { className:'text-lg font-bold' }, 'Scan QR / Barcode Menu'),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, 'Arahkan QR ke kotak besar sampai masuk SEMUA. QR menu (format MIAPOS) langsung nyimpen sendiri — nama, harga, kategori.')),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, 'Arahkan QR ke kotak besar sampai masuk SEMUA. QR menu (format MIAPOS) langsung nyimpen sendiri — nama, harga, kategori. QR isi BANYAK menu? Kebeda semua sekaligus.')),
         React.createElement('button', { onClick: tutup, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
           React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
       ),
@@ -4014,6 +4230,40 @@ function BarcodeScanModal({ open, onClose }) {
           React.createElement(Icon, { name:'image', className:'w-4 h-4 text-emerald-400' }), 'Galeri'),
         current && React.createElement('div', { className:'absolute left-2 top-2 rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-bold text-white shadow' }, 'Kode: ' + current.code)
       ),
+      // v2.10 revisi 2: PANEL QR MASSAL — QR berisi banyak menu nongol di sini.
+      // Scan QR bagian berikutnya (kalau datanya dipecah) otomatis ngambah ke
+      // daftar yang sama. Cek daftarnya → Import Semua. Beres.
+      bulkTexts.length > 0 && React.createElement('div', { className:'mt-3 rounded-xl border-2 border-violet-300 bg-violet-50/70 p-3 animate-mp-pop' },
+        React.createElement('div', { className:'flex items-center justify-between gap-2 mb-2' },
+          React.createElement('p', { className:'text-xs font-black text-violet-800 flex items-center gap-1.5' },
+            React.createElement(Icon, { name:'layers', className:'w-4 h-4' }),
+            'QR MASSAL — ' + ((bulkParsed && bulkParsed.items.length) || 0) + ' menu kebaca'),
+          React.createElement('button', { onClick: function() { bulkTextsRef.current = []; setBulkTexts([]); },
+            className:'text-[10px] font-bold text-violet-500 hover:text-violet-700 underline shrink-0' }, 'bersihkan')
+        ),
+        bulkParsed && bulkParsed.items.length > 0 && React.createElement('div', { className:'max-h-44 overflow-y-auto rounded-lg bg-white border border-violet-100 mb-2' },
+          bulkParsed.items.map(function(it, i) {
+            var nmTrim = String(it.name || '').trim();
+            var isDup = products.some(function(p) { return String(p.name || '').toLowerCase() === nmTrim.toLowerCase(); });
+            var okPr = (Number(it.price) || 0) > 0;
+            return React.createElement('div', { key: i, className:'flex items-center justify-between gap-2 px-2.5 py-1.5 text-[11px] border-b border-slate-50 last:border-0' },
+              React.createElement('span', { className:'font-bold text-slate-700 truncate' }, (isDup ? '⚠️ ' : '') + nmTrim),
+              React.createElement('span', { className:'shrink-0 flex items-center gap-1.5' },
+                !okPr && React.createElement('span', { className:'text-[9px] font-bold text-red-500' }, 'harga kosong'),
+                isDup && React.createElement('span', { className:'text-[9px] font-bold text-amber-600' }, 'duplikat'),
+                React.createElement('span', { className:'font-mono text-slate-500' }, formatRupiah(Number(it.price) || 0)),
+                React.createElement('span', { className:'rounded-full bg-violet-100 text-violet-700 px-1.5 py-0.5 text-[9px] font-bold' }, String(it.category || '').trim() || 'Makanan')));
+          })
+        ),
+        bulkParsed && bulkParsed.incomplete && React.createElement('p', { className:'text-[10px] font-bold text-amber-600 mb-2' }, '⚠️ Data belum lengkap (QR-nya dipecah beberapa bagian?) — lanjut scan / tempel bagian berikutnya, nanti kegabung otomatis.'),
+        bulkParsed && bulkParsed.skipped > 0 && React.createElement('p', { className:'text-[10px] text-slate-500 mb-2' }, bulkParsed.skipped + ' baris dilewatin (header/format aneh/harga kosong).'),
+        React.createElement('div', { className:'grid grid-cols-2 gap-2' },
+          React.createElement(Button, { onClick: importBulk, disabled: !(bulkParsed && bulkParsed.items.length) },
+            React.createElement(Icon, { name:'check-check', className:'w-4 h-4' }),
+            'Import Semua' + ((bulkParsed && bulkParsed.items.length) ? ' (' + bulkParsed.items.length + ')' : '')),
+          React.createElement(Button, { variant:'outline', onClick: function() { bulkTextsRef.current = []; setBulkTexts([]); } }, 'Batal')
+        )
+      ),
       current && React.createElement('div', { className:'mt-3 rounded-xl border border-emerald-200 bg-emerald-50/40 p-3 space-y-2 animate-mp-pop' },
         React.createElement('p', { className:'text-xs font-bold text-slate-700' }, 'Menu baru dari barcode ' + current.code),
         React.createElement(Input, { value: name, onChange: function(e) { setName(e.target.value); }, placeholder:'Nama menu (mis. Indomie Goreng)', autoFocus: true }),
@@ -4034,7 +4284,28 @@ function BarcodeScanModal({ open, onClose }) {
           placeholder:'Ketik kode/QR manual (mis. MIAPOS|Es Teh|8000|Minuman)', inputMode:'text' }),
         React.createElement(Button, { variant:'outline', className:'shrink-0', onClick: function() { if (manual.trim()) { onDetect(manual.trim()); setManual(''); } } }, 'Cek')
       ),
-      React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Scan jalan 100% offline (BarcodeDetector bawaan Chrome). QR menu pakai format: MIAPOS|Nama Menu|Harga|Kategori — cara bikinnya ada di PANDUAN-SCAN.txt. Menu yang dibikin lewat scan langsung punya QR tersimpan — scan ulang nanti dikenali (gak dobel).')
+      // v2.10 revisi 2: fallback TEMPES TEKS — kalau QR-nya susah kebaca / males,
+      // teks daftar menu yang sama tinggal ditempel di sini. Jalan kaya QR juga.
+      !current && React.createElement('div', { className:'mt-2' },
+        React.createElement('button', { onClick: function() { setPasteOpen(!pasteOpen); },
+          className:'text-[11px] font-bold text-violet-600 hover:text-violet-800 inline-flex items-center gap-1' },
+          React.createElement(Icon, { name:'clipboard-paste', className:'w-3.5 h-3.5' }),
+          pasteOpen ? 'Sembunyikan tempel teks' : 'Mager scan? Tempel aja teks daftar menunya di sini'),
+        pasteOpen && React.createElement('div', { className:'mt-2 space-y-2' },
+          React.createElement('textarea', { value: pasteText, onChange: function(e) { setPasteText(e.target.value); }, rows: 5,
+            placeholder:'1 menu per baris, mis.:\nMIAPOS|Ayam Bakar|27000|Makanan\natau: Ayam Bakar, 27000, Makanan\natau JSON: [{"nama":"Ayam Bakar","harga":27000,"kategori":"Makanan"}]',
+            className:'w-full rounded-xl border border-slate-200 bg-white p-2.5 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-violet-300' }),
+          React.createElement(Button, { size:'sm', variant:'outline', className:'w-full', onClick: function() {
+            var t = pasteText.trim();
+            if (!t) { show('Tempel teksnya dulu ya', 'error'); return; }
+            var bl2 = parseMenuListText(t);
+            if (!bl2 || (!bl2.items.length && !bl2.incomplete)) { show('Format gak kebaca — contoh format ada di PANDUAN-SCAN.txt (BAGIAN 6)', 'error'); return; }
+            if (bulkTextsRef.current.indexOf(t) < 0) { var nx = bulkTextsRef.current.concat([t]); bulkTextsRef.current = nx; setBulkTexts(nx); }
+            setPasteText(''); setPasteOpen(false);
+            show('📦 ' + bl2.items.length + ' menu kebaca dari teks' + (bl2.incomplete ? ' — belum lengkap, lanjut tempel sisanya' : '') + ' — cek daftar terus Import Semua', 'info');
+          } }, 'Tambah ke Daftar Import'))
+      ),
+      React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Scan jalan 100% offline (BarcodeDetector bawaan Chrome). QR menu: format MIAPOS|Nama|Harga|Kategori — bisa 1 menu per QR, atau BANYAK menu dalam 1 QR (satu menu tiap baris) yang keimport sekaligus. Cara lengkap + cara bikin QR-nya: PANDUAN-SCAN.txt.')
     )
   );
 }
@@ -4077,7 +4348,7 @@ function ProductsView({ onBack }) {
         )
       )
     }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'flex items-center gap-2 mb-2' },
         React.createElement('div', { className:'relative flex-1 min-w-[140px]' },
           React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
@@ -4151,7 +4422,7 @@ function MoreView({ onNavigate }) {
   ];
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Lainnya', subtitle: (outlet?.name || '-') + ' \u00b7 Kasir: ' + (cashier?.name || '-') }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'space-y-2 max-w-2xl' },
         items.map(it => React.createElement('button', {
           key: it.key, onClick: () => onNavigate(it.key),
@@ -4198,7 +4469,7 @@ function OutletsView({ onBack }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Outlet & Staf', subtitle:'Manajemen multi-outlet dan hak akses', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'flex gap-1 bg-slate-100 rounded-lg p-1 mb-4 max-w-full' },
         [['outlets','Outlet'],['employees','Karyawan'],['overview','Ringkasan']].map(([t, label]) => React.createElement('button', { key: t, onClick: () => setTab(t), className: cn('flex-1 py-2 rounded-md text-xs font-semibold', tab === t ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
       ),
@@ -4459,7 +4730,7 @@ function OwnerZoneScreen({ onBack }) {
   // ---- Terbuka: panel owner — disortir jadi SEKSI GULUNG (klik = layarnya kebuka) ----
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-2xl mx-auto w-full space-y-3' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-2xl mx-auto w-full space-y-3 min-h-0' },
       // ===== SEKSI 1 — QRIS RESTO =====
       React.createElement(Card, { className:'overflow-hidden' },
         SectHead('qris', 'qr-code', 'QRIS Resto', 'Upload QRIS \u2014 muncul saat pembayaran'),
@@ -4553,7 +4824,7 @@ function NotaPrinterScreen({ onBack }) {
   const [ver, setVer] = React.useState(0);
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Nota & Printer', subtitle:'Header nota + pratinjau + printer kasir & dapur', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-full space-y-4 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
       React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1' }, 'Pratinjau Nota (persis saat keprint)'),
       React.createElement(ReceiptPreview, { ver: ver }),
       React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 pt-2' }, 'Header & Footer Nota'),
@@ -4567,7 +4838,7 @@ function NotaPrinterScreen({ onBack }) {
 function CashierScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Kasir & Karyawan', subtitle:'Kelola kasir, PIN & hak akses', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-full space-y-4 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
       React.createElement(CashierManagerCard, null)
     )
   );
@@ -4576,7 +4847,7 @@ function CashierScreen({ onBack }) {
 function EngineScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Backup Cloud & Mesin Lokal', subtitle:'Otomatis ke GitHub · tanpa Termux · opsional', onBack: onBack }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-full space-y-4 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
       React.createElement(EngineCard, null)
     )
   );
@@ -4628,7 +4899,7 @@ function SettingsView({ onBack }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title:'Pengaturan', subtitle:'Ketuk fitur untuk membuka layarnya' }),
-    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 max-w-full space-y-5 min-h-full' },
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-5 min-h-0' },
       groups.map(function(g) {
         return React.createElement('div', { key: g.title },
           React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 mb-1.5' }, g.title),
@@ -4686,7 +4957,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.10 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.11 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
         React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
       ),

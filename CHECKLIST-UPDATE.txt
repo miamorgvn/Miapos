@@ -1,11 +1,37 @@
 ================================================
-  MIAPOS v2.10 — CHECKLIST (revisi: notif dicabut)
+  MIAPOS v2.11 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
+0. REVISI v2.11 — FIX TULISAN BAWAH KEPOTONG
+=====================================================
+[x] 1. TULISAN BAWAH KELIHATAN SEMUA:
+       • Kartu "Miapos F&B Suite v2.x" di dasar layar
+         Pengaturan tadinya KEPOTONG ketutupan navbar
+         bawah (Home/Pesanan/+/Lapor/Set).
+       • Penyebab 1 (akar bug): layar pakai
+         min-height:100% → ±100px bagian bawah layar
+         nembus ke zona tersembunyi app (overflow
+         hidden), gak bisa kegulung. → dicabut, layar
+         sekarang pas sampai dasar HP (SEMUA 13 layar).
+       • Penyebab 2: ruang gulung bawah cuma 96px,
+         kurang buat HP yang navbar-nya tinggi (garis
+         gestur). → digedein jadi 160px.
+       • Sudah dites otomatis: digulung sampai habis =
+         keliatan semua, ada sisa ruang ±48px di atas
+         navbar. Gak ada yang kepotong lagi.
+[x] 2. VERSI JADI v2.11 + ATURAN BARU:
+       • Versi tampil di sidebar desktop & kartu bawah
+         Pengaturan sekarang "v2.11".
+       • Cache sw.js ganti jadi miapos-v2.11-r1.
+       • ATURAN KE DEPAN: tiap update, versi WAJIB naik
+         terus (v2.12, v2.13, ...) + nama cache di sw.js
+         ikut diganti — biar app lama auto-refresh.
+
+=====================================================
+1. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
 =====================================================
 [x] 1. SEMUA NOTIF DIHAPUS (permintaan owner: "hapus
        aja deh"):
@@ -111,7 +137,16 @@ A. FITUR v2.10 — SEMUA SUDAH DIKERJAIN
        Panduan input menu banyak lewat QR: format,
        bikin QR massal dari Google Sheets, print,
        scan, aturan kategori.
-[x] 20. BACKUP CLOUD (v2.7) TETEP UTUH
+[x] 20. IMPORT QR MASSAL — 1 QR BANYAK MENU (revisi 2)
+       Scan 1 QR yang isinya daftar banyak menu →
+       semua masuk sekaligus + kesortir kategori.
+       Panel preview + tombol IMPORT SEMUA. Datanya
+       kepanjangan buat 1 QR? Pecah 2 QR, scan
+       berurutan — otomatis kegabung. Duplikat nama
+       ditolak, kategori baru auto-dibikin. Ada juga
+       fallback tempel teks. Detail: PANDUAN-SCAN.txt
+       BAGIAN 6.
+[x] 21. BACKUP CLOUD (v2.7) TETEP UTUH
        api/backup.js + api/ping.js tetap ada di zip —
        backup otomatis ke GitHub, restore dari HP
        mana pun. Env GITHUB_TOKEN + BACKUP_KEY tetap

@@ -1,8 +1,43 @@
 ================================================
-  MIAPOS v2.10 — SCAN BARCODE + LAPORAN MENU + QRIS
-     + TAMBAH MENU & CETAK TAMBAHAN + OWNER ZONE + CUACA
-     + BACKUP CLOUD + 3 TEMA + SIAP PLAY STORE
-     (REVISI: fitur notifikasi DICABUT total — hapus aja)
+  MIAPOS v2.11 — FIX TULISAN BAWAH KEPOTONG
+     (di atas: scan barcode + laporan menu + QRIS
+     + tambah menu & cetak tambahan + owner zone + cuaca
+     + backup cloud + 3 tema + siap Play Store)
+================================================
+
+APA YANG BARU DI v2.11 (fix tulisan bawah kepotong)
+------------------------------------------------------------
+1. FIX TULISAN BAWAH KEPOTONG:
+   • Keluhannya: di layar Pengaturan, tulisan versi
+     "Miapos F&B Suite v2.x · Python + C++ Engine" di
+     kartu paling bawah KEPOTONG — ada yang ketutupan
+     navigation bar bawah (Home/Pesanan/+/Lapor/Set).
+   • Penyebabnya (ADA 2):
+     1) Layar (main) pakai min-height:100% — jadi tinggi
+        layarnya 100% LAYAR + numpuk di bawah header.
+        Akibatnya ~100px bagian bawah layar NEMBUS ke
+        luar batas app yang tersembunyi (overflow
+        hidden) — bagian itu GAK BISA kegulung, alias
+        hilang selamanya di balik navbar.
+     2) Ruang gulung bawah cuma 96px — lebih kecil dari
+        tinggi navbar di HP yang punya garis gestur/
+        safe-area gedhe.
+   • Perbaikannya:
+     1) min-height layar dicabut (min-h-0) di SEMUA 13
+        layar — sekarang tinggi layar pas sampai dasar
+        HP, gak ada lagi bagian yang nembus & hilang.
+     2) Ruang bawah tiap layar digedein 96px → 160px
+        biar aman juga di HP yang navbar-nya tinggi.
+     Sekarang digulung sampai habis → kartu paling
+     bawah KELIHATAN SEMUA, gak ada lagi yang kepotong.
+2. VERSI NAIK TERUS:
+   • Dari v2.11 ini, SETIAP update berikutnya versi
+     selalu nambah: v2.12, v2.13, dst. Nama cache di
+     sw.js juga ganti tiap rilis (miapos-v2.11-r1)
+     biar PWA lama otomatis ke-refresh ke versi baru.
+
+================================================
+  CATATAN v2.10 (rilis sebelumnya)
 ================================================
 
 APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + cetak tambahan)
@@ -154,6 +189,25 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + cetak tambahan)
      lewat QR: format QR, cara bikin QR massal dari
      Google Sheets (gratis, 1 formula), tips print,
      cara scan, plus aturan bikin/hapus kategori.
+20. IMPORT QR MASSAL — 1 QR BERISI BANYAK MENU (revisi 2):
+   • Menu lu 50-100-an? Gak perlu scan satu-satu
+     lagi. Bikin SATU QR yang isinya daftar semua
+     menu → scan sekali → SEMUA masuk sekaligus +
+     kesortir kategori otomatis.
+   • Format yang kebaca: multi-baris MIAPOS (1 menu
+     tiap baris), tabel/CSV (koma/;/|/tab), atau
+     JSON. Harga lentur: 27000 / 27.000 / 27,000 /
+     Rp27.000 / 27rb semua kebaca bener.
+   • Datanya kepanjangan buat 1 QR (±2.900 huruf)?
+     Pecah 2-3 QR → scan berurutan → otomatis
+     NGGABUNG, terakhir tinggal tekan IMPORT SEMUA.
+   • Panel preview ungu: daftar menu yang kebaca,
+     duplikat ditandai ⚠️ & ditolak, kategori baru
+     dibikinin otomatis (lengkap sama emoji).
+   • Gak bisa scan? Ada fallback TEMPES TEKS di
+     layar scan — tempel daftar menunya, hasilnya
+     persis sama.
+   • Panduan lengkapnya: PANDUAN-SCAN.txt BAGIAN 6.
 
 APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
 ------------------------------------------------------------
@@ -440,4 +494,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.10
+SELAMAT PAKAI! — Miapos v2.11
