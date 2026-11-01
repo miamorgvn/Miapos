@@ -102,6 +102,58 @@ APA YANG BARU DI v2.10 (scan barcode + laporan menu + QRIS + cetak tambahan)
      ngirim event klik sebagai diskon. Udah dibenerin
      (diskon aneh otomatis dianggap 0) + semua tampilan
      total sekarang kebal NaN.
+13. FIX KARTU CUACA NYASAR WAKTU (revisi v2.10):
+   • Bug: pas MALEM gambarnya masih matahari ☀️ + salam
+     masih "Selamat siang". Penyebab: emoji cuaca gak
+     kenal siang/malem, dan pas HP diemin/dibungkus
+     app-nya Android ngebekuin timer — jam gak dihitung
+     ulang pas app dibuka lagi.
+   • Fix: emoji cuaca ikut jam — malem hari langit cerah
+     tampil BULAN 🌙 (hujan/kabut tetap). Salam dihitung
+     ulang tiap menit + tiap app dibuka lagi, jadi gak
+     nyasar lagi. Kalimat random juga ikut ganti pool
+     (malem gak muncul kalimat "makan siang" lagi).
+14. WIDGET JAM LIVE DI KARTU CUACA (baru):
+   • Di dalam kartu cuaca ada jam berdetik: HH:MM:SS
+     (angka besar) + tanggal kecil di bawahnya + ikon
+     siang/malem.
+   • Warnanya ikut suasana: siang gradasi jingga,
+     malem gradasi indigo gelap. Tetap di kartu cuaca,
+     posisi kartu tetap paling atas (di atas 4 kotak).
+15. LAPORAN MENU PUNYA TANGGALAN (baru):
+   • Di atas laporan ada navigator tanggal: panah kiri/
+     kanan buat geser hari, ketuk label buat buka
+     kalender, plus tombol cepat "Hari Ini" & "Kemarin".
+   • Buat intip KEMARIN kejual apa aja — buat nyiapin
+     stok besok (dapur gak perlu nanya "ayam/bebek
+     kejual berapa" satu-satu lagi).
+   • Pesanan yang udah masuk arsip tetap kebaca, jadi
+     tanggal berapa pun masih ada laporannya.
+16. KATEGORI "DESSERT" JADI "SAMBAL" (revisi v2.10):
+   • Kategori bawaan Dessert diganti Sambal 🌶️ — menu
+     yang tadinya di Dessert otomatis ikut pindah
+     (label aja yang ganti, datanya aman).
+17. KATEGORI SEKARANG BISA DIHAPUS SEMUA (revisi):
+   • Dulu cuma kategori buatan sendiri yang bisa
+     dihapus. Sekarang kategori bawaan juga (Minuman,
+     Sambal, Camilan) — buat koreksi salah input.
+   • Semua menu di kategori yang dihapus otomatis
+     pindah ke Makanan. Kategori Makanan sendiri gak
+     bisa dihapus (dia jangkarnya).
+18. SCAN QR DIGEDEIN + QR MENU AUTO-ISI (revisi):
+   • Kotak scan digedein & dibikin PERSEGI — pas buat
+     QR (QR bukan kode unik produk, butuh kotak gede
+   biar kebaca semua).
+   • QR menu format MIAPOS|Nama|Harga|Kategori →
+     sekali scan menu LANGSUNG masuk lengkap +
+     kesortir di kategorinya, tanpa ngetik. Kategori
+     belum ada? Otomatis dibikinin.
+   • Kamera dibikin kotak (1:1) biar QR gede muat.
+19. PANDUAN-SCAN.txt (BARU — ada di dalam zip):
+   • Panduan lengkap cara input menu yang BANYAK
+     lewat QR: format QR, cara bikin QR massal dari
+     Google Sheets (gratis, 1 formula), tips print,
+     cara scan, plus aturan bikin/hapus kategori.
 
 APA YANG BARU DI v2.9 (notif jadwal buka/tutup + Owner Zone + checklist 6/6)
 ------------------------------------------------------------

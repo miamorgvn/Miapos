@@ -80,7 +80,38 @@ A. FITUR v2.10 — SEMUA SUDAH DIKERJAIN
        kasir. Diatur app sendiri, gak ada setelan.
 [x] 11. FIX blank putih (Stok & Bahan → Produk)
 [x] 12. FIX RpNaN (diskon aneh dari "Bayar Nanti")
-[x] 13. BACKUP CLOUD (v2.7) TETEP UTUH
+[x] 13. FIX KARTU CUACA NYASAR WAKTU
+       Pas malem gambarnya masih matahari + salam
+       masih "Selamat siang". Sekarang emoji cuaca
+       ikut jam (malem = bulan 🌙) dan salam dihitung
+       ulang tiap menit + tiap app dibuka lagi.
+[x] 14. WIDGET JAM LIVE DI KARTU CUACA
+       Jam berdetik HH:MM:SS + tanggal, ikon & warna
+       ikut siang/malem. Masih di dalam kartu cuaca,
+       posisinya tetap paling atas Dashboard.
+[x] 15. LAPORAN MENU PUNYA TANGGALAN
+       Panah geser hari + ketuk label buat kalender +
+       tombol cepat "Hari Ini" & "Kemarin". Bisa intip
+       kemarin kejual apa aja buat nyiapin stok besok.
+       Pesanan arsip tetap kebaca.
+[x] 16. KATEGORI "DESSERT" JADI "SAMBAL"
+       Label kategori Dessert diganti Sambal 🌶️.
+       Menu lama di Dessert otomatis ikut, data aman.
+[x] 17. KATEGORI BISA DIHAPUS SEMUA
+       Kategori bawaan (Minuman/Sambal/Camilan) juga
+       bisa dihapus buat koreksi salah input — menu
+       di dalamnya otomatis pindah ke Makanan.
+       Makanan gak bisa dihapus (jangkarnya).
+[x] 18. SCAN QR DIGEDEIN + QR MENU AUTO-ISI
+       Kotak scan jadi PERSEGI GEDE (pas buat QR).
+       QR format MIAPOS|Nama|Harga|Kategori → sekali
+       scan menu langsung masuk lengkap + kesortir
+       kategori (kategori baru dibikin otomatis).
+[x] 19. PANDUAN-SCAN.txt (BARU DI ZIP)
+       Panduan input menu banyak lewat QR: format,
+       bikin QR massal dari Google Sheets, print,
+       scan, aturan kategori.
+[x] 20. BACKUP CLOUD (v2.7) TETEP UTUH
        api/backup.js + api/ping.js tetap ada di zip —
        backup otomatis ke GitHub, restore dari HP
        mana pun. Env GITHUB_TOKEN + BACKUP_KEY tetap

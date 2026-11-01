@@ -1,0 +1,179 @@
+================================================
+  PANDUAN SCAN QR BUAT INPUT MENU — MIAPOS v2.10
+  (cara masukin menu resto yang BANYAK pakai QR,
+   sekali scan langsung masuk lengkap + kesortir
+   di kategorinya)
+================================================
+
+KENALAN DULU
+------------
+Di app: Pengaturan/Stok & Bahan → tab Produk → tombol
+SCAN (ikon barcode, di samping tombol +).
+
+Ada 2 cara input menu lewat scan:
+1. QR MENU (yang ini juaranya) — QR-nya berisi NAMA +
+   HARGA + KATEGORI menu. Sekali scan → menu langsung
+   masuk LENGKAP, otomatis kesortir di kategorinya.
+   Gak perlu ketik apa-apa lagi. Cocok buat input
+   puluhan menu sekaligus.
+2. BARCODE PRODUK — scan barcode kemasan produk
+   (mis. Indomie), tapi nama & harga tetap diketik
+   manual. Cocok buat menu dari barang kemasan.
+
+=====================================================
+BAGIAN 1 — FORMAT QR MENU (WAJIB SAMA PERSIS)
+=====================================================
+Isi QR-nya harus format ini:
+
+  MIAPOS|Nama Menu|Harga|Kategori
+
+Contoh:
+  MIAPOS|Ayam Bakar Madu|27000|Makanan
+  MIAPOS|Es Teh Manis Jumbo|8000|Minuman
+  MIAPOS|Sambal Matah|10000|Sambal
+  MIAPOS|Tahu Cabe Garam|15000|Camilan
+  MIAPOS|Udang Saus Padang|45000|Seafood
+
+ATURANNYA:
+• Tulisan "MIAPOS" di depan WAJIB — huruf besar,
+  lalu garis tegak | (pipe), bukan huruf L kecil atau
+  garis miring.
+• Nama menu: BOLEH pakai spasi. GAK BOLEH ada tanda |.
+• Harga: angka doang — "27000" atau "27.000" dua-duanya
+  boleh. Kalau harganya dikosongin, app tetap terima:
+  nama & kategori keisi otomatis, tinggal isi harga
+  di form terus tekan Simpan.
+• Kategori: tulis sama persis kaya nama kategori di
+  app (Makanan, Minuman, Sambal, Camilan, atau
+  kategori buatan sendiri). Huruf besar/kecil gak
+  dipermasalahkan.
+  → Kategori yang ditulis BELUM ada di app? Langsung
+    DIBIKIN OTOMATIS pas scan-nya. Jadi "Seafood" yang
+    gak ada di daftar bakal nongol sendiri. Praktis.
+
+=====================================================
+BAGIAN 2 — BIKIN QR-NYA (PAKAI GOOGLE SHEETS, GRATIS)
+=====================================================
+Sekali kerjain, SEMUA menu jadi QR sekaligus. Ikuti
+step by step:
+
+1. Buka sheets.google.com → Bikin spreadsheet baru.
+
+2. Bikin header di baris 1 (4 kolom):
+   A1: Nama    B1: Harga    C1: Kategori    D1: Isi QR
+
+3. Isi menu lu di bawahnya, contoh:
+   A2: Ayam Bakar Madu
+   B2: 27000
+   C2: Makanan
+
+4. Di D2, tempel formula ini:
+
+   ="MIAPOS|"&A2&"|"&B2&"|"&C2
+
+5. Di E2 (kolom QR), tempel formula ini:
+
+   =IMAGE("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data="&ENCODEURL(D2))
+
+   → kolom E langsung nampilin GAMBAR QR-nya.
+
+6. Klik sel E2, tarik titik kecil di pojok kanan
+   bawahnya ke bawah sampai menu terakhir → SEMUA
+   menu langsung punya QR.
+
+7. BUTUH INTERNET dikit buat nampilin gambar QR-nya
+   (maklum, gambar dari internet). Tapi SCAN-nya
+   sendiri 100% OFFLINE — gak butuh internet sama
+   sekali.
+
+8. PRINT atau screenshot QR-nya satu per satu.
+   Tips print:
+   • 1 QR per menu — jangan digabung jadi 1 gambar.
+   • Ukuran minimal 2×2 cm biar gampang kebaca.
+   • Jangan kepotong pinggirannya (QR butuh " zona
+     kosong" di sekelilingnya).
+
+CATATAN PENTING:
+• Yang discan itu QR (kotak besar persegi), BUKAN
+  barcode garis-garis. Barcode garis-garis cuma bisa
+  nyimpen angka — gak muat nama/harga/kategori.
+• App-nya udah diupdate: KOTAK SCAN-nya DIGEDEIN &
+  dibikin PERSEGI khusus biar QR gede kebaca sekali
+  ges tanpa harus majumin HP kemaning.
+
+=====================================================
+BAGIAN 3 — CARA SCAN-NYA (DI APP)
+=====================================================
+1. Buka app → Produk (Stok & Bahan → tab Produk).
+2. Ketuk tombol SCAN (ikon barcode) di sebelah kiri
+   tombol + Tambah.
+3. Izinkan kamera pas ditanya (sekali aja).
+4. Arahkan QR ke KOTAK BESAR — pastikan SELURUH QR
+   masuk di dalam kotak (ketiga-tiganya: kotak-kotak
+   hitam di 3 pojok QR kebaca semua).
+5. Pas kebaca:
+   • HP bergetar + muncul tulisan ijo
+     ✅ "Nama Menu (Rpxx.xxx) masuk kategori ..."
+   • Menu LANGSUNG masuk daftar + kesortir di
+     kategorinya. Gak perlu tekan simpan.
+6. Lanjut aja scan menu berikutnya — kamera tetap
+   nyala. Di atas ada penghitung "N menu ditambahkan
+   di sesi ini".
+7. Beres? Ketuk X buat tutup.
+
+LAIN-LAIN:
+• Scan ulang QR yang sama → ditolak (biar gak dobel
+  menu). Mau nambah stok varian? Lewat edit menu aja.
+• Salah masuk? Hapus/edit menunya di daftar Produk
+  (ikon pensil / tong sampah di kartu menu).
+• QR-nya di galeri/screenshot? Pakai tombol GALERI
+  di kiri bawah kotak kamera — pilih gambarnya,
+  kebaca sama aja.
+• Kamera gak muncul? Pastikan buka app lewat Chrome
+  Android & izin kamera diaktifin. Atau ketik isi
+  QR-nya manual di kolom bawah (format sama persis).
+
+=====================================================
+BAGIAN 4 — KATEGORI: BIKIN & HAPUS
+=====================================================
+Bikin kategori:
+• Di form Tambah/Edit Menu → grid kategori → tile
+  "+ Kategori" (garis putus-putus) → isi nama + pilih
+  ikon emoji → Simpan. Langsung nongol di semua
+  tempat (layar kasir, scan, laporan).
+• Atau biarkan QR yang bikinin otomatis (Bagian 1).
+
+Hapus kategori (kalo salah input):
+• Di form Tambah/Edit Menu → grid kategori → tile
+  kategori yang mau dihapus ada tombol x MERAH di
+  pojoknya → ketuk → konfirmasi.
+• SEMUA menu di dalamnya OTOMATIS pindah ke kategori
+  Makanan — gak ada menu yang hilang.
+• Kategori MANA pun bisa dihapus: Minuman, Sambal,
+  Camilan, sampai kategori buatan sendiri.
+• PENGECUALIAN: kategori "Makanan" gak bisa dihapus —
+  dia jangkarnya (tempat naruh menu dari kategori
+  yang dihapus).
+• Kategori bawaan yang kehapus bisa dibikin lagi —
+  tinggal bikin kategori baru pake nama yang sama
+  lewat "+ Kategori".
+
+=====================================================
+BAGIAN 5 — KATEGORI DESSERT JADI SAMBAL
+=====================================================
+Kategori "Dessert" bawaan udah DIGANTI jadi "Sambal"
+🌶️ (permintaan owner). Menu yang tadinya ada di
+Dessert otomatis pindah ke Sambal — gak ada yang
+perlu diatur ulang. Kalau butuh kategori dessert
+lagi, bikin sendiri lewat "+ Kategori" (mis. nama
+"Dessert" ikon 🍰).
+
+=====================================================
+RINGKASAN CERITA
+=====================================================
+1. Data menu masuk Google Sheets → QR kebikin semua.
+2. Print QR → nempel di buku/dinding dapur.
+3. Buka app → SCAN → tembakin QR satu-satu.
+4. Menu lengkap + kesortir kategori, tanpa ngetik.
+
+SELAMAT NGE-INPUT MENU! — Miapos v2.10

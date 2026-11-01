@@ -232,24 +232,56 @@ tailwind.config = {
 // ===== TYPES & CONSTANTS =====
 const ROLES = { OWNER:'Owner', MANAGER:'Manager', CASHIER:'Kasir', KITCHEN:'Dapur', WAITER:'Pelayan' };
 const ROLE_COLORS = { OWNER:'bg-amber-100 text-amber-700', MANAGER:'bg-violet-100 text-violet-700', CASHIER:'bg-emerald-100 text-emerald-700', KITCHEN:'bg-emerald-100 text-emerald-800', WAITER:'bg-slate-100 text-slate-700' };
-const CATEGORY_LABELS = { FOOD:'Makanan', BEVERAGE:'Minuman', DESSERT:'Dessert', SNACK:'Camilan' };
-const CATEGORY_ICONS = { FOOD:'utensils-crossed', BEVERAGE:'coffee', DESSERT:'ice-cream', SNACK:'cookie' };
-const CATEGORY_EMOJI = { FOOD:'🍜', BEVERAGE:'☕', DESSERT:'🍰', SNACK:'🍪' };
-const CATEGORY_COLORS = { FOOD:'from-amber-100 to-orange-50 text-amber-600', BEVERAGE:'from-emerald-100 to-cyan-50 text-emerald-600', DESSERT:'from-pink-100 to-emerald-50 text-pink-600', SNACK:'from-emerald-100 to-green-50 text-emerald-600' };
+// v2.10 revisi: kategori "Dessert" diganti "Sambal" (permintaan owner) —
+// key internal tetap DESSERT biar data lama otomatis ikut ganti label, tanpa migrasi.
+const CATEGORY_LABELS = { FOOD:'Makanan', BEVERAGE:'Minuman', DESSERT:'Sambal', SNACK:'Camilan' };
+const CATEGORY_ICONS = { FOOD:'utensils-crossed', BEVERAGE:'coffee', DESSERT:'flame', SNACK:'cookie' };
+const CATEGORY_EMOJI = { FOOD:'🍜', BEVERAGE:'☕', DESSERT:'🌶️', SNACK:'🍪' };
+const CATEGORY_COLORS = { FOOD:'from-amber-100 to-orange-50 text-amber-600', BEVERAGE:'from-emerald-100 to-cyan-50 text-emerald-600', DESSERT:'from-red-100 to-orange-50 text-red-600', SNACK:'from-emerald-100 to-green-50 text-emerald-600' };
 
 // ===== v2.10: KATEGORI CUSTOM — input menu manual bisa atur/hapus kategori sendiri =====
-// Kategori bawaan (FOOD/BEVERAGE/DESSERT/SNACK) gak bisa dihapus; kategori buatan
-// owner disimpan di settings.customCategories [{key,label,emoji}].
+// Kategori bawaan Makanan = jangkar (gak bisa dihapus, jadi tempat pindah menu).
+// Kategori lain — bawaan maupun buatan owner — semua BISA dihapus (kalau salah
+// input): menu di dalamnya otomatis pindah ke Makanan. Kategori bawaan yang
+// dihapus dicatat di settings.deletedBaseCats biar gak muncul lagi.
 function getCustomCats(settings) { return (settings && settings.customCategories) || []; }
 function allCatList(settings) {
-  var base = Object.keys(CATEGORY_LABELS).map(function(k){ return { key:k, label:CATEGORY_LABELS[k], emoji:CATEGORY_EMOJI[k], base:true }; });
-  var custom = getCustomCats(settings).map(function(c){ return { key:c.key, label:c.label, emoji:c.emoji || '\uD83C\uDF7D\uFE0F', base:false }; });
+  var hidden = (settings && settings.deletedBaseCats) || [];
+  var base = Object.keys(CATEGORY_LABELS).filter(function(k){ return hidden.indexOf(k) < 0; }).map(function(k){ return { key:k, label:CATEGORY_LABELS[k], emoji:CATEGORY_EMOJI[k], base:true }; });
+  var custom = getCustomCats(settings).map(function(c){ return { key:c.key, label:c.label, emoji:c.emoji || '🍽️', base:false }; });
   return base.concat(custom);
 }
 function catMeta(settings, key) {
   var list = allCatList(settings);
   for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
-  return { key:key, label:CATEGORY_LABELS[key] || key || '-', emoji:CATEGORY_EMOJI[key] || '\uD83C\uDF7D\uFE0F', base:!!CATEGORY_LABELS[key] };
+  return { key:key, label:CATEGORY_LABELS[key] || key || '-', emoji:CATEGORY_EMOJI[key] || '🍽️', base:!!CATEGORY_LABELS[key] };
+}
+
+// ===== v2.10: QR MENU FORMAT "MIAPOS|Nama|Harga|Kategori" =====
+// Owner bisa bikin QR massal dari Excel/Google Sheets (panduan lengkap ada di
+// PANDUAN-SCAN.txt). Sekali scan → menu langsung masuk lengkap + otomatis
+// kesortir di kategorinya, gak perlu ketik nama/harga satu-satu lagi.
+function parseMenuQR(code) {
+  var s = String(code || '').trim();
+  if (s.slice(0, 7).toUpperCase() !== 'MIAPOS|') return null;
+  var parts = s.split('|');
+  var nm = (parts[1] || '').trim();
+  if (!nm) return null;
+  // harga: terima "15000", "15.000", "15,000" — titik/koma dianggap pemisah ribuan
+  var rawPr = String(parts[2] || '').replace(/[^0-9.,]/g, '').replace(/\./g, '').replace(/,/g, '.');
+  var pr = parseFloat(rawPr) || 0;
+  var ct = (parts[3] || '').trim();
+  return { name: nm, price: pr, category: ct };
+}
+// cocokkan nama kategori dari QR ke key kategori yang ada (ga peduli huruf besar/kecil)
+function matchCatKey(settings, label) {
+  if (!label) return null;
+  var want = String(label).trim().toLowerCase();
+  var list = allCatList(settings);
+  for (var i = 0; i < list.length; i++) {
+    if (String(list[i].label).toLowerCase() === want) return list[i].key;
+  }
+  return null;
 }
 
 // ===== v2.10: TOTAL PESANAN ANTI-NaN =====
@@ -691,11 +723,22 @@ function AppProvider({ children }) {
       orders: s.orders.map(o => o.id === orderId ? { ...o, kitchenPrintedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : o)
     })),
     // v2.10: hapus kategori custom — menu di dalamnya pindah ke Makanan biar gak hilang
-    deleteCategory: (key) => setState(s => ({
-      ...s,
-      settings: { ...s.settings, customCategories: (s.settings.customCategories || []).filter(c => c.key !== key) },
-      products: s.products.map(p => p.category === key ? { ...p, category:'FOOD' } : p),
-    })),
+    deleteCategory: (key) => setState(s => {
+      // v2.10 revisi: SEMUA kategori bisa dihapus (kalau salah input), KECUALI
+      // Makanan — dia jangkarnya. Menu di dalam kategori yang dihapus otomatis
+      // pindah ke Makanan. Kategori bawaan yang dihapus dicatat di
+      // settings.deletedBaseCats biar gak muncul lagi di mana-mana.
+      if (key === 'FOOD') return s;
+      var isBase = !!CATEGORY_LABELS[key];
+      return {
+        ...s,
+        settings: { ...s.settings,
+          customCategories: (s.settings.customCategories || []).filter(c => c.key !== key),
+          deletedBaseCats: isBase ? [...(s.settings.deletedBaseCats || []), key] : (s.settings.deletedBaseCats || []),
+        },
+        products: s.products.map(p => p.category === key ? { ...p, category:'FOOD' } : p),
+      };
+    }),
     updateOrderItemStatus: (orderId, itemId, status) => setState(s => ({ ...s, orders: s.orders.map(o => o.id===orderId ? { ...o, items:o.items.map(it => it.id===itemId ? { ...it, status } : it), updatedAt:new Date().toISOString() } : o) })),
     updateOrderStatus: (orderId, status) => setState(s => {
       const orders = s.orders.map(o => o.id===orderId ? { ...o, status, updatedAt:new Date().toISOString() } : o);
@@ -1029,7 +1072,18 @@ var WX_CODES = {
   85:{ l:'Gerimis Salju', e:'🌨️' }, 86:{ l:'Gerimis Salju', e:'🌨️' },
   95:{ l:'Badai Petir', e:'⛈️' }, 96:{ l:'Badai Petir + Es', e:'⛈️' }, 99:{ l:'Badai Petir + Es', e:'⛈️' }
 };
-function wxMap(code) { return WX_CODES[code] || { l:'Cuaca', e:'☁️' }; }
+// v2.10 FIX BUG: pas malem gambarnya masih matahari ☀️ — emoji cuaca sekarang ikut jam.
+// Malem (18:00–03:59) langit cerah/berawan = versi bulan, bukan matahari.
+// Hujan, kabut, salju, badai tetap sama (emang sama aja siang/malem).
+function wxMap(code, hour) {
+  var base = WX_CODES[code] || { l:'Cuaca', e:'☁️' };
+  var night = hour != null && (hour >= 18 || hour <= 3);
+  if (night) {
+    if (code === 0) return { l:'Cerah', e:'🌙' };
+    if (code === 1 || code === 2) return { l: base.l, e:'☁️' };
+  }
+  return base;
+}
 function wxReadCache() { try { return JSON.parse(localStorage.getItem(WX_KEY) || 'null'); } catch (e) { return null; } }
 function wxGetGeo() { try { return JSON.parse(localStorage.getItem(WX_GEO_KEY) || 'null'); } catch (e) { return null; } }
 function wxAskGeo() {
@@ -1081,10 +1135,13 @@ function wxFetch(force) {
   });
 }
 // Salam sesuai jam — dipakai kartu cuaca
+// v2.10 FIX BUG ASLI: dulu "h <= 14" nyandera jam 0–3 malam → jam 1–3 pagi
+// masih kena "Selamat siang" (ini yang keluhin owner!). Sekarang ranges
+// eksplisit: pagi 04–10, siang 11–14, sore 15–17, malam 18–03.
 function greetParts(h) {
   if (h >= 4 && h <= 10) return { label:'Selamat pagi', emoji:'☀️' };
-  if (h <= 14) return { label:'Selamat siang', emoji:'🌞' };
-  if (h <= 17) return { label:'Selamat sore', emoji:'🌇' };
+  if (h >= 11 && h <= 14) return { label:'Selamat siang', emoji:'🌞' };
+  if (h >= 15 && h <= 17) return { label:'Selamat sore', emoji:'🌇' };
   return { label:'Selamat malam', emoji:'🌙' };
 }
 // ===== v2.10: TEKS KARTU CUACA RANDOM =====
@@ -1141,23 +1198,73 @@ var SALAM_POOL = {
     'Malam makin sepi — waktunya santai ⭐'
   ]
 };
+// Periode salam ikut jam: pagi 04–10, siang 11–14, sore 15–17, malam 18–03
+// (v2.10: ranges eksplisit — jam 0–3 WAJIB malam, gak boleh nyandera siang)
+function salamPeriod(h) {
+  if (h >= 4 && h <= 10) return 'pagi';
+  if (h >= 11 && h <= 14) return 'siang';
+  if (h >= 15 && h <= 17) return 'sore';
+  return 'malam';
+}
 function salamRandom(h) {
-  var p = (h >= 4 && h <= 10) ? 'pagi' : (h <= 14 ? 'siang' : (h <= 17 ? 'sore' : 'malam'));
-  var arr = SALAM_POOL[p] || SALAM_POOL.pagi;
+  var arr = SALAM_POOL[salamPeriod(h)] || SALAM_POOL.pagi;
   return arr[Math.floor(Math.random() * arr.length)];
 }
-// Kartu cuaca — dipasang di Dashboard (kompak: gambar cuaca + suhu + salam)
+// ===== v2.10: JAM LIVE DI KARTU CUACA (permintaan owner: "widget jam kece") =====
+// Detak detik + tanggal + ikon siang/malem. Warnanya ikut ganti:
+// siang = gradasi jingga (matahari), malem = gradasi indigo gelap (bulan).
+function LiveClock() {
+  const [now, setNow] = React.useState(function() { return new Date(); });
+  React.useEffect(function() {
+    var iv = setInterval(function() { setNow(new Date()); }, 1000);
+    var bangun = function() { if (!document.hidden) setNow(new Date()); };
+    document.addEventListener('visibilitychange', bangun);
+    window.addEventListener('focus', bangun);
+    return function() {
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', bangun);
+      window.removeEventListener('focus', bangun);
+    };
+  }, []);
+  var h = now.getHours();
+  var night = h >= 18 || h <= 3;
+  var hhmm = String(h).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  var ss = String(now.getSeconds()).padStart(2, '0');
+  var tgl = now.toLocaleDateString('id-ID', { weekday:'short', day:'numeric', month:'short' });
+  return React.createElement('div', { className:'shrink-0 rounded-2xl px-2.5 py-2 text-center text-white shadow-md border ' +
+      (night ? 'bg-gradient-to-br from-indigo-600 via-indigo-800 to-slate-900 border-indigo-400/30 shadow-indigo-900/30'
+             : 'bg-gradient-to-br from-amber-400 via-orange-400 to-orange-500 border-amber-300/60 shadow-orange-500/30') },
+    React.createElement('div', { className:'flex items-center justify-center gap-1' },
+      React.createElement('span', { className:'text-[11px] leading-none' }, night ? '🌙' : '☀️'),
+      React.createElement('span', { className:'font-mono text-lg md:text-xl font-extrabold tracking-tight tabular-nums leading-none' }, hhmm),
+      React.createElement('span', { className:'font-mono text-[11px] md:text-xs font-bold opacity-80 tabular-nums leading-none' }, ':' + ss)
+    ),
+    React.createElement('p', { className:'text-[9px] md:text-[10px] font-semibold uppercase tracking-wide opacity-90 mt-1' }, tgl)
+  );
+}
+// Kartu cuaca — dipasang di Dashboard paling atas (gambar cuaca + suhu + salam + JAM)
 function WeatherCard() {
   const { state } = useAppStore();
   const { settings } = state;
   const outlet = state.outlets.find(o => o.id === settings.outletId);
   const cashier = state.employees.find(e => e.id === settings.cashierId);
   const [wx, setWx] = React.useState(function() { return wxReadCache(); });
-  // v2.9: detak menit — salam otomatis ganti pagi→siang→sore→malam walau app dibuka lama
+  // v2.10 FIX BUG SALAM/GAMBAR NYASAR: HP diemin / app dibungkus lama → timer JS
+  // dibekuin Android, jam gak dihitung ulang → malem hari masih kena "Selamat siang".
+  // Sekarang jam dihitung ulang tiap menit + TIAP APP DIBUKA LAGI (visibility/focus).
   var [, setMinuteTick] = React.useState(0);
   React.useEffect(function() {
-    var iv = setInterval(function() { setMinuteTick(function(t) { return t + 1; }); }, 60000);
-    return function() { clearInterval(iv); };
+    var bump = function() { setMinuteTick(function(t) { return t + 1; }); };
+    var iv = setInterval(bump, 60000);
+    var bangun = function() { if (!document.hidden) bump(); };
+    var onFoc = function() { bump(); };
+    document.addEventListener('visibilitychange', bangun);
+    window.addEventListener('focus', onFoc);
+    return function() {
+      clearInterval(iv);
+      document.removeEventListener('visibilitychange', bangun);
+      window.removeEventListener('focus', onFoc);
+    };
   }, []);
   React.useEffect(function() {
     var alive = true;
@@ -1170,16 +1277,28 @@ function WeatherCard() {
   }, []);
   var fresh = wx && wx.ok && (Date.now() - (wx.at || 0) < WX_FRESH);
   var staled = wx && wx.ok && !fresh;
-  var cw = wxMap(wx && wx.ok ? wx.code : -1);
-  var g = greetParts(new Date().getHours());
+  var nowH = new Date().getHours(); // v2.10: jam dihitung ulang tiap render (ikut menit + resume app)
+  var night = nowH >= 18 || nowH <= 3;
+  var cw = wxMap(wx && wx.ok ? wx.code : -1, nowH);
+  var g = greetParts(nowH);
   var nama = cashier ? cashier.name : '';
   // v2.10: teks salam RANDOM — ganti tiap app dibuka + diacak ulang tiap 5 menit
   // selama app jalan. Isinya kalimat santai, tanpa istilah teknis (aman buat kasir).
   var [salamSub, setSalamSub] = React.useState(function() { return salamRandom(new Date().getHours()); });
+  var [salamPer, setSalamPer] = React.useState(function() { return salamPeriod(new Date().getHours()); });
   React.useEffect(function() {
-    var iv = setInterval(function() { setSalamSub(salamRandom(new Date().getHours())); }, 5 * 60 * 1000);
-    return function() { clearInterval(iv); };
+    var shuffle = setInterval(function() { setSalamSub(salamRandom(new Date().getHours())); }, 5 * 60 * 1000);
+    return function() { clearInterval(shuffle); };
   }, []);
+  // v2.10: ganti periode (pagi→siang→sore→malam) → kalimatnya ikut ganti pool,
+  // jadi pas malem gak muncul kalimat kaya "jangan lupa makan siang" lagi.
+  React.useEffect(function() {
+    var p = salamPeriod(new Date().getHours());
+    if (p !== salamPer) {
+      setSalamPer(p);
+      setSalamSub(salamRandom(new Date().getHours()));
+    }
+  });
   var salamLine = g.label + (nama ? ', ' + nama : '') + '! ' + salamSub;
   var jam = wx && wx.at ? new Date(wx.at).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : '';
   var detail;
@@ -1189,19 +1308,22 @@ function WeatherCard() {
   else detail = 'Cuaca sekitar ' + (outlet ? outlet.name : 'cabang kamu') + ' · Diperbarui ' + jam;
   return React.createElement(Card, { className:'overflow-hidden animate-mp-pop border-sky-100' },
     React.createElement('div', { className:'flex items-center gap-3 p-3 md:p-4' },
-      React.createElement('div', { className:'grid h-14 w-14 md:h-16 md:w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-100 via-sky-50 to-emerald-50 border border-sky-100/80 text-[30px] md:text-4xl leading-none' }, cw.e),
+      // v2.10: kotak gambar cuaca ikut suasana — siang cerah, malem gelap kebiruan
+      React.createElement('div', { className:'grid h-14 w-14 md:h-16 md:w-16 shrink-0 place-items-center rounded-2xl border text-[30px] md:text-4xl leading-none ' +
+        (night ? 'bg-gradient-to-br from-indigo-200 via-indigo-100 to-slate-100 border-indigo-200/70'
+               : 'bg-gradient-to-br from-sky-100 via-sky-50 to-emerald-50 border-sky-100/80') }, cw.e),
       React.createElement('div', { className:'flex-1 min-w-0' },
         React.createElement('div', { className:'flex items-baseline gap-2 flex-wrap' },
           React.createElement('span', { className:'text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900' }, wx && wx.ok ? wx.temp + '°C' : '—'),
-          React.createElement('span', { className:'text-xs md:text-sm font-bold text-sky-700' }, wx && wx.ok ? cw.l : 'Cuaca belum tersedia')
+          React.createElement('span', { className:'text-xs md:text-sm font-bold text-sky-700' }, wx && wx.ok ? cw.l : 'Cuaca belum tersedia'),
+          // v2.10: kelembapan pindah ke sini — tempatnya diganti widget jam
+          wx && wx.ok && wx.hum != null && React.createElement('span', { className:'text-[10px] md:text-xs font-semibold text-sky-600/80' }, '💧 ' + wx.hum + '%')
         ),
         React.createElement('p', { className:'text-xs md:text-sm font-semibold text-slate-700 mt-0.5 leading-snug' }, salamLine),
         React.createElement('p', { className:'text-[10px] md:text-[11px] text-slate-400 mt-0.5 truncate' }, detail)
       ),
-      wx && wx.ok && wx.hum != null && React.createElement('div', { className:'shrink-0 text-right' },
-        React.createElement('p', { className:'text-sm md:text-base font-extrabold text-sky-600' }, wx.hum + '%'),
-        React.createElement('p', { className:'text-[9px] md:text-[10px] text-slate-400' }, 'Kelembapan')
-      )
+      // v2.10: WIDGET JAM LIVE — detak detik + tanggal, warna ikut siang/malem
+      React.createElement(LiveClock, null)
     )
   );
 }
@@ -1836,12 +1958,15 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
     onSaved();
   }
 
-  // v2.10: hapus kategori custom — semua menu di dalamnya otomatis pindah ke Makanan
+  // v2.10 revisi: hapus kategori — SEKARANG kategori bawaan (selain Makanan)
+  // juga bisa dihapus kalau salah input. Semua menu di dalamnya otomatis
+  // pindah ke Makanan biar gak ada menu yang hilang.
   function delCat(c) {
+    if (c.key === 'FOOD') { show('Kategori Makanan gak bisa dihapus — dia tempat naruh menu bila kategori lain dihapus.', 'error'); return; }
     if (!confirm('Hapus kategori "' + c.label + '"?\nSemua menu di dalamnya otomatis pindah ke kategori Makanan.')) return;
     deleteCategory(c.key);
     if (category === c.key) setCategory('FOOD');
-    show('Kategori "' + c.label + '" dihapus');
+    show('Kategori "' + c.label + '" dihapus — menunya pindah ke Makanan');
   }
   return React.createElement(Modal, { open, onClose: () => { reset(); onClose(); }, className:'sm:max-w-lg max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
@@ -1856,7 +1981,8 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
           React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Nasi Goreng Spesial', autoFocus: true })
         ),
         // Kategori - dengan emoji & warna — v2.10: bisa BIKIN kategori sendiri (+ Kategori)
-        // dan HAPUS kategori buatan sendiri (tombol x merah). Kategori bawaan gak bisa dihapus.
+        // dan HAPUS kategori (tombol x merah) — bawaan maupun buatan sendiri, kecuali
+        // Makanan. Cocok buat koreksi kategori yang salah ketik.
         React.createElement('div', null,
           React.createElement(Label, null, 'Kategori'),
           React.createElement('div', { className:'grid grid-cols-4 gap-2 mt-1' },
@@ -1871,7 +1997,7 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
                 React.createElement('span', { className:'text-2xl' }, c.emoji),
                 React.createElement('span', { className:'text-[10px] font-medium' }, c.label)
               ),
-              !c.base && React.createElement('button', { onClick: () => delCat(c), title:'Hapus kategori ' + c.label,
+              c.key !== 'FOOD' && React.createElement('button', { onClick: () => delCat(c), title:'Hapus kategori ' + c.label,
                 className:'absolute -top-1.5 -right-1.5 grid h-5 w-5 place-items-center rounded-full bg-red-500 text-white shadow active:scale-90 transition-transform' },
                 React.createElement(Icon, { name:'x', className:'w-3 h-3' })
               )
@@ -2925,13 +3051,26 @@ console.log('Miapos: Orders ready');
 // Permintaan owner: layar dapur diganti laporan menu — biar kelihatan hari ini
 // kejual apa aja, banyaknya berapa, per item per quantity, langsung kesortir
 // dari yang paling banyak terjual. Gak perlu geser-geser riwayat pesanan lagi.
+// v2.10 revisi: ada TANGGALAN — bisa intip kemarin / mundur ke belakang,
+// buat nyiapin stok besok (dapur suka nanya "ayam/bebek kemarin kejual berapa").
 function MenuSalesView({ onBack }) {
   const { state } = useAppStore();
   const { settings, orders } = state;
   const today = new Date().toISOString().slice(0,10);
-  const paidToday = orders.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID' && o.createdAt.slice(0,10) === today);
+  const yesterday = (function() {
+    var d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [selectedDate, setSelectedDate] = React.useState(today);
+  // v2.10: pesanan yang udah diarsip ikut dihitung — biar tanggal kemarin,
+  // minggu lalu, dst tetap keliatan (arsip dibikin tiap hari lewat rollover).
+  const allPaid = React.useMemo(function() {
+    var all = [...orders, ...(state.archivedOrders || [])];
+    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID');
+  }, [orders, state.archivedOrders, settings.outletId]);
+  const paidSel = allPaid.filter(o => (o.createdAt || '').slice(0, 10) === selectedDate);
   const map = new Map();
-  paidToday.forEach(o => (o.items || []).forEach(it => {
+  paidSel.forEach(o => (o.items || []).forEach(it => {
     const cur = map.get(it.productId) || { name: it.productName, qty: 0, revenue: 0 };
     cur.qty += it.quantity; cur.revenue += it.price * it.quantity; map.set(it.productId, cur);
   }));
@@ -2940,9 +3079,44 @@ function MenuSalesView({ onBack }) {
   const totalQty = rows.reduce((s,r) => s + r.qty, 0);
   const totalRev = rows.reduce((s,r) => s + r.revenue, 0);
   const MEDAL = ['🥇', '🥈', '🥉'];
+  // v2.10: geser maju/mundur tanggal (konvensi hari sama kaya layar Laporan)
+  function shiftDate(delta) {
+    var d = new Date(selectedDate + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + delta);
+    var ds = d.toISOString().slice(0, 10);
+    if (ds > today) ds = today;
+    setSelectedDate(ds);
+  }
+  var isToday = selectedDate === today;
+  var isYesterday = selectedDate === yesterday;
+  var dateLong = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  var dayWord = isToday ? 'Hari Ini' : (isYesterday ? 'Kemarin' : formatDate(selectedDate + 'T12:00:00Z'));
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Laporan Menu', subtitle:'Terjual hari ini · ' + paidToday.length + ' pesanan lunas', onBack: onBack }),
+    React.createElement(Topbar, { title:'Laporan Menu', subtitle: dayWord + ' · ' + paidSel.length + ' pesanan lunas', onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-24 md:pb-6 min-h-full' },
+      // ===== v2.10: NAVIGATOR TANGGAL — panah maju/mundur + klik label buat
+      // buka kalender native + tombol cepat Hari Ini / Kemarin =====
+      React.createElement(Card, { className:'border-emerald-100 mb-3' }, React.createElement('div', { className:'p-3 space-y-2' },
+        React.createElement('div', { className:'flex items-center gap-2' },
+          React.createElement('button', { onClick: () => shiftDate(-1), className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 transition-colors', title:'Hari sebelumnya' },
+            React.createElement(Icon, { name:'chevron-left', className:'w-5 h-5 text-slate-600' })
+          ),
+          React.createElement('label', { className:'flex-1 min-w-0 cursor-pointer text-center' },
+            React.createElement('p', { className:'text-sm md:text-base font-extrabold text-slate-900 truncate' }, dateLong),
+            React.createElement('p', { className:'text-[10px] text-emerald-600 font-semibold' }, 'Ketuk buat pilih tanggal lain'),
+            React.createElement('input', { type:'date', value: selectedDate, max: today, onChange: e => { if (e.target.value) setSelectedDate(e.target.value); }, className:'sr-only' })
+          ),
+          React.createElement('button', { onClick: () => shiftDate(1), disabled: isToday, className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 transition-colors disabled:opacity-30 disabled:pointer-events-none', title:'Hari berikutnya' },
+            React.createElement(Icon, { name:'chevron-right', className:'w-5 h-5 text-slate-600' })
+          )
+        ),
+        React.createElement('div', { className:'flex gap-2' },
+          [['Hari Ini', today], ['Kemarin', yesterday]].map(function(pair) {
+            var aktif = selectedDate === pair[1];
+            return React.createElement('button', { key: pair[0], onClick: () => setSelectedDate(pair[1]), className: cn('flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors', aktif ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50') }, pair[0]);
+          })
+        )
+      )),
       React.createElement('div', { className:'grid grid-cols-3 gap-2 mb-3' },
         React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
           React.createElement('p', { className:'text-2xl font-bold' }, String(totalQty)),
@@ -2956,12 +3130,12 @@ function MenuSalesView({ onBack }) {
       ),
       React.createElement(Card, null,
         React.createElement('div', { className:'p-4' },
-          React.createElement('h3', { className:'text-base font-semibold' }, 'Peringkat Menu Hari Ini'),
+          React.createElement('h3', { className:'text-base font-semibold' }, 'Peringkat Menu ' + dayWord),
           React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Diurutkan otomatis dari yang paling banyak terjual'),
           rows.length === 0 && React.createElement('div', { className:'text-center py-10 text-slate-400' },
             React.createElement(Icon, { name:'utensils-crossed', className:'w-10 h-10 mx-auto mb-2 opacity-25' }),
-            React.createElement('p', { className:'text-sm' }, 'Belum ada menu yang terjual hari ini'),
-            React.createElement('p', { className:'text-xs mt-1' }, 'Laporan terisi otomatis begitu ada pesanan lunas')),
+            React.createElement('p', { className:'text-sm' }, 'Belum ada menu yang terjual ' + (isToday ? 'hari ini' : 'di tanggal ini')),
+            React.createElement('p', { className:'text-xs mt-1' }, 'Geser tanggalnya, atau laporan terisi sendiri begitu ada pesanan lunas')),
           React.createElement('div', { className:'space-y-2' },
             rows.map(function(r, i) {
               return React.createElement('div', { key: r.id, className: cn('flex items-center gap-3 rounded-xl border p-3', i === 0 && rows.length > 1 ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200') },
@@ -2979,7 +3153,8 @@ function MenuSalesView({ onBack }) {
           rows.length > 0 && React.createElement('p', { className:'text-[10px] text-slate-400 mt-3' }, 'Total ' + totalQty + ' item dari ' + rows.length + ' menu · omzet ' + formatRupiah(totalRev))
         )
       ),
-      React.createElement('p', { className:'text-[10px] text-slate-400 px-1 mt-2' }, 'Layar dapur (KDS) lama dipindah tugasnya ke menu Pesanan — status masak bisa diatur dari sana.')
+      React.createElement('p', { className:'text-[10px] text-slate-400 px-1 mt-2' }, 'Tips stok: intip laporan kemarin buat nyiapin bahan besok — dapur gak perlu nanya "ayam kejual berapa" satu-satu lagi 🍗'),
+      React.createElement('p', { className:'text-[10px] text-slate-400 px-1 mt-1' }, 'Layar dapur (KDS) lama dipindah tugasnya ke menu Pesanan — status masak bisa diatur dari sana.')
     )
   );
 }
@@ -3667,7 +3842,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, onClose, onConfirm,
 // internet). Barcode yang sudah pernah diisi bakal dikenali (gak dobel).
 // Browser tanpa BarcodeDetector → fallback: ketik kode barcode manual.
 function BarcodeScanModal({ open, onClose }) {
-  const { state, upsertProduct } = useAppStore();
+  const { state, upsertProduct, updateSettings } = useAppStore();
   const { show } = useToast();
   const { settings, products } = state;
   const videoRef = React.useRef(null);
@@ -3761,7 +3936,29 @@ function BarcodeScanModal({ open, onClose }) {
     try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
     var exist = products.find(function(p) { return String(p.barcode || '') === code; });
     if (exist) { show('Barcode sudah terdaftar: ' + exist.name + ' (' + formatRupiah(exist.price) + ')', 'info'); return; }
-    setName(''); setPrice('');
+    // v2.10 revisi: QR isi data menu "MIAPOS|Nama|Harga|Kategori" → sekali scan
+    // LANGSUNG masuk lengkap + kesortir di kategorinya (gak perlu ketik apa-apa).
+    // Kategori belum ada? Otomatis dibikinin. Harga kosong? Form keisi nama+kategori
+    // tinggal isi harga. QR biasa/barcode produk? Form kosong kaya biasa.
+    var pq = parseMenuQR(code);
+    if (pq && pq.price > 0) {
+      var catKey = matchCatKey(settings, pq.category);
+      if (!catKey && pq.category) {
+        catKey = 'cat-' + Date.now();
+        updateSettings({ customCategories: getCustomCats(settings).concat([{ key: catKey, label: pq.category, emoji: '🍽️' }]) });
+      }
+      var keyDipakai = catKey || 'FOOD';
+      var pid = 'prod-' + settings.outletId + '-bc' + Date.now();
+      upsertProduct({ id: pid, outletId: settings.outletId, name: pq.name, category: keyDipakai, price: pq.price, cost: 0, available: true,
+        barcode: code, variants: [{ id: 'var-' + pid + '-1', productId: pid, name: 'Reguler', priceMod: 0 }],
+        recipeItems: [], createdAt: new Date().toISOString() });
+      setAdded(function(n) { return n + 1; });
+      show('✅ "' + pq.name + '" (' + formatRupiah(pq.price) + ') masuk kategori ' + (pq.category || 'Makanan') + ' — lanjut scan yang lain');
+      return; // kamera tetap jalan — siap scan menu berikutnya
+    }
+    setName(pq ? pq.name : '');
+    setPrice('');
+    setCat(pq ? (matchCatKey(settings, pq.category) || 'FOOD') : 'FOOD');
     setCurrent({ code: code });
   }
   function simpan(lanjut) {
@@ -3785,22 +3982,32 @@ function BarcodeScanModal({ open, onClose }) {
       React.createElement('input', { ref: fileRef, type: 'file', accept: 'image/*', className: 'hidden', onChange: onPickFile }),
       React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
         React.createElement('div', null,
-          React.createElement('h2', { className:'text-lg font-bold' }, 'Scan Barcode Menu'),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, 'Arahkan barcode/QR produk ke kamera — sekali scan, menu langsung kebikin. Bisa lanjut scan menu berikutnya.')),
+          React.createElement('h2', { className:'text-lg font-bold' }, 'Scan QR / Barcode Menu'),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-0.5' }, 'Arahkan QR ke kotak besar sampai masuk SEMUA. QR menu (format MIAPOS) langsung nyimpen sendiri — nama, harga, kategori.')),
         React.createElement('button', { onClick: tutup, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
           React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
       ),
       added > 0 && React.createElement('div', { className:'rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 mb-2 flex items-center gap-2' },
         React.createElement(Icon, { name:'check-circle-2', className:'w-4 h-4 text-emerald-600 shrink-0' }),
         React.createElement('p', { className:'text-xs font-bold text-emerald-700' }, added + ' menu ditambahkan di sesi ini')),
-      React.createElement('div', { className:'rounded-xl overflow-hidden bg-slate-900 relative', style: { aspectRatio: '4/3' } },
+      // v2.10 revisi: kotak kamera digedein + PEMBUATAN PENUH (square) — QR bukan
+      // kode unik produk, jadi butuh kotak besar biar seluruh QR kebaca sekali ges.
+      React.createElement('div', { className:'rounded-xl overflow-hidden bg-slate-900 relative', style: { aspectRatio: '1/1' } },
         supported && !camErr ? React.createElement('video', { ref: videoRef, className:'w-full h-full object-cover', playsInline: true, muted: true })
           : React.createElement('div', { className:'w-full h-full grid place-items-center p-4 text-center' },
               React.createElement('div', null,
                 React.createElement(Icon, { name:'camera', className:'w-8 h-8 mx-auto text-slate-500 mb-2' }),
                 React.createElement('p', { className:'text-xs text-slate-300 leading-relaxed' }, camErr || 'Browser ini tidak mendukung scan kamera (pakai Chrome Android). Ketik kode barcode manual di bawah.'))),
         supported && !camErr && React.createElement('div', { className:'absolute inset-0 grid place-items-center pointer-events-none' },
-          React.createElement('div', { className:'w-56 h-20 border-2 border-emerald-400/80 rounded-lg', style: { boxShadow: '0 0 0 2000px rgba(0,0,0,0.25)' } })),
+          // kotak scan SQUARE besar + sudut aksen — pas buat QR code
+          React.createElement('div', { className:'relative w-[76%] max-w-[300px] aspect-square' },
+            React.createElement('div', { className:'absolute inset-0 rounded-2xl border-2 border-emerald-400/70', style: { boxShadow: '0 0 0 2000px rgba(0,0,0,0.38)' } }),
+            React.createElement('span', { className:'absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-300 rounded-tl-2xl' }),
+            React.createElement('span', { className:'absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-300 rounded-tr-2xl' }),
+            React.createElement('span', { className:'absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-300 rounded-bl-2xl' }),
+            React.createElement('span', { className:'absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-300 rounded-br-2xl' })
+          )
+        ),
         // v2.10: tombol GALERI di samping KIRI bawah kamera — scan dari gambar galeri
         React.createElement('button', { onClick: function() { if (fileRef.current) fileRef.current.click(); },
           className:'absolute left-2 bottom-2 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-[11px] font-bold text-white shadow-lg active:scale-95 transition-transform' },
@@ -3824,10 +4031,10 @@ function BarcodeScanModal({ open, onClose }) {
       !current && React.createElement('div', { className:'mt-3 flex gap-2' },
         React.createElement(Input, { value: manual, onChange: function(e) { setManual(e.target.value); },
           onKeyDown: function(e) { if (e.key === 'Enter' && manual.trim()) { onDetect(manual.trim()); setManual(''); } },
-          placeholder:'Ketik kode barcode manual (mis. 8991234567890)', inputMode:'numeric' }),
+          placeholder:'Ketik kode/QR manual (mis. MIAPOS|Es Teh|8000|Minuman)', inputMode:'text' }),
         React.createElement(Button, { variant:'outline', className:'shrink-0', onClick: function() { if (manual.trim()) { onDetect(manual.trim()); setManual(''); } } }, 'Cek')
       ),
-      React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Scan jalan 100% offline (BarcodeDetector bawaan Chrome). Menu yang dibikin lewat scan langsung punya barcode tersimpan — scan ulang nanti bakal dikenali.')
+      React.createElement('p', { className:'text-[10px] text-slate-400 mt-2 leading-relaxed' }, 'Scan jalan 100% offline (BarcodeDetector bawaan Chrome). QR menu pakai format: MIAPOS|Nama Menu|Harga|Kategori — cara bikinnya ada di PANDUAN-SCAN.txt. Menu yang dibikin lewat scan langsung punya QR tersimpan — scan ulang nanti dikenali (gak dobel).')
     )
   );
 }
