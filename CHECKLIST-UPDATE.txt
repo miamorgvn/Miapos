@@ -1,11 +1,41 @@
 ================================================
-  MIAPOS v2.12 — CHECKLIST
+  MIAPOS v2.13 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.12 — RESET DATA PAKAI KONFIRMASI 5 DETIK
+0. REVISI v2.13 — CATATAN PER MENU · 2 BAHASA · 4 TEMA
+=====================================================
+[x] 1. KOLOM CATATAN PER MENU (keranjang & pesanan):
+       • Di bawah tiap menu di keranjang ada kolom
+         catatan sendiri — khusus menu itu (contoh:
+         "pedas, tanpa es"). Ada di keranjang
+         desktop, drawer HP, dan detail pesanan yang
+         udah masuk.
+       • Catatan item ikut tercetak di nota dapur
+         (baris "cat: ...").
+[x] 2. NOTA GAK KAPITAL SEMUA LAGI:
+       • Nama menu di nota dapur & struk kasir kecetak
+         huruf normal kaya di daftar menu — hemat
+         ruang, lebih gampang dibaca.
+[x] 3. LAYAR SUDAH BAYAR: TOMBOL CETAK JADI 2:
+       • CETAK DAPUR (dapur langsung masak) + STRUK
+         KASIR (bukti bayar). Dulu cuma 1 tombol.
+[x] 4. BAHASA BAKU + TOGGLE INDONESIA/ENGLISH:
+       • Tulisan aplikasi dirapikan jadi bahasa baku
+         ("cth:" → "contoh:", dll).
+       • Pengaturan → Aplikasi → Bahasa: pilih
+         Indonesia / English, tersimpan otomatis.
+[x] 5. TEMA ROYAL & ORANGE DIBENERIN + PINK & PUTIH:
+       • Royal & Orange sekarang beneran oranye
+         (dulu keliru biru). Tema baru Pink & Putih.
+         Total 4 tema.
+[x] 6. VERSI v2.13 + cache sw.js miapos-v2.13-r1
+       (aturan tetap: tiap update versi terus naik).
+
+=====================================================
+1. REVISI v2.12 — RESET DATA PAKAI KONFIRMASI 5 DETIK
 =====================================================
 [x] 1. RESET GAK BISA ASAL KLIK LAGI:
        • Klik Reset Data (Pengaturan → Data Lokal) →
@@ -28,7 +58,7 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
        (aturan tetap: tiap update versi terus naik).
 
 =====================================================
-1. REVISI v2.11 — FIX TULISAN BAWAH KEPOTONG
+2. REVISI v2.11 — FIX TULISAN BAWAH KEPOTONG
 =====================================================
 [x] 1. TULISAN BAWAH KELIHATAN SEMUA:
        • Kartu "Miapos F&B Suite v2.x" di dasar layar
@@ -54,7 +84,7 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
          ikut diganti — biar app lama auto-refresh.
 
 =====================================================
-2. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
+3. REVISI v2.10 — FITUR NOTIFIKASI DICABUT TOTAL
 =====================================================
 [x] 1. SEMUA NOTIF DIHAPUS (permintaan owner: "hapus
        aja deh"):

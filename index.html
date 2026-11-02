@@ -42,8 +42,12 @@ html.is-fs .safe-top { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); 
    Desktop (md+): kolom tengah auto → lega. */
 .app-header { grid-template-columns: minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr); }
 @media (min-width:768px) { .app-header { grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); } }
-/* ====== v2.6 THEME ENGINE — 3 tema: Emerald & Slate (default) / Royal & Orange / Charcoal Dark ======
+/* ====== v2.6 THEME ENGINE — v2.13: 4 tema: Emerald & Slate (default) / Royal & Orange /
+   Pink & Putih / Charcoal Dark ======
    Seluruh kelas emerald-* diarahkan ke CSS var (lihat tailwind.config) → ganti tema = ganti var, instan.
+   v2.13: Royal & Orange diperbaiki — dulu warna utamanya BIRU (masukan owner:
+   "masa warnanya biru bukan orange") → sekarang skala ORANYE penuh, CTA oranye tua.
+   Tema baru Pink & Putih: aksen pink di atas latar putih.
    Charcoal = dark mode penuh: netral (white/slate) dioverride di blok bawah. */
 :root, html.theme-emerald {
   --em-50:#ecfdf5; --em-100:#d1fae5; --em-200:#a7f3d0; --em-300:#6ee7b7; --em-400:#34d399;
@@ -52,10 +56,18 @@ html.is-fs .safe-top { padding-top: calc(env(safe-area-inset-top, 0px) + 30px); 
   --md-alpha-40:rgba(16,185,129,0.4); --md-alpha-35:rgba(16,185,129,0.35); --md-alpha-30:rgba(16,185,129,0.3); --md-alpha-15:rgba(16,185,129,0.15);
 }
 html.theme-royal {
-  --em-50:#eff6ff; --em-100:#dbeafe; --em-200:#bfdbfe; --em-300:#93c5fd; --em-400:#60a5fa;
-  --em-500:#2563eb; --em-600:#1d4ed8; --em-700:#1e40af; --em-800:#1e3a8a; --em-900:#172554;
-  --md-cta:#f97316; --md-cta-h:#ea580c; --md-cta-fg:#ffffff;
-  --md-alpha-40:rgba(37,99,235,0.4); --md-alpha-35:rgba(37,99,235,0.35); --md-alpha-30:rgba(37,99,235,0.3); --md-alpha-15:rgba(37,99,235,0.15);
+  /* v2.13: biru → oranye (permintaan owner). Skala orange Tailwind penuh. */
+  --em-50:#fff7ed; --em-100:#ffedd5; --em-200:#fed7aa; --em-300:#fdba74; --em-400:#fb923c;
+  --em-500:#f97316; --em-600:#ea580c; --em-700:#c2410c; --em-800:#9a3412; --em-900:#7c2d12;
+  --md-cta:#ea580c; --md-cta-h:#c2410c; --md-cta-fg:#ffffff;
+  --md-alpha-40:rgba(249,115,22,0.4); --md-alpha-35:rgba(249,115,22,0.35); --md-alpha-30:rgba(249,115,22,0.3); --md-alpha-15:rgba(249,115,22,0.15);
+}
+html.theme-pink {
+  /* v2.13: tema baru Pink & Putih — aksen pink, latar tetap terang. */
+  --em-50:#fdf2f8; --em-100:#fce7f3; --em-200:#fbcfe8; --em-300:#f9a8d4; --em-400:#f472b6;
+  --em-500:#ec4899; --em-600:#db2777; --em-700:#be185d; --em-800:#9d174d; --em-900:#831843;
+  --md-cta:#ec4899; --md-cta-h:#db2777; --md-cta-fg:#ffffff;
+  --md-alpha-40:rgba(236,72,153,0.4); --md-alpha-35:rgba(236,72,153,0.35); --md-alpha-30:rgba(236,72,153,0.3); --md-alpha-15:rgba(236,72,153,0.15);
 }
 html.theme-charcoal {
   color-scheme: dark;
@@ -65,14 +77,15 @@ html.theme-charcoal {
   --md-alpha-40:rgba(209,255,26,0.4); --md-alpha-35:rgba(209,255,26,0.35); --md-alpha-30:rgba(209,255,26,0.3); --md-alpha-15:rgba(209,255,26,0.15);
 }
 /* Varian alpha (mis. bg-emerald-500/40) yang kehilangan transparansi karena var warna */
-html.theme-emerald .bg-emerald-500\/40, html.theme-royal .bg-emerald-500\/40, html.theme-charcoal .bg-emerald-500\/40 { background-color:var(--md-alpha-40) !important; }
-html.theme-emerald .bg-emerald-500\/50, html.theme-royal .bg-emerald-500\/50, html.theme-charcoal .bg-emerald-500\/50 { background-color:var(--md-alpha-40) !important; }
-html.theme-emerald .bg-emerald-600\/35, html.theme-royal .bg-emerald-600\/35, html.theme-charcoal .bg-emerald-600\/35 { background-color:var(--md-alpha-35) !important; }
+html.theme-emerald .bg-emerald-500\/40, html.theme-royal .bg-emerald-500\/40, html.theme-pink .bg-emerald-500\/40, html.theme-charcoal .bg-emerald-500\/40 { background-color:var(--md-alpha-40) !important; }
+html.theme-emerald .bg-emerald-500\/50, html.theme-royal .bg-emerald-500\/50, html.theme-pink .bg-emerald-500\/50, html.theme-charcoal .bg-emerald-500\/50 { background-color:var(--md-alpha-40) !important; }
+html.theme-emerald .bg-emerald-600\/35, html.theme-royal .bg-emerald-600\/35, html.theme-pink .bg-emerald-600\/35, html.theme-charcoal .bg-emerald-600\/35 { background-color:var(--md-alpha-35) !important; }
 html.theme-emerald .ring-emerald-500\/30, html.theme-emerald .focus\:ring-emerald-500\/30:focus,
 html.theme-royal .ring-emerald-500\/30, html.theme-royal .focus\:ring-emerald-500\/30:focus,
+html.theme-pink .ring-emerald-500\/30, html.theme-pink .focus\:ring-emerald-500\/30:focus,
 html.theme-charcoal .ring-emerald-500\/30, html.theme-charcoal .focus\:ring-emerald-500\/30:focus { --tw-ring-color:var(--md-alpha-30) !important; }
-html.theme-emerald .from-emerald-500\/15, html.theme-royal .from-emerald-500\/15, html.theme-charcoal .from-emerald-500\/15 { --tw-gradient-from:var(--md-alpha-15); --tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,transparent); }
-html.theme-emerald .border-emerald-200\/70, html.theme-royal .border-emerald-200\/70, html.theme-charcoal .border-emerald-200\/70 { border-color:var(--md-alpha-35) !important; }
+html.theme-emerald .from-emerald-500\/15, html.theme-royal .from-emerald-500\/15, html.theme-pink .from-emerald-500\/15, html.theme-charcoal .from-emerald-500\/15 { --tw-gradient-from:var(--md-alpha-15); --tw-gradient-stops:var(--tw-gradient-from),var(--tw-gradient-to,transparent); }
+html.theme-emerald .border-emerald-200\/70, html.theme-royal .border-emerald-200\/70, html.theme-pink .border-emerald-200\/70, html.theme-charcoal .border-emerald-200\/70 { border-color:var(--md-alpha-35) !important; }
 /* CTA pembayaran (Bayar/Konfirmasi) ikut WARNA AKSEN tema: Royal→oranye, Charcoal→neon */
 .md-cta { background-color:var(--md-cta) !important; border-color:var(--md-cta) !important; color:var(--md-cta-fg) !important; }
 .md-cta:hover { background-color:var(--md-cta-h) !important; border-color:var(--md-cta-h) !important; }
@@ -453,21 +466,146 @@ function itemAddedAt(order, it) {
   return t > base;
 }
 
-// ===== v2.6 THEME ENGINE — 3 tema aplikasi =====
+// ===== v2.6 THEME ENGINE — v2.13: 4 tema aplikasi (royal kini benar-benar oranye) =====
 const MD_THEMES = {
-  emerald:  { key:'emerald',  name:'Emerald & Slate', desc:'Fokus & kesuksesan transaksi',  main:'#10B981', cta:'#059669', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
-  royal:    { key:'royal',    name:'Royal & Orange',  desc:'Kepercayaan & fokus pengguna',  main:'#2563EB', cta:'#F97316', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
-  charcoal: { key:'charcoal', name:'Charcoal Dark',   desc:'Minimalis & ideal',             main:'#D1FF1A', cta:'#D1FF1A', bg:'#121212', surface:'#1B1B1B', text:'#F4F4F4', bar:'#121212', dark:true },
+  emerald:  { key:'emerald',  name:'Emerald & Slate', desc:'Fokus & kesuksesan transaksi',   main:'#10B981', cta:'#059669', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
+  royal:    { key:'royal',    name:'Royal & Orange',  desc:'Hangat, ramah & penuh semangat', main:'#F97316', cta:'#EA580C', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
+  pink:     { key:'pink',     name:'Pink & Putih',    desc:'Manis, lembut & ceria',          main:'#EC4899', cta:'#DB2777', bg:'#FFF5F8', surface:'#FFFFFF', text:'#0F172A', bar:'#fff5f8' },
+  charcoal: { key:'charcoal', name:'Charcoal Dark',   desc:'Minimalis & ideal',              main:'#D1FF1A', cta:'#D1FF1A', bg:'#121212', surface:'#1B1B1B', text:'#F4F4F4', bar:'#121212', dark:true },
 };
-const MD_THEME_KEYS = ['emerald','royal','charcoal'];
+const MD_THEME_KEYS = ['emerald','royal','pink','charcoal'];
 // Warna utama utk chart/SVG yang butuh hex langsung (ikut tema aktif di <html>)
 function themeMainHex() {
   try {
     var el = document.documentElement;
     if (el.classList.contains('theme-royal')) return MD_THEMES.royal.main;
+    if (el.classList.contains('theme-pink')) return MD_THEMES.pink.main;
     if (el.classList.contains('theme-charcoal')) return MD_THEMES.charcoal.main;
   } catch (e) {}
   return MD_THEMES.emerald.main;
+}
+
+// ===== v2.13: DUA BAHASA — Indonesia (bawaan) / English (Pengaturan → Aplikasi → Bahasa) =====
+// APP_LANG di-set ulang tiap render oleh App (dari settings.lang). t(kalimat) balik
+// terjemahan English kalau bahasa aktif 'en' DAN kalimatnya terdaftar di kamus;
+// selain itu balik apa adanya (Indonesia). Kunci kamus = kalimat Indonesia persis.
+// KAMUS HANYA MENCAKUP FITUR UTAMA — layar dalam (panduan/engine) tetap Indonesia.
+var APP_LANG = 'id';
+var I18N_EN = {
+    ' (Antrian: ':' (Queue: ', ' \u00b7 Kasir: ':' \u00b7 Cashier: ',
+    ' akan dihapus dari daftar menu. Pesanan lama yang sudah tercatat tidak ikut terhapus.':' will be removed from the menu list. Previously recorded orders are not affected.', ' belum bayar':' unpaid',
+    ' belum dipilih.\n\nBuka menu Pengaturan → Printer Bluetooth untuk memilih printer terlebih dahulu.':' has not been selected.\n\nOpen Settings → Bluetooth Printer to pick a printer first.', ' detik…':'s…',
+    ' dibuat. Mencetak nota dapur...':' created. Printing kitchen slip...', ' dibuat. Mencetak struk kasir...':' created. Printing cashier receipt...',
+    ' dipilih':' selected', ' disimpan. Bayar nanti di menu Pesanan':' saved. Pay later in the Orders menu',
+    ' item tercetak':' item(s) printed', ' kursi':' seats',
+    ' pesanan':' orders', ' pesanan lunas':' paid orders',
+    '" dihapus':'" deleted', ') terkirim ke dapur':') sent to the kitchen',
+    '):':'):', '4 pilihan warna':'4 color options',
+    'Aktif: ':'Active: ', 'Aplikasi':'App',
+    'Auto-backup GitHub · mesin lokal opsional':'Auto-backup to GitHub · optional local engine', 'Backup Cloud & Mesin Lokal':'Cloud Backup & Local Engine',
+    'Bahan Baku':'Ingredients', 'Bahan baku, stok masuk/keluar':'Raw ingredients, stock in/out',
+    'Bahasa':'Language', 'Bahasa utama aplikasi':'The main language of the app',
+    'Bahasa: ':'Language: ', 'Batal':'Cancel',
+    'Bawa Pulang':'Takeaway', 'Bayar ':'Pay ',
+    'Bayar Nanti (Simpan ke Pesanan)':'Pay Later (Save to Orders)', 'Bayar Pesanan #':'Pay Order #',
+    'Belum Bayar':'Unpaid', 'Belum ada item':'No items yet',
+    'Belum ada menu tambahan — semua item sudah tercetak':'No additions yet — all items have been printed', 'Belum ada menu. Klik "Tambah Menu" untuk membuat.':'No menus yet. Tap "Add Menu" to create one.',
+    'Belum login':'Not signed in', 'Beranda':'Home',
+    'Browser tidak mendukung Web Bluetooth API.\nGunakan Chrome/Edge di Android atau desktop dengan HTTPS.\n\nAtau salin nota manual:':'This browser does not support the Web Bluetooth API.\nUse Chrome/Edge on Android or a desktop with HTTPS.\n\nOr copy the receipt manually:', 'Buka di Chrome > menu titik tiga > "Tambahkan ke layar utama". Aplikasi terpasang sebagai PWA mode fullscreen \u2014 bilah status & navigasi Android ikut tersembunyi, rasanya seperti aplikasi sungguhan.':'Open in Chrome > three-dot menu > "Add to Home screen". The app installs as a fullscreen PWA \u2014 the Android status & navigation bars hide too, it feels like a real app.',
+    'Cabang & Outlet':'Branches & Outlets', 'Camilan':'Snacks',
+    'Cari menu...':'Search menu...', 'Catatan Item':'Item Note',
+    'Catatan dapur (contoh: pedas, tanpa es)':'Kitchen note (e.g. spicy, no ice)', 'Catatan untuk Dapur (opsional)':'Note for the kitchen (optional)',
+    'Catatan untuk item ini':'Note for this item', 'Catatan: ':'Note: ',
+    'Cetak Dapur':'Kitchen Slip', 'Cetak Struk':'Cashier Receipt',
+    'Charcoal Dark':'Charcoal Dark', 'Dapur':'Kitchen',
+    'Dashboard':'Dashboard', 'Data Lokal':'Local Data',
+    'Data awal bersih: 0 transaksi · menu siap Anda isi sendiri':'Clean start: 0 transactions · fill in your own menu', 'Data direset ke awal':'Data has been reset',
+    'Dibayar':'Paid', 'Dine In':'Dine In',
+    'Diskon':'Discount', 'Emerald & Slate':'Emerald & Slate',
+    'Fokus & kesuksesan transaksi':'Focus & transaction success', 'Gagal print: ':'Print failed: ',
+    'Ganti header nota + sambung printer kasir & dapur':'Change receipt header + connect cashier & kitchen printers', 'Hangat, ramah & penuh semangat':'Warm, friendly & energetic',
+    'Hanya menu tambahan':'Additions only', 'Hapus Semua Data Lokal':'Delete All Local Data',
+    'Hapus produk?':'Delete this product?', 'Hapus semua data lokal dan mulai bersih dari awal?':'Delete all local data and start clean from scratch?',
+    'Harga jual wajib diisi':'Selling price is required', 'Hari Ini':'Today',
+    'Hari ini · ':'Today · ', 'Header & Footer Nota':'Receipt Header & Footer',
+    'Header nota + pratinjau + printer kasir & dapur':'Receipt header + preview + cashier & kitchen printers', 'Home':'Home',
+    'Isi nota (':'Receipt content (', 'Item':'Item',
+    'Item Pesanan':'Order Items', 'Kasir':'Cashier',
+    'Kasir & Karyawan':'Cashiers & Staff', 'Kasir/Struk':'Cashier/Receipt',
+    'Kasir: ':'Cashier: ', 'Kelola':'Manage',
+    'Kelola Menu':'Manage Menu', 'Kelola kasir, PIN & hak akses':'Manage cashiers, PINs & access rights',
+    'Kemarin':'Yesterday', 'Kembalian':'Change',
+    'Keranjang':'Cart', 'Keranjang kosong':'Cart is empty',
+    'Ketuk fitur untuk membuka layarnya':'Tap a feature to open its screen', 'Ketuk salah satu — warna seluruh app langsung berubah & tersimpan otomatis.':'Tap one — the whole app changes color instantly & saves automatically.',
+    'Khusus Owner':'Owner Only', 'Khusus owner':'Owner only',
+    'Khusus owner — masukkan kata sandi dulu':'Owner only — enter the password first', 'Koneksi Printer (Nota Kasir & Dapur)':'Printer Connection (Cashier & Kitchen Receipts)',
+    'Konfirmasi ':'Confirm ', 'Konfirmasi Pembayaran':'Confirm Payment',
+    'Konfirmasi setelah transfer diterima':'Confirm once the transfer is received', 'Kosong':'Free',
+    'Laba Rugi':'Profit & Loss', 'Lainnya':'More',
+    'Lapor':'Reports', 'Laporan':'Reports',
+    'Laporan Menu':'Menu Sales', 'Makan di Tempat':'Dine In',
+    'Makanan':'Food', 'Manajemen bahan baku, produk, dan resep':'Manage ingredients, products & recipes',
+    'Manajemen multi-outlet dan hak akses':'Multi-outlet & access management', 'Manis, lembut & ceria':'Sweet, soft & cheerful',
+    'Meja ':'Table ', 'Meja belum dipilih':'No table selected',
+    'Meja: ':'Table: ', 'Menu Lainnya':'Other Menus',
+    'Menu Terlaris':'Best Sellers', 'Menu baru ditambahkan':'New menu added',
+    'Menu diperbarui':'Menu updated', 'Menu terjual hari ini — per item & qty':'Menus sold today, per item & qty',
+    'Metode':'Method', 'Minimalis & ideal':'Minimal & ideal',
+    'Minuman':'Drinks', 'Mode Offline':'Offline Mode',
+    'Mode Online':'Online Mode', 'Multi-cabang & data per outlet':'Multi-branch & per-outlet data',
+    'Nama Pelanggan (opsional)':'Customer name (optional)', 'Nama menu wajib diisi':'Menu name is required',
+    'No. Antrian':'Queue No.', 'Nota & Perangkat':'Receipts & Devices',
+    'Nota & Printer':'Receipt & Printer', 'Nota Dapur':'Kitchen Slip',
+    'Nota Kasir':'Cashier Receipt', 'Nota tambahan: ':'Additional slip: ',
+    'Otomatis ke GitHub · tanpa Termux · opsional':'Automatic to GitHub · without Termux · optional', 'Outlet & Staf':'Outlets & Staff',
+    'Overview':'Overview', 'Owner Zone':'Owner Zone',
+    'Pelanggan':'Customer', 'Pelanggan: ':'Customer: ',
+    'Pembayaran':'Payment', 'Pembayaran Berhasil':'Payment Successful',
+    'Pembayaran berhasil! Cetak struk sekarang?':'Payment successful! Print the receipt now?', 'Pengaturan':'Settings',
+    'Peringkat Menu ':'Menu Ranking ', 'Perubahan produk disimpan':'Product changes saved',
+    'Pesanan':'Orders', 'Pesanan #':'Order #',
+    'Pesanan Baru':'New Order', 'Pesanan tersimpan di menu Pesanan, bisa dibuka & dibayar kapan saja':'Order saved in the Orders menu — open & pay anytime',
+    'Pesanan tersimpan lokal':'Orders stored locally', 'Pesanan tersinkron real-time':'Orders sync in real time',
+    'Pilih Meja':'Choose Table', 'Pilih bahasa tampilan aplikasi — tersimpan otomatis.':'Choose the app display language — saved automatically.',
+    'Pilih metode pembayaran':'Choose a payment method', 'Pink & Putih':'Pink & White',
+    'Pratinjau Nota (persis saat keprint)':'Receipt Preview (exactly as printed)', 'Printer ':'The ',
+    'Produk':'Products', 'Produk "':'Product "',
+    'Reset Data':'Reset Data', 'Ringkasan - ':'Summary - ',
+    'Riwayat':'History', 'Riwayat Pergerakan Stok':'Stock Movement History',
+    'Riwayat Pesanan':'Order History', 'Riwayat Pesanan per Tanggal':'Order History by Date',
+    'Riwayat Transaksi':'Transaction History', 'Royal & Orange':'Royal & Orange',
+    'Sambal':'Sambal', 'Scan QRIS resto Anda untuk membayar':'Scan your restaurant QRIS to pay',
+    'Scan QRIS untuk membayar — (gambar QRIS belum diatur, unggah di Pengaturan → Owner Zone → QRIS Resto)':'Scan the QRIS to pay — (QRIS image not set yet, upload it in Settings → Owner Zone → Restaurant QRIS)', 'Selesai':'Done',
+    'Semua':'All', 'Semua Status':'All Statuses',
+    'Semua item tercetak':'All items printed', 'Semua menu, pesanan, stok & laporan akan kembali ke data awal. Menu yang sudah Anda input HILANG dan tidak dapat dikembalikan.':'All menus, orders, stock & reports return to the initial data. Menus you have entered will be LOST and cannot be restored.',
+    'Set':'Setup', 'Simpan':'Save',
+    'Simpan - Bayar Nanti':'Save — Pay Later', 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)':'Integrated restaurant management system (POS, KDS, Inventory, Reports, Multi-Outlet)',
+    'Stok & Bahan':'Stock & Ingredients', 'Stok & Resep':'Stock & Recipes',
+    'Struk Kasir':'Cashier Receipt', 'Subtotal':'Subtotal',
+    'Sudah Bayar':'Paid', 'Tambah':'Add',
+    'Tambah Menu':'Add Menu', 'Tambah Pesanan':'New Order',
+    'Tambah, edit & hapus menu':'Add, edit & delete menus', 'Tambahan':'Addition',
+    'Tampilan Kotak':'Grid view', 'Tampilan List':'List view',
+    'Tanpa meja (Bawa Pulang)':'No table (Takeaway)', 'Tanpa nama pelanggan':'No customer name',
+    'Tema Warna':'Theme Color', 'Tema: ':'Theme: ',
+    'Tempat / Meja (opsional)':'Place / Table (optional)', 'Terisi':'Occupied',
+    'Terjemahan fitur utama':'Translation of the main features', 'Terpilih':'Selected',
+    'Tips Layar Penuh':'Fullscreen Tip', 'Tombol reset terkunci 5 detik — agar tidak tertekan secara tidak sengaja.':'The reset button is locked for 5 seconds — to prevent accidental taps.',
+    'Total':'Total', 'Total Tagihan':'Total Due',
+    'Transaksi':'Transactions', 'Transfer Bank':'Bank Transfer',
+    'Tunai':'Cash', 'Tunggu ':'Wait ',
+    'Tutup':'Close', 'Uang Diterima':'Cash Received',
+    'Uang Pas':'Exact', 'Uang tidak cukup':'Insufficient cash',
+    'Waktu':'Time', 'Ya, Hapus':'Yes, Delete',
+    'Ya, Reset Data':'Yes, Reset Data', 'Yakin Reset Data?':'Reset the data?',
+    '\n\nNota bisa disalin manual:':'\n\nThe receipt can be copied manually:', 'contoh: Pak Budi / Nunung':'e.g. Mr. Budi / Nunung',
+    'contoh: bungkus / pedas / tanpa MSG':'e.g. takeaway / spicy / no MSG', 'contoh: pahit / tanpa es / tambah pedas':'e.g. bitter / no ice / extra spicy',
+    'contoh: st4 / Meja 5 / Gojek':'e.g. st4 / Table 5 / Gojek'
+};
+function t(s) {
+  if (APP_LANG !== 'en' || s == null) return s;
+  var v = I18N_EN[s];
+  return v === undefined ? s : v;
 }
 
 // ===== UTILS =====
@@ -559,7 +697,7 @@ function generateSeed() {
   const orders = [];
   return {
     outlets, employees, tables, products, materials, orders, movements: [],
-    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', qrisImage:'' },
+    settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', lang:'id', qrisImage:'' },
   };
 }
 
@@ -607,8 +745,9 @@ function AppProvider({ children }) {
     }
     if (!loaded) loaded = generateSeed();
     // Normalisasi settings: field baru (mis. theme) dapat default aman utk data lama
-    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', qrisImage:'' }, loaded.settings || {});
+    loaded.settings = Object.assign({ taxRate:0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', lang:'id', qrisImage:'' }, loaded.settings || {});
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
+    if (loaded.settings.lang !== 'en') loaded.settings.lang = 'id'; // v2.13: hanya 'id' | 'en'
     loaded.archivedOrders = loaded.archivedOrders || [];
     // v2.10 NORMALISASI DATA — perbaiki layar blank putih di Stok & Bahan → tab
     // Produk: data lama/backup kadang punya produk TANPA varian (p.variants
@@ -721,6 +860,8 @@ function AppProvider({ children }) {
     // setter umum utk Owner Zone (QRIS, dll)
     updateSettings: (patch) => setState(s => ({ ...s, settings: { ...s.settings, ...(patch || {}) } })),
     setTheme: (t) => setState(s => (MD_THEME_KEYS.indexOf(t) === -1 || t === s.settings.theme) ? s : ({ ...s, settings: { ...s.settings, theme: t } })),
+    // v2.13: ganti bahasa aplikasi (Indonesia / English) — tersimpan di settings.lang
+    setLang: (l) => setState(s => (['id','en'].indexOf(l) === -1 || l === s.settings.lang) ? s : ({ ...s, settings: { ...s.settings, lang: l } })),
     addToCart: (productId, variantId) => {
       const p = state.products.find(x => x.id === productId); if (!p) return;
       const v = variantId ? p.variants.find(x => x.id === variantId) : undefined;
@@ -986,15 +1127,15 @@ function ConfirmResetModal({ open, onClose, onConfirm }) {
       React.createElement('div', { className: 'mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-red-50 border border-red-200' },
         React.createElement(Icon, { name: 'triangle-alert', className: 'w-7 h-7 text-red-500' })
       ),
-      React.createElement('h2', { className: 'text-base font-bold text-slate-900' }, 'Yakin Reset Data?'),
+      React.createElement('h2', { className: 'text-base font-bold text-slate-900' }, t('Yakin Reset Data?')),
       React.createElement('p', { className: 'text-xs text-slate-500 mt-1.5 leading-relaxed' },
-        'Semua menu, pesanan, stok & laporan bakal balik ke data awal. Menu yang sudah kamu input HILANG dan gak bisa dikembalikan.'),
+        t('Semua menu, pesanan, stok & laporan akan kembali ke data awal. Menu yang sudah Anda input HILANG dan tidak dapat dikembalikan.')),
       React.createElement('p', { className: 'text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5 mt-3' },
-        'Tombol reset terkunci 5 detik — biar gak ke pencet gak sengaja.'),
+        t('Tombol reset terkunci 5 detik — agar tidak tertekan secara tidak sengaja.')),
       React.createElement('div', { className: 'mt-4 flex gap-2' },
-        React.createElement(Button, { variant: 'outline', className: 'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant: 'outline', className: 'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { variant: 'destructive', className: 'flex-1', disabled: !ready, onClick: function() { if (ready) onConfirm(); } },
-          ready ? 'Ya, Reset Data' : 'Tunggu ' + left + ' detik…'
+          ready ? t('Ya, Reset Data') : t('Tunggu ') + left + t(' detik…')
         )
       )
     )
@@ -1130,7 +1271,7 @@ function Topbar({ title, subtitle, rightSlot, leftSlot, tone, onBack }) {
       onSave: (patch) => { addOutlet(patch); setOutletNew(false); show('Outlet baru ditambahkan'); }
     }),
     // v2.12: reset dari Topbar desktop juga lewat konfirmasi + jeda 5 detik
-    React.createElement(ConfirmResetModal, { open: resetAsk, onClose: function() { setResetAsk(false); }, onConfirm: function() { setResetAsk(false); resetDemo(); show('Data direset ke awal'); } })
+    React.createElement(ConfirmResetModal, { open: resetAsk, onClose: function() { setResetAsk(false); }, onConfirm: function() { setResetAsk(false); resetDemo(); show(t('Data direset ke awal')); } })
   );
 }
 
@@ -1149,7 +1290,7 @@ function OutletEditDialog({ outlet, onClose, onSave }) {
       React.createElement('div', { className:'space-y-3' },
         React.createElement('div', null,
           React.createElement(Label, null, 'Nama Outlet'),
-          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Cabang Paron', autoFocus: true })
+          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'contoh: Cabang Paron', autoFocus: true })
         ),
         React.createElement('div', null,
           React.createElement(Label, null, 'Alamat'),
@@ -1161,9 +1302,9 @@ function OutletEditDialog({ outlet, onClose, onSave }) {
         )
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), address: address.trim(), phone: phone.trim(), active: true }) },
-          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? t('Simpan') : t('Tambah')
         )
       )
     )
@@ -1174,16 +1315,16 @@ function Sidebar({ active, onChange }) {
   // NAV lengkap (desktop). Mobile: 5 slot ala aplikasi kasir + FAB tengah:
   // Home · Pesanan · [FAB +] · Lapor · Set
   const NAV = [
-    { key:'dashboard', label:'Beranda', icon:'house', mobile:true },
-    { key:'pos', label:'Tambah Pesanan', icon:'shopping-cart', mobile:true },
-    { key:'orders', label:'Pesanan', icon:'clipboard-list', mobile:true },
-    { key:'inventory', label:'Stok & Resep', icon:'boxes', mobile:true },
-    { key:'reports', label:'Laporan', icon:'bar-chart-3', mobile:true },
-    { key:'settings', label:'Pengaturan', icon:'settings', mobile:true },
-    { key:'produk', label:'Produk', icon:'package', divider:true },
-    { key:'more', label:'Lainnya', icon:'layout-grid' },
-    { key:'kitchen', label:'Laporan Menu', icon:'utensils-crossed' },
-    { key:'outlets', label:'Outlet & Staf', icon:'store' },
+    { key:'dashboard', label: t('Beranda'), icon:'house', mobile:true },
+    { key:'pos', label: t('Tambah Pesanan'), icon:'shopping-cart', mobile:true },
+    { key:'orders', label: t('Pesanan'), icon:'clipboard-list', mobile:true },
+    { key:'inventory', label: t('Stok & Resep'), icon:'boxes', mobile:true },
+    { key:'reports', label: t('Laporan'), icon:'bar-chart-3', mobile:true },
+    { key:'settings', label: t('Pengaturan'), icon:'settings', mobile:true },
+    { key:'produk', label: t('Produk'), icon:'package', divider:true },
+    { key:'more', label: t('Lainnya'), icon:'layout-grid' },
+    { key:'kitchen', label: t('Laporan Menu'), icon:'utensils-crossed' },
+    { key:'outlets', label: t('Outlet & Staf'), icon:'store' },
   ];
   function mobTab(key, label, icon) {
     const isActive = active === key;
@@ -1205,11 +1346,11 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.12')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.13')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
-        item.divider && React.createElement('p', { className:'text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1' }, 'Menu Lainnya'),
+        item.divider && React.createElement('p', { className:'text-[10px] font-bold tracking-wider text-slate-500 uppercase px-3 pt-3 pb-1' }, t('Menu Lainnya')),
         React.createElement('button', {
           onClick: () => onChange(item.key),
           className: cn('flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 active:scale-[0.97]', active === item.key ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/25' : 'text-slate-300 hover:bg-white/10 hover:text-white')
@@ -1221,15 +1362,15 @@ function Sidebar({ active, onChange }) {
     ),
     React.createElement('nav', { className:'md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/70 bg-white rounded-t-3xl safe-bottom shadow-[0_-10px_34px_rgba(15,23,42,0.12)]' },
       React.createElement('div', { className:'flex w-full items-end justify-around px-1 pt-1 pb-1' },
-        mobTab('dashboard', 'Home', 'house'),
-        mobTab('orders', 'Pesanan', 'clipboard-list'),
+        mobTab('dashboard', t('Home'), 'house'),
+        mobTab('orders', t('Pesanan'), 'clipboard-list'),
         React.createElement('div', { key:'fab', className:'flex-1 flex justify-center' },
-          React.createElement('button', { onClick: function() { onChange('pos'); }, 'aria-label':'Tambah Pesanan', title:'Tambah Pesanan', className:'grid h-16 w-16 -mt-9 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-xl shadow-emerald-600/40 border-4 border-white transition-transform active:scale-95' },
+          React.createElement('button', { onClick: function() { onChange('pos'); }, 'aria-label':t('Tambah Pesanan'), title:t('Tambah Pesanan'), className:'grid h-16 w-16 -mt-9 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-xl shadow-emerald-600/40 border-4 border-white transition-transform active:scale-95' },
             React.createElement(Icon, { name:'plus', className:'w-7 h-7' })
           )
         ),
-        mobTab('reports', 'Lapor', 'bar-chart-3'),
-        mobTab('settings', 'Set', 'settings')
+        mobTab('reports', t('Lapor'), 'bar-chart-3'),
+        mobTab('settings', t('Set'), 'settings')
       )
     )
   );
@@ -1546,7 +1687,7 @@ function DashboardView({ onNavigate }) {
   const catDist = Array.from(catMap.entries()).map(([name, value]) => ({ name, value }));
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Dashboard', subtitle:'Ringkasan - ' + (outlet?.name || '') }),
+    React.createElement(Topbar, { title: t('Dashboard'), subtitle: t('Ringkasan - ') + (outlet?.name || '') }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 space-y-3 md:space-y-4 pb-40 md:pb-6 min-h-0' },
       // v2.10: kartu cuaca NAIK ke paling atas (permintaan owner) — 4 kotak di bawahnya
       React.createElement(WeatherCard, null),
@@ -1778,77 +1919,77 @@ function POSView({ onBack }) {
   }
   function handleCheckout(method, paid, discount) {
     const order = checkout({ method, paid, discount, customerName, notes, tempat });
-    if (!order) { show('Keranjang kosong', 'error'); return; }
+    if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setPaymentDialog(false); setCartOpen(false);
     setReceipt({
       id:order.id, number:order.number, total:order.total, paid:order.paid, change:order.change, method,
-      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
+      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber, createdAt: order.createdAt,
       serviceCharge: order.serviceCharge, discount: order.discount, cashierName: order.cashierName,
     });
     setCustomerName(''); setNotes(''); setTempat('');
-    show('Pesanan #' + order.number + ' (Antrian: ' + order.queueNumber + ') terkirim ke dapur');
+    show(t('Pesanan #') + order.number + t(' (Antrian: ') + order.queueNumber + t(') terkirim ke dapur'));
   }
 
   function handleSaveOrder(discount) {
     const order = saveUnpaidOrder({ discount, customerName, notes, tempat });
-    if (!order) { show('Keranjang kosong', 'error'); return; }
+    if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setPaymentDialog(false); setCartOpen(false);
     setCustomerName(''); setNotes(''); setTempat('');
-    show('Pesanan #' + order.number + ' disimpan. Bayar nanti di menu Pesanan');
+    show(t('Pesanan #') + order.number + t(' disimpan. Bayar nanti di menu Pesanan'));
   }
 
   // Bikin order UNPAID + langsung cetak struk kasir
   function handleCetakStruk() {
     const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat });
-    if (!order) { show('Keranjang kosong', 'error'); return; }
+    if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setCartOpen(false);
     setCustomerName(''); setNotes(''); setTempat('');
     const receipt = {
       id:order.id, number:order.number, total:order.total, paid:0, change:0, method:'UNPAID',
-      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
+      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber,
       createdAt: order.createdAt, serviceCharge: order.serviceCharge, discount: order.discount || 0, cashierName: order.cashierName,
     };
-    show('Pesanan #' + order.number + ' dibuat. Mencetak struk kasir...');
+    show(t('Pesanan #') + order.number + t(' dibuat. Mencetak struk kasir...'));
     setTimeout(() => printReceipt(receipt, 'kasir'), 300);
   }
 
   // Bikin order UNPAID + langsung cetak nota dapur
   function handleCetakDapur() {
     const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat });
-    if (!order) { show('Keranjang kosong', 'error'); return; }
+    if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setCartOpen(false);
     setCustomerName(''); setNotes(''); setTempat('');
     const receipt = {
       id:order.id, number:order.number, total:order.total, paid:0, change:0, method:'UNPAID',
-      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
+      items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber,
       createdAt: order.createdAt, serviceCharge: order.serviceCharge, discount: order.discount || 0, cashierName: order.cashierName,
     };
     markKitchenPrinted(order.id); // v2.10: nota dapur pertama = baseline item tambahan
-    show('Pesanan #' + order.number + ' dibuat. Mencetak nota dapur...');
+    show(t('Pesanan #') + order.number + t(' dibuat. Mencetak nota dapur...'));
     setTimeout(() => printReceipt(receipt, 'dapur'), 300);
   }
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, {
-      title:'Tambah Pesanan', subtitle: cashier ? 'Kasir: ' + cashier.name : 'Belum login', tone:'gradient', onBack: onBack
+      title: t('Tambah Pesanan'), subtitle: cashier ? t('Kasir: ') + cashier.name : t('Belum login'), tone:'gradient', onBack: onBack
     }),
     React.createElement('main', { className:'flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-2 p-2 md:p-4 overflow-hidden pb-20 md:pb-4' },
       React.createElement('div', { className:'flex flex-col gap-2 min-w-0 overflow-hidden' },
         React.createElement('div', { className:'flex items-center gap-2 flex-wrap' },
           React.createElement('div', { className:'relative flex-1 min-w-[140px]' },
             React.createElement(Icon, { name:'search', className:'w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400' }),
-            React.createElement(Input, { placeholder:'Cari menu...', value: search, onChange: e => setSearch(e.target.value), className:'pl-8 h-8' })
+            React.createElement(Input, { placeholder:t('Cari menu...'), value: search, onChange: e => setSearch(e.target.value), className:'pl-8 h-8' })
           ),
           React.createElement(Button, { size:'sm', variant:'default', onClick: () => setAddMenuOpen(true), className:'h-9 shrink-0 gap-1.5 bg-emerald-500 hover:bg-emerald-600' },
             React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
-            React.createElement('span', { className:'hidden sm:inline' }, 'Tambah Menu')
+            React.createElement('span', { className:'hidden sm:inline' }, t('Tambah Menu'))
           ),
           // View toggle: Grid (kotak) vs List (panjang ke kanan)
           React.createElement('div', { className:'flex items-center gap-0.5 rounded-lg border border-slate-200 p-0.5 shrink-0' },
-            [{mode:'grid', icon:'layout-grid', label:'Tampilan Kotak'},{mode:'list', icon:'list', label:'Tampilan List'}].map(function(item) {
+            [{mode:'grid', icon:'layout-grid', label: t('Tampilan Kotak')},{mode:'list', icon:'list', label: t('Tampilan List')}].map(function(item) {
               return React.createElement('button', {
                 key: item.mode, onClick: function() { setViewMode(item.mode); }, title: item.label,
                 className: cn('grid h-7 w-7 place-items-center rounded-md text-xs transition-all', viewMode === item.mode ? 'bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-100')
@@ -1856,10 +1997,10 @@ function POSView({ onBack }) {
             })
           ),
           React.createElement('div', { className:'flex gap-1 overflow-x-auto no-scrollbar max-w-full' },
-            React.createElement(Button, { size:'sm', variant: activeCat==='ALL' ? 'default':'outline', onClick: () => setActiveCat('ALL'), className:'h-9 shrink-0' }, 'Semua'),
+            React.createElement(Button, { size:'sm', variant: activeCat==='ALL' ? 'default':'outline', onClick: () => setActiveCat('ALL'), className:'h-9 shrink-0' }, t('Semua')),
             allCatList(settings).map(c => React.createElement(Button, { key: c.key, size:'sm', variant: activeCat===c.key ? 'default':'outline', onClick: () => setActiveCat(c.key), className:'h-9 shrink-0 gap-1.5' },
               React.createElement('span', { className:'text-xs' }, c.emoji),
-              React.createElement('span', null, c.label)
+              React.createElement('span', null, t(c.label))
             ))
           )
         ),
@@ -1945,11 +2086,11 @@ function POSView({ onBack }) {
           React.createElement('div', { className:'h-1 w-12 rounded-full bg-slate-300' })
         ),
         React.createElement('div', { className:'flex items-center justify-between mb-3' },
-          React.createElement('h2', { className:'text-base font-bold flex items-center gap-2' }, React.createElement(Icon, { name:'shopping-cart', className:'w-4 h-4' }), 'Keranjang (', cartCount, ')'),
+          React.createElement('h2', { className:'text-base font-bold flex items-center gap-2' }, React.createElement(Icon, { name:'shopping-cart', className:'w-4 h-4' }), t('Keranjang'), ' (', cartCount, ')'),
           cart.length > 0 && React.createElement(Button, { size:'sm', variant:'ghost', className:'text-red-600 h-7', onClick: clearCart }, React.createElement(Icon, { name:'trash-2', className:'w-3.5 h-3.5' }), 'Kosongkan')
         ),
         React.createElement('div', { className:'space-y-2 max-h-[40vh] overflow-y-auto' },
-          cart.length === 0 && React.createElement('p', { className:'text-center text-sm text-slate-500 py-8' }, 'Keranjang kosong'),
+          cart.length === 0 && React.createElement('p', { className:'text-center text-sm text-slate-500 py-8' }, t('Keranjang kosong')),
           cart.map(c => React.createElement('div', { key: c.id, className:'rounded-lg border p-2.5' },
             React.createElement('div', { className:'flex items-start justify-between gap-2' },
               React.createElement('div', { className:'flex-1 min-w-0' },
@@ -1962,7 +2103,8 @@ function POSView({ onBack }) {
                 React.createElement('button', { onClick: () => removeFromCart(c.id), className:'text-emerald-600 p-1' }, React.createElement(Icon, { name:'x', className:'w-3.5 h-3.5' }))
               )
             ),
-            c.notes && React.createElement('p', { className:'text-[11px] text-amber-600 italic mt-1 pl-1' }, '📝 ' + c.notes),
+            // v2.13: kolom catatan per menu — sama seperti keranjang desktop
+            React.createElement(Input, { value: c.notes || '', onChange: e => updateCartItemNotes(c.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' }),
             React.createElement('div', { className:'flex items-center justify-between mt-2' },
               React.createElement('div', { className:'flex items-center gap-1' },
                 React.createElement(Button, { size:'icon', variant:'outline', className:'h-8 w-8', onClick: () => updateCartQty(c.id, c.quantity-1) }, React.createElement(Icon, { name:'minus', className:'w-3 h-3' })),
@@ -1976,16 +2118,16 @@ function POSView({ onBack }) {
         cart.length > 0 && React.createElement('div', { className:'space-y-2 border-t pt-3 mt-3' },
           React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), mobile: true }),
           React.createElement('div', null,
-            React.createElement(Label, null, 'Nama Pelanggan (opsional)'),
-            React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:'cth: Pak Budi / Nunung', className:'h-9' })
+            React.createElement(Label, null, t('Nama Pelanggan (opsional)')),
+            React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:t('contoh: Pak Budi / Nunung'), className:'h-9' })
           ),
           React.createElement('div', null,
-            React.createElement(Label, null, 'Tempat / Meja (opsional)'),
-            React.createElement(Input, { value: tempat, onChange: e => setTempat(e.target.value), placeholder:'cth: st4 / Meja 5 / Gojek', className:'h-9' })
+            React.createElement(Label, null, t('Tempat / Meja (opsional)')),
+            React.createElement(Input, { value: tempat, onChange: e => setTempat(e.target.value), placeholder:t('contoh: st4 / Meja 5 / Gojek'), className:'h-9' })
           ),
           React.createElement('div', null,
-            React.createElement(Label, null, 'Catatan untuk Dapur (opsional)'),
-            React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:'cth: BUNGKUS / pedas / tanpa MSG', className:'h-9' })
+            React.createElement(Label, null, t('Catatan untuk Dapur (opsional)')),
+            React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:t('contoh: bungkus / pedas / tanpa MSG'), className:'h-9' })
           ),
           React.createElement(CartActions, { total, onPay: () => setPaymentDialog(true), onSaveLater: handleSaveOrder, onCetakStruk: handleCetakStruk, onCetakDapur: handleCetakDapur })
         )
@@ -1994,19 +2136,19 @@ function POSView({ onBack }) {
     // Table picker
     React.createElement(Modal, { open: tableModal, onClose: () => setTableModal(false) },
       React.createElement('div', { className:'p-4' },
-        React.createElement('h2', { className:'text-lg font-bold mb-3' }, 'Pilih Meja'),
+        React.createElement('h2', { className:'text-lg font-bold mb-3' }, t('Pilih Meja')),
         React.createElement('div', { className:'grid grid-cols-3 gap-2' },
-          outletTables.map(t => {
-            const isCurrent = t.id === cartTableId;
-            const isOccupied = t.status === 'OCCUPIED' && !isCurrent;
-            return React.createElement('button', { key: t.id, disabled: isOccupied, onClick: () => { setCartTable(t.id); setCartOrderType('DINE_IN'); setTableModal(false); show('Meja ' + t.number + ' dipilih'); }, className: cn('rounded-lg border p-3 text-center min-h-[80px] transition-all', isCurrent ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30' : 'hover:border-emerald-400', isOccupied && 'bg-slate-50 opacity-40') },
-              React.createElement('div', { className:'text-sm font-bold' }, t.number),
-              React.createElement('div', { className:'text-[10px] text-slate-500' }, t.capacity + ' kursi'),
-              React.createElement('div', { className:'text-[10px] mt-1' }, isCurrent ? 'Terpilih' : isOccupied ? 'Terisi' : 'Kosong')
+          outletTables.map(tb => {
+            const isCurrent = tb.id === cartTableId;
+            const isOccupied = tb.status === 'OCCUPIED' && !isCurrent;
+            return React.createElement('button', { key: tb.id, disabled: isOccupied, onClick: () => { setCartTable(tb.id); setCartOrderType('DINE_IN'); setTableModal(false); show(t('Meja ') + tb.number + t(' dipilih')); }, className: cn('rounded-lg border p-3 text-center min-h-[80px] transition-all', isCurrent ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30' : 'hover:border-emerald-400', isOccupied && 'bg-slate-50 opacity-40') },
+              React.createElement('div', { className:'text-sm font-bold' }, tb.number),
+              React.createElement('div', { className:'text-[10px] text-slate-500' }, tb.capacity + t(' kursi')),
+              React.createElement('div', { className:'text-[10px] mt-1' }, isCurrent ? t('Terpilih') : isOccupied ? t('Terisi') : t('Kosong'))
             );
           })
         ),
-        React.createElement(Button, { variant:'ghost', size:'sm', className:'w-full mt-3', onClick: () => { setCartTable(undefined); setTableModal(false); } }, 'Tanpa meja (Takeaway)')
+        React.createElement(Button, { variant:'ghost', size:'sm', className:'w-full mt-3', onClick: () => { setCartTable(undefined); setTableModal(false); } }, t('Tanpa meja (Bawa Pulang)'))
       )
     ),
     // Variant picker
@@ -2019,16 +2161,16 @@ function POSView({ onBack }) {
         React.createElement('div', { className:'flex items-center gap-2 mb-3' },
           React.createElement('div', { className:'grid h-10 w-10 place-items-center rounded-full bg-emerald-100' }, React.createElement(Icon, { name:'check-circle-2', className:'w-6 h-6 text-emerald-600' })),
           React.createElement('div', null,
-            React.createElement('h2', { className:'text-lg font-bold' }, 'Pembayaran Berhasil'),
-            React.createElement('p', { className:'text-xs text-slate-500' }, 'Pesanan #' + receipt.number)
+            React.createElement('h2', { className:'text-lg font-bold' }, t('Pembayaran Berhasil')),
+            React.createElement('p', { className:'text-xs text-slate-500' }, t('Pesanan #') + receipt.number)
           )
         ),
         React.createElement('div', { className:'rounded-lg border bg-slate-50 p-3 text-sm font-mono space-y-1' },
-          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, 'Metode'), React.createElement('span', null, receipt.method)),
-          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, 'Total'), React.createElement('span', null, formatRupiah(receipt.total))),
-          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, 'Dibayar'), React.createElement('span', null, formatRupiah(receipt.paid))),
+          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, t('Metode')), React.createElement('span', null, receipt.method)),
+          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, t('Total')), React.createElement('span', null, formatRupiah(receipt.total))),
+          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', null, t('Dibayar')), React.createElement('span', null, formatRupiah(receipt.paid))),
           React.createElement(Separator, null),
-          React.createElement('div', { className:'flex justify-between font-bold' }, React.createElement('span', null, 'Kembalian'), React.createElement('span', null, formatRupiah(receipt.change)))
+          React.createElement('div', { className:'flex justify-between font-bold' }, React.createElement('span', null, t('Kembalian')), React.createElement('span', null, formatRupiah(receipt.change)))
         ),
         React.createElement('div', { className:'rounded-lg border p-3 mt-3 max-h-[200px] overflow-y-auto' },
           receipt.items.map((it, i) => React.createElement('div', { key: i, className:'flex justify-between text-sm py-0.5' },
@@ -2036,14 +2178,19 @@ function POSView({ onBack }) {
             React.createElement('span', null, formatRupiah(it.qty * it.price))
           ))
         ),
-        React.createElement('div', { className:'mt-3' },
-          React.createElement(Button, { variant:'outline', className:'w-full gap-1.5', onClick: () => printReceipt(receipt, 'kasir') },
-            React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), 'Print Struk'
-          )
+      // v2.13: tamu sering bayar langsung — tombol cetak di layar sukses jadi 2:
+      // nota dapur (dapur langsung masak) + struk kasir (bukti bayar). (permintaan owner)
+      React.createElement('div', { className:'grid grid-cols-2 gap-2 mt-3' },
+        React.createElement(Button, { variant:'outline', className:'gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50', onClick: () => { markKitchenPrinted(receipt.id); printReceipt(receipt, 'dapur'); } },
+          React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4' }), t('Cetak Dapur')
         ),
+        React.createElement(Button, { variant:'outline', className:'gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => printReceipt(receipt, 'kasir') },
+          React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), t('Struk Kasir')
+        )
+      ),
         React.createElement('div', { className:'flex gap-2 mt-2' },
-          React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setReceipt(null) }, 'Tutup'),
-          React.createElement(Button, { className:'flex-1', onClick: () => setReceipt(null) }, 'Pesanan Baru')
+          React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setReceipt(null) }, t('Tutup')),
+          React.createElement(Button, { className:'flex-1', onClick: () => setReceipt(null) }, t('Pesanan Baru'))
         )
       )
     ),
@@ -2056,7 +2203,7 @@ function POSView({ onBack }) {
         onSave: (id, notes) => { updateCartItemNotes(id, notes); setItemNotesPicker(null); show('Catatan item disimpan'); }
       })
     ),
-    React.createElement(AddMenuDialog, { open: addMenuOpen, onClose: () => setAddMenuOpen(false), onSaved: () => { setAddMenuOpen(false); show('Menu baru ditambahkan'); } })
+    React.createElement(AddMenuDialog, { open: addMenuOpen, onClose: () => setAddMenuOpen(false), onSaved: () => { setAddMenuOpen(false); show(t('Menu baru ditambahkan')); } })
   );
 }
 
@@ -2067,14 +2214,14 @@ const ItemNotesEditor = ({ item, onClose, onSave }) => {
   const [notes, setNotes] = React.useState(item?.notes || '');
   return React.createElement('div', { className:'p-4' },
     React.createElement('h2', { className:'text-lg font-bold mb-1 flex items-center gap-2' },
-      React.createElement(Icon, { name:'pencil', className:'w-5 h-5 text-emerald-600' }), 'Catatan Item'
+      React.createElement(Icon, { name:'pencil', className:'w-5 h-5 text-emerald-600' }), t('Catatan Item')
     ),
     React.createElement('p', { className:'text-sm text-slate-500 mb-3' }, item ? item.productName + (item.variantName ? ' (' + item.variantName + ')' : '') : ''),
-    React.createElement(Label, null, 'Catatan untuk item ini'),
-    React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:'cth: pahit / tanpa es / extra pedas', autoFocus: true, className:'h-10' }),
+    React.createElement(Label, null, t('Catatan untuk item ini')),
+    React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:t('contoh: pahit / tanpa es / tambah pedas'), autoFocus: true, className:'h-10' }),
     React.createElement('div', { className:'flex gap-2 mt-4' },
-      React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
-      React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: () => onSave(item.id, notes) }, 'Simpan')
+      React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
+      React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: () => onSave(item.id, notes) }, t('Simpan'))
     )
   );
 };
@@ -2111,8 +2258,8 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
   }, [open, editProduct]);
 
   function save() {
-    if (!name.trim()) { show('Nama menu wajib diisi', 'error'); return; }
-    if (!price || parseFloat(price) <= 0) { show('Harga jual wajib diisi', 'error'); return; }
+    if (!name.trim()) { show(t('Nama menu wajib diisi'), 'error'); return; }
+    if (!price || parseFloat(price) <= 0) { show(t('Harga jual wajib diisi'), 'error'); return; }
     if (isEdit) {
       const updated = {
         ...editProduct,
@@ -2158,7 +2305,7 @@ const AddMenuDialog = ({ open, onClose, onSaved, editProduct }) => {
         // Nama
         React.createElement('div', null,
           React.createElement(Label, null, 'Nama Menu'),
-          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Nasi Goreng Spesial', autoFocus: true })
+          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'contoh: Nasi Goreng Spesial', autoFocus: true })
         ),
         // Kategori - dengan emoji & warna — v2.10: bisa BIKIN kategori sendiri (+ Kategori)
         // dan HAPUS kategori (tombol x merah) — bawaan maupun buatan sendiri, kecuali
@@ -2232,7 +2379,7 @@ function CategoryModal({ onClose, onSave }) {
       React.createElement('h2', { className:'text-base font-bold mb-1' }, 'Kategori Baru'),
       React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Bikin kategori sendiri — nanti langsung muncul di semua pilihan kategori & layar pesanan.'),
       React.createElement(Label, null, 'Nama Kategori'),
-      React.createElement(Input, { value: lbl, onChange: function(e) { setLbl(e.target.value); }, placeholder:'cth: Seafood, Paket Hemat, Merchandise', autoFocus: true }),
+      React.createElement(Input, { value: lbl, onChange: function(e) { setLbl(e.target.value); }, placeholder:'contoh: Seafood, Paket Hemat, Merchandise', autoFocus: true }),
       React.createElement(Label, null, 'Ikon (emoji)'),
       React.createElement('div', { className:'grid grid-cols-8 gap-1.5' },
         CAT_EMOJI_CHOICES.map(function(em) {
@@ -2241,7 +2388,7 @@ function CategoryModal({ onClose, onSave }) {
         })
       ),
       React.createElement('div', { className:'flex gap-2 mt-4 pt-3 border-t' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !(lbl || '').trim(),
           onClick: function() { if (!(lbl || '').trim()) return; onSave(lbl.trim(), emoji); } },
           React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Simpan Kategori')
@@ -2362,7 +2509,7 @@ function getNextQueueNumber() {
 
 // ===== ORDER TYPE LABELS (Mengikuti Waroeng Semilir) =====
 const ORDER_TYPE_LABELS = {
-  DINE_IN: 'Makan Ditempat',
+  DINE_IN: 'Makan di Tempat',
   TAKEAWAY: 'Bawa Pulang',
 };
 
@@ -2414,10 +2561,13 @@ function formatReceiptESCPOS(receipt, type) {
 
   // === ITEM PESANAN ===
   if (type === 'dapur' || type === 'dapur-tambahan') {
-    // Nota dapur: qty + nama, no harga, pakai UPPERCASE
+    // Nota dapur: qty + nama tanpa harga. v2.13: TIDAK LAGI UPPERCASE — nama menu
+    // dicetak huruf normal persis seperti di daftar menu (permintaan owner:
+    // "jgn kapital semua, normal aja kaya nama di menunya biar ga makan space").
+    // Berlaku untuk SEMUA nota: dapur & kasir sama-sama huruf normal.
     receipt.items.forEach(it => {
       const baseName = (it.name || '').split(' (')[0];
-      lines.push((it.qty + ' ' + baseName).toUpperCase());
+      lines.push(it.qty + ' ' + baseName);
       if (it.notes) lines.push('  cat: ' + it.notes);
     });
   } else {
@@ -2496,18 +2646,18 @@ async function printReceipt(receipt, printerType) {
   // v2.10: nota tambahan gak punya printer sendiri — pakai printer dapur yang sama,
   // formatnya beda (cuma item tambahan + kepala nota DAPUR - TAMBAHAN)
   const pType = printerType === 'dapur-tambahan' ? 'dapur' : printerType;
-  const printerLabel = (printerType === 'dapur' || printerType === 'dapur-tambahan') ? 'Dapur' : 'Kasir/Struk';
+  const printerLabel = (printerType === 'dapur' || printerType === 'dapur-tambahan') ? t('Dapur') : t('Kasir/Struk');
   const printers = getPrinters();
   const saved = printers[pType];
   // Strip escape chars untuk display manual
   const stripEsc = stripEscForPreview;
   if (!saved) {
-    alert('Printer ' + printerLabel + ' belum dipilih.\n\nBuka menu Pengaturan → Printer Bluetooth untuk memilih printer terlebih dahulu.');
+    alert(t('Printer ') + printerLabel + t(' belum dipilih.\n\nBuka menu Pengaturan → Printer Bluetooth untuk memilih printer terlebih dahulu.'));
     return;
   }
   if (!navigator.bluetooth) {
-    alert('Browser tidak mendukung Web Bluetooth API.\nGunakan Chrome/Edge di Android atau desktop dengan HTTPS.\n\nAtau salin nota manual:');
-    prompt('Isi nota (' + printerType + '):', stripEsc(formatReceiptESCPOS(receipt, printerType)));
+    alert(t('Browser tidak mendukung Web Bluetooth API.\nGunakan Chrome/Edge di Android atau desktop dengan HTTPS.\n\nAtau salin nota manual:'));
+    prompt(t('Isi nota (') + printerType + t('):'), stripEsc(formatReceiptESCPOS(receipt, printerType)));
     return;
   }
   try {
@@ -2541,8 +2691,8 @@ async function printReceipt(receipt, printerType) {
     // Silent success (tidak alert kalau sukses, biar cepat)
   } catch (e) {
     _printerDeviceCache[pType] = null; // Clear cache kalau gagal
-    alert('Gagal print: ' + e.message + '\n\nNota bisa disalin manual:');
-    prompt('Isi nota (' + printerType + '):', stripEsc(formatReceiptESCPOS(receipt, printerType)));
+    alert(t('Gagal print: ') + e.message + t('\n\nNota bisa disalin manual:'));
+    prompt(t('Isi nota (') + printerType + t('):'), stripEsc(formatReceiptESCPOS(receipt, printerType)));
   }
 }
 
@@ -2574,7 +2724,7 @@ function ReceiptPreview({ ver }) {
       React.createElement('div', { className:'flex items-center justify-between mb-3 flex-wrap gap-2' },
         React.createElement('p', { className:'font-bold text-sm' }, 'Pratinjau Nota'),
         React.createElement('div', { className:'flex gap-1 flex-wrap' },
-          [{ k:'kasir', l:'Nota Kasir' }, { k:'dapur', l:'Nota Dapur' }].map(t =>
+          [{ k:'kasir', l: t('Nota Kasir') }, { k:'dapur', l: t('Nota Dapur') }].map(t =>
             React.createElement('button', { key: t.k, onClick: function() { setTab(t.k); },
               className: cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                 tab === t.k ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }, t.l)),
@@ -2613,21 +2763,21 @@ function ReceiptPreview({ ver }) {
   );
 }
 
-const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes }) => {
+const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes, onUpdateItemNotes }) => {
   return React.createElement(React.Fragment, null,
     React.createElement('div', { className:'p-4 pb-3 border-b' },
       React.createElement('div', { className:'flex items-center justify-between' },
-        React.createElement('h2', { className:'text-base font-bold flex items-center gap-2' }, React.createElement(Icon, { name:'shopping-cart', className:'w-4 h-4' }), 'Keranjang', cartCount > 0 && React.createElement(Badge, { variant:'secondary' }, cartCount)),
+        React.createElement('h2', { className:'text-base font-bold flex items-center gap-2' }, React.createElement(Icon, { name:'shopping-cart', className:'w-4 h-4' }), t('Keranjang'), cartCount > 0 && React.createElement(Badge, { variant:'secondary' }, cartCount)),
         cart.length > 0 && React.createElement(Button, { size:'sm', variant:'ghost', className:'text-red-600 h-7', onClick: onClear }, React.createElement(Icon, { name:'trash-2', className:'w-3.5 h-3.5' }), 'Kosongkan')
       ),
       React.createElement('div', { className:'flex gap-1 mt-2' },
-        ['DINE_IN','TAKEAWAY'].map(t => React.createElement(Button, { key: t, size:'sm', variant: cartOrderType === t ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(t); if (t !== 'DINE_IN') onClearTable(); } }, t === 'DINE_IN' ? 'Dine In' : 'Bawa Pulang'))
+        ['DINE_IN','TAKEAWAY'].map(ot => React.createElement(Button, { key: ot, size:'sm', variant: cartOrderType === ot ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(ot); if (ot !== 'DINE_IN') onClearTable(); } }, ot === 'DINE_IN' ? t('Dine In') : t('Bawa Pulang')))
       ),
-      cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, selectedTable ? 'Meja: ' + selectedTable.number : 'Belum pilih meja')
+      cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih'))
     ),
     React.createElement('div', { className:'flex-1 overflow-y-auto p-2' },
       React.createElement('div', { className:'space-y-2' },
-        cart.length === 0 && React.createElement('p', { className:'text-center text-sm text-slate-500 py-10' }, 'Belum ada item'),
+        cart.length === 0 && React.createElement('p', { className:'text-center text-sm text-slate-500 py-10' }, t('Belum ada item')),
         cart.map(c => React.createElement('div', { key: c.id, className:'rounded-lg border p-2.5' },
           React.createElement('div', { className:'flex items-start justify-between gap-2' },
             React.createElement('div', { className:'flex-1 min-w-0' },
@@ -2640,7 +2790,10 @@ const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTa
               React.createElement('button', { onClick: () => onRemove(c.id), className:'text-emerald-600 p-1' }, React.createElement(Icon, { name:'x', className:'w-3.5 h-3.5' }))
             )
           ),
-          c.notes && React.createElement('p', { className:'text-[11px] text-amber-600 italic mt-1 pl-1' }, '📝 ' + c.notes),
+          // v2.13: KOLUM CATATAN PER MENU — selalu tampil di bawah item yang sudah
+          // diinput (permintaan owner: "dibawah menu yg udh diinput ada kolom buat
+          // catatan"). Ketiknya langsung masuk ke keranjang & ikut ke nota dapur.
+          React.createElement(Input, { value: c.notes || '', onChange: e => onUpdateItemNotes && onUpdateItemNotes(c.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' }),
           React.createElement('div', { className:'flex items-center justify-between mt-2' },
             React.createElement('div', { className:'flex items-center gap-1' },
               React.createElement(Button, { size:'icon', variant:'outline', className:'h-8 w-8', onClick: () => onUpdateQty(c.id, c.quantity-1) }, React.createElement(Icon, { name:'minus', className:'w-3 h-3' })),
@@ -2655,16 +2808,16 @@ const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTa
     cart.length > 0 && React.createElement('div', { className:'space-y-2 border-t p-4 pt-3' },
       React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable }),
       React.createElement('div', null,
-        React.createElement(Label, null, 'Nama Pelanggan (opsional)'),
-        React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:'cth: Pak Budi / Nunung', className:'h-9' })
+        React.createElement(Label, null, t('Nama Pelanggan (opsional)')),
+        React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:t('contoh: Pak Budi / Nunung'), className:'h-9' })
       ),
       React.createElement('div', null,
-        React.createElement(Label, null, 'Tempat / Meja (opsional)'),
-        React.createElement(Input, { value: tempat, onChange: e => setTempat(e.target.value), placeholder:'cth: st4 / Meja 5 / Gojek', className:'h-9' })
+        React.createElement(Label, null, t('Tempat / Meja (opsional)')),
+        React.createElement(Input, { value: tempat, onChange: e => setTempat(e.target.value), placeholder:t('contoh: st4 / Meja 5 / Gojek'), className:'h-9' })
       ),
       React.createElement('div', null,
-        React.createElement(Label, null, 'Catatan untuk Dapur (opsional)'),
-        React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:'cth: BUNGKUS / pedas / tanpa MSG', className:'h-9' })
+        React.createElement(Label, null, t('Catatan untuk Dapur (opsional)')),
+        React.createElement(Input, { value: notes, onChange: e => setNotes(e.target.value), placeholder:t('contoh: bungkus / pedas / tanpa MSG'), className:'h-9' })
       ),
       React.createElement(CartActions, { total, onPay, onSaveLater, onCetakStruk, onCetakDapur })
     )
@@ -2677,20 +2830,20 @@ const CartActions = ({ total, onPay, onSaveLater, onCetakStruk, onCetakDapur }) 
     // Row 1: 2 tombol cetak
     React.createElement('div', { className:'grid grid-cols-2 gap-2' },
       React.createElement(Button, { variant:'outline', className:'h-11 gap-1.5 text-sm border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: onCetakStruk },
-        React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), 'Cetak Struk'
+        React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), t('Cetak Struk')
       ),
       React.createElement(Button, { variant:'outline', className:'h-11 gap-1.5 text-sm border-amber-200 text-amber-700 hover:bg-amber-50', onClick: onCetakDapur },
-        React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4' }), 'Cetak Dapur'
+        React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4' }), t('Cetak Dapur')
       )
     ),
     // Row 2: Bayar (primary — CTA aksen tema: Royal=oranye, Charcoal=neon)
     React.createElement(Button, { className:'md-cta w-full h-12 text-base font-semibold gap-2 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
-      React.createElement(Icon, { name:'banknote', className:'w-5 h-5' }), 'Bayar ', formatRupiah(total)
+      React.createElement(Icon, { name:'banknote', className:'w-5 h-5' }), t('Bayar '), formatRupiah(total)
     ),
     // Row 3: Bayar Nanti — v2.10 FIX RpNaN: onClick membungkus pemanggilan biar
     // event click GAK ikut ke kirim sebagai diskon (dulu: subtotal - event = NaN)
     React.createElement(Button, { variant:'outline', className:'w-full h-10 gap-1.5 text-sm', onClick: () => onSaveLater() },
-      React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), 'Bayar Nanti (Simpan ke Pesanan)'
+      React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), t('Bayar Nanti (Simpan ke Pesanan)')
     )
   );
 };
@@ -2698,12 +2851,12 @@ const CartActions = ({ total, onPay, onSaveLater, onCetakStruk, onCetakDapur }) 
 const CartSummary = ({ subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable, mobile }) => {
   return React.createElement('div', { className:'space-y-2' },
     mobile && React.createElement('div', { className:'flex gap-1' },
-      ['DINE_IN','TAKEAWAY'].map(t => React.createElement(Button, { key: t, size:'sm', variant: cartOrderType === t ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(t); if (t !== 'DINE_IN') onClearTable(); } }, t === 'DINE_IN' ? 'Dine In' : 'Bawa Pulang'))
+      ['DINE_IN','TAKEAWAY'].map(ot => React.createElement(Button, { key: ot, size:'sm', variant: cartOrderType === ot ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(ot); if (ot !== 'DINE_IN') onClearTable(); } }, ot === 'DINE_IN' ? t('Dine In') : t('Bawa Pulang')))
     ),
-    mobile && cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500' }, selectedTable ? 'Meja: ' + selectedTable.number : 'Belum pilih meja'),
-    React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, 'Subtotal'), React.createElement('span', null, formatRupiah(subtotal))),
+    mobile && cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih')),
+    React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Subtotal')), React.createElement('span', null, formatRupiah(subtotal))),
     React.createElement(Separator, null),
-    React.createElement('div', { className:'flex justify-between font-bold' }, React.createElement('span', null, 'Total'), React.createElement('span', { className:'text-slate-900 text-lg' }, formatRupiah(total)))
+    React.createElement('div', { className:'flex justify-between font-bold' }, React.createElement('span', null, t('Total')), React.createElement('span', { className:'text-slate-900 text-lg' }, formatRupiah(total)))
   );
 };
 
@@ -2720,13 +2873,13 @@ const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
   function reset() { setPaidInput(''); setDiscountInput(''); setMethod('CASH'); }
   return React.createElement(Modal, { open, onClose: () => { reset(); onClose(); }, className:'sm:max-w-full max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
-      React.createElement('h2', { className:'text-lg font-bold mb-1' }, 'Pembayaran'),
-      React.createElement('p', { className:'text-sm text-slate-500 mb-4' }, 'Pilih metode pembayaran'),
+      React.createElement('h2', { className:'text-lg font-bold mb-1' }, t('Pembayaran')),
+      React.createElement('p', { className:'text-sm text-slate-500 mb-4' }, t('Pilih metode pembayaran')),
       React.createElement('div', { className:'space-y-4' },
         React.createElement('div', { className:'grid grid-cols-3 gap-2' },
           React.createElement('button', { onClick: () => setMethod('CASH'), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', method === 'CASH' ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
             React.createElement(Icon, { name:'banknote', className:'w-6 h-6' }),
-            React.createElement('span', { className:'text-sm font-medium' }, 'Tunai')
+            React.createElement('span', { className:'text-sm font-medium' }, t('Tunai'))
           ),
           React.createElement('button', { onClick: () => setMethod('QRIS'), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', method === 'QRIS' ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
             React.createElement(Icon, { name:'qr-code', className:'w-6 h-6' }),
@@ -2742,12 +2895,12 @@ const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
             qrisImg
               ? React.createElement('img', { src: qrisImg, alt:'QRIS Resto', className:'w-full h-full object-contain' })
               : React.createElement(QRPattern, null)),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? 'Scan QRIS resto kamu untuk membayar' : 'Scan QRIS untuk membayar — (gambar QRIS belum diatur, upload di Pengaturan → Owner Zone → QRIS Resto)')
+          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? t('Scan QRIS resto Anda untuk membayar') : t('Scan QRIS untuk membayar — (gambar QRIS belum diatur, unggah di Pengaturan → Owner Zone → QRIS Resto)'))
         ),
         method === 'TRANSFER' && React.createElement('div', { className:'rounded-lg border bg-emerald-50/60 p-4 text-center' },
           React.createElement(Icon, { name:'landmark', className:'w-8 h-8 mx-auto text-emerald-600 mb-1' }),
-          React.createElement('p', { className:'text-sm font-semibold' }, 'Transfer Bank'),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, 'Konfirmasi setelah transfer diterima')
+          React.createElement('p', { className:'text-sm font-semibold' }, t('Transfer Bank')),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, t('Konfirmasi setelah transfer diterima'))
         ),
         React.createElement('div', null,
           React.createElement(Label, null, 'Diskon (opsional)'),
@@ -2760,19 +2913,19 @@ const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
           React.createElement('div', { className:'flex justify-between font-bold text-base' }, React.createElement('span', null, 'Bayar'), React.createElement('span', { className:'text-slate-900' }, formatRupiah(finalTotal)))
         ),
         method === 'CASH' && React.createElement(React.Fragment, null,
-          React.createElement('div', null, React.createElement(Label, null, 'Uang Diterima'), React.createElement(Input, { type:'number', placeholder: String(finalTotal), value: paidInput, onChange: e => setPaidInput(e.target.value) })),
+          React.createElement('div', null, React.createElement(Label, null, t('Uang Diterima')), React.createElement(Input, { type:'number', placeholder: String(finalTotal), value: paidInput, onChange: e => setPaidInput(e.target.value) })),
           React.createElement('div', { className:'grid grid-cols-4 gap-2' },
-            [finalTotal, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? 'Uang Pas' : formatRupiah(amt).replace('Rp','').trim()))
+            [finalTotal, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? t('Uang Pas') : formatRupiah(amt).replace('Rp','').trim()))
           ),
-          React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, 'Kembalian'), React.createElement('span', { className:'font-bold' }, formatRupiah(change)))
+          React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Kembalian')), React.createElement('span', { className:'font-bold' }, formatRupiah(change)))
         ),
-        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < finalTotal, onClick: () => { onConfirm(method, method === 'CASH' ? paid : finalTotal, discount); reset(); } }, method === 'CASH' && paid < finalTotal ? 'Uang tidak cukup' : 'Konfirmasi ' + formatRupiah(finalTotal)),
+        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < finalTotal, onClick: () => { onConfirm(method, method === 'CASH' ? paid : finalTotal, discount); reset(); } }, method === 'CASH' && paid < finalTotal ? t('Uang tidak cukup') : t('Konfirmasi ') + formatRupiah(finalTotal)),
         // Save order untuk bayar nanti
         onSaveOrder && React.createElement('div', { className:'pt-3 border-t mt-3' },
           React.createElement(Button, { variant:'outline', className:'w-full gap-1.5', onClick: () => { onSaveOrder(discount); reset(); } },
-            React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), 'Simpan - Bayar Nanti'
+            React.createElement(Icon, { name:'clock', className:'w-4 h-4' }), t('Simpan - Bayar Nanti')
           ),
-          React.createElement('p', { className:'text-[10px] text-slate-500 text-center mt-1' }, 'Pesanan tersimpan di menu Pesanan, bisa dibuka & dibayar kapan saja')
+          React.createElement('p', { className:'text-[10px] text-slate-500 text-center mt-1' }, t('Pesanan tersimpan di menu Pesanan, bisa dibuka & dibayar kapan saja'))
         )
       )
     )
@@ -2834,10 +2987,10 @@ function OrdersView({ onNavigate, onBack }) {
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, {
-      title:'Pesanan', subtitle:'Hari ini · ' + outletOrders.length + ' pesanan' + (unpaidCount > 0 ? ' · ' + unpaidCount + ' belum bayar' : ''), onBack: onBack,
+      title: t('Pesanan'), subtitle: t('Hari ini · ') + outletOrders.length + t(' pesanan') + (unpaidCount > 0 ? ' · ' + unpaidCount + t(' belum bayar') : ''), onBack: onBack,
       rightSlot: React.createElement(Button, { size:'sm', className:'gap-1.5 bg-emerald-500 hover:bg-emerald-600', onClick: () => onNavigate('pos') },
         React.createElement(Icon, { name:'plus', className:'w-4 h-4' }),
-        React.createElement('span', { className:'hidden sm:inline' }, 'Pesanan Baru')
+        React.createElement('span', { className:'hidden sm:inline' }, t('Pesanan Baru'))
       )
     }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
@@ -2851,15 +3004,15 @@ function OrdersView({ onNavigate, onBack }) {
         React.createElement('button', {
           onClick: () => setFilter('all'),
           className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all', filter === 'all' ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-400')
-        }, 'Semua Status'),
+        }, t('Semua Status')),
         React.createElement('button', {
           onClick: () => setFilter('unpaid'),
           className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5', filter === 'unpaid' ? 'bg-emerald-500 text-white' : 'bg-white border border-emerald-200 text-emerald-600 hover:border-emerald-300')
-        }, 'Belum Bayar', unpaidCount > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', filter === 'unpaid' ? 'bg-white/30' : 'bg-red-100') }, unpaidCount)),
+        }, t('Belum Bayar'), unpaidCount > 0 && React.createElement('span', { className: cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', filter === 'unpaid' ? 'bg-white/30' : 'bg-red-100') }, unpaidCount)),
         React.createElement('button', {
           onClick: () => setFilter('paid'),
           className: cn('px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors', filter === 'paid' ? 'bg-emerald-500 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300')
-        }, 'Sudah Bayar')
+        }, t('Sudah Bayar'))
       ),
       // Order list
       React.createElement('div', { className:'space-y-2' },
@@ -2872,7 +3025,7 @@ function OrdersView({ onNavigate, onBack }) {
           const isUnpaid = o.paymentStatus === 'UNPAID';
           const typeIcon = o.type === 'TAKEAWAY' ? 'shopping-bag' : o.type === 'DINE_IN' ? 'utensils' : 'shopping-bag';
           const typeEmoji = o.type === 'TAKEAWAY' ? '📦' : '🍽️';
-          const typeLabel = ORDER_TYPE_LABELS[o.type] || o.type;
+          const typeLabel = t(ORDER_TYPE_LABELS[o.type]) || o.type;
           return React.createElement('div', {
             key: o.id,
             onClick: () => setSelectedOrder(o),
@@ -2893,7 +3046,7 @@ function OrdersView({ onNavigate, onBack }) {
                 React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName || '-')
               ),
               React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') },
-                isUnpaid ? 'Belum Bayar' : 'Sudah Bayar'
+                isUnpaid ? t('Belum Bayar') : t('Sudah Bayar')
               )
             ),
             // Show item count
@@ -2929,7 +3082,7 @@ function OrdersView({ onNavigate, onBack }) {
         show('Pesanan #' + payOrder.number + ' sudah dibayar');
         // Show print receipt option
         setTimeout(() => {
-          if (confirm('Pembayaran berhasil! Cetak struk sekarang?')) {
+          if (confirm(t('Pembayaran berhasil! Cetak struk sekarang?'))) {
             printReceipt(newReceipt, 'kasir');
           }
         }, 100);
@@ -2958,7 +3111,7 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
       ),
       React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
         React.createElement('div', null,
-          React.createElement('h2', { className:'text-base font-bold' }, 'Tambah Menu'),
+          React.createElement('h2', { className:'text-base font-bold' }, t('Tambah Menu')),
           React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, 'Pesanan #' + order.number + ' — ketuk menu buat nambahin')),
         React.createElement('button', { onClick: onClose, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
           React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
@@ -2991,7 +3144,7 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
         })
       ),
       React.createElement(Button, { className:'w-full mt-3 h-11 bg-emerald-500 hover:bg-emerald-600', onClick: onClose },
-        React.createElement(Icon, { name:'check', className:'w-4 h-4' }), 'Selesai')
+        React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Selesai'))
     )
   );
 }
@@ -3024,8 +3177,8 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
     setPrintMenuOpen(false);
     const extra = currentOrder.items.filter(it => itemAddedAt(currentOrder, it));
     if (kind === 'add') {
-      if (extra.length === 0) { show('Belum ada menu tambahan — semua item udah kecetak', 'info'); return; }
-      show('Nota tambahan: ' + extra.length + ' item kecetak');
+      if (extra.length === 0) { show(t('Belum ada menu tambahan — semua item sudah tercetak'), 'info'); return; }
+      show(t('Nota tambahan: ') + extra.length + t(' item tercetak'));
       setTimeout(() => printReceipt(buildReceipt(extra), 'dapur-tambahan'), 100);
     } else {
       setTimeout(() => printReceipt(buildReceipt(currentOrder.items), 'dapur'), 100);
@@ -3042,29 +3195,29 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement('h2', { className:'text-lg font-bold' }, 'ORD' + String(currentOrder.number).padStart(9, '0').slice(-9)),
           React.createElement('p', { className:'text-xs text-slate-500' }, formatDateTime(currentOrder.createdAt))
         ),
-        React.createElement('button', { onClick: onClose, className:'text-slate-400 hover:text-slate-900 p-1' }, React.createElement(Icon, { name:'x', className:'w-5 h-5' }))
+      React.createElement('button', { onClick: onClose, className:'text-slate-400 hover:text-slate-900 p-1' }, React.createElement(Icon, { name:'x', className:'w-5 h-5' }))
       ),
       // Status badges
       React.createElement('div', { className:'flex flex-wrap gap-2 mb-3' },
         React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-xs font-medium' },
           typeEmoji, ORDER_TYPE_LABELS[currentOrder.type] || currentOrder.type
         ),
-        currentOrder.tableNumber && React.createElement('span', { className:'inline-flex items-center rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-medium' }, 'Meja ' + currentOrder.tableNumber),
-        React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? 'Belum Bayar' : 'Sudah Bayar')
+        currentOrder.tableNumber && React.createElement('span', { className:'inline-flex items-center rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-medium' }, t('Meja ') + currentOrder.tableNumber),
+        React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
       ),
       // Customer info
       React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 mb-3 space-y-1 text-sm' },
-        currentOrder.customerName && React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Pelanggan'), React.createElement('span', { className:'font-medium' }, currentOrder.customerName)),
-        React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Kasir'), React.createElement('span', { className:'font-medium' }, currentOrder.cashierName || '-')),
-        currentOrder.queueNumber && React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'No. Antrian'), React.createElement('span', { className:'font-bold' }, currentOrder.queueNumber)),
-        currentOrder.notes && React.createElement('div', { className:'pt-1 border-t border-slate-200' }, React.createElement('span', { className:'text-slate-500' }, 'Catatan: '), React.createElement('span', { className:'text-amber-700 italic' }, currentOrder.notes))
+        currentOrder.customerName && React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, t('Pelanggan')), React.createElement('span', { className:'font-medium' }, currentOrder.customerName)),
+        React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, t('Kasir')), React.createElement('span', { className:'font-medium' }, currentOrder.cashierName || '-')),
+        currentOrder.queueNumber && React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, t('No. Antrian')), React.createElement('span', { className:'font-bold' }, currentOrder.queueNumber)),
+        currentOrder.notes && React.createElement('div', { className:'pt-1 border-t border-slate-200' }, React.createElement('span', { className:'text-slate-500' }, t('Catatan: ')), React.createElement('span', { className:'text-amber-700 italic' }, currentOrder.notes))
       ),
       // Items
       React.createElement('div', { className:'rounded-lg border p-3 mb-3' },
         React.createElement('div', { className:'flex items-center justify-between mb-2' },
-          React.createElement('p', { className:'text-xs font-semibold text-slate-700' }, 'Item Pesanan'),
+          React.createElement('p', { className:'text-xs font-semibold text-slate-700' }, t('Item Pesanan')),
           React.createElement('button', { onClick: () => setSheetOpen(true), className:'text-xs text-emerald-600 font-medium hover:underline inline-flex items-center gap-1' },
-            React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), 'Tambah Menu'
+            React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Menu')
           )
         ),
         currentOrder.items.map((it, i) => React.createElement('div', { key: i, className:'py-2' + (i > 0 ? ' border-t border-slate-100' : '') },
@@ -3074,7 +3227,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
               React.createElement('span', { className:'text-sm' }, it.productName),
               it.variantName && React.createElement('span', { className:'text-xs text-slate-500' }, ' (' + it.variantName + ')'),
               // v2.10: label TAMBAHAN — cuma tampil di aplikasi, nota cetakan tetap bersih
-              itemAddedAt(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, 'Tambahan')
+              itemAddedAt(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, t('Tambahan'))
             ),
             React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
               React.createElement('button', { onClick: () => setEditItemNotes(it.id), className: cn('p-1 rounded', it.notes ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'), title:'Catatan item' }, React.createElement(Icon, { name:'pencil', className:'w-3 h-3' })),
@@ -3084,21 +3237,22 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
               React.createElement('span', { className:'font-medium text-sm ml-1' }, formatRupiah(it.quantity * it.price))
             )
           ),
-          it.notes && React.createElement('p', { className:'text-[11px] text-amber-600 italic mt-1 pl-1' }, '📝 ' + it.notes)
+          // v2.13: kolom catatan per item — bisa diisi walau pesanan sudah masuk
+          React.createElement(Input, { value: it.notes || '', onChange: e => updateOrderItemNote(currentOrder.id, it.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' })
         ))
       ),
       // Total
       React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between text-sm' },
-          React.createElement('span', { className:'text-emerald-100' }, 'Subtotal'),
+          React.createElement('span', { className:'text-emerald-100' }, t('Subtotal')),
           React.createElement('span', null, formatRupiah(orderSubtotalOf(currentOrder)))
         ),
         currentOrder.discount > 0 && React.createElement('div', { className:'flex justify-between text-sm mt-1' },
-          React.createElement('span', { className:'text-emerald-100' }, 'Diskon'),
+          React.createElement('span', { className:'text-emerald-100' }, t('Diskon')),
           React.createElement('span', null, '-' + formatRupiah(currentOrder.discount))
         ),
         React.createElement('div', { className:'flex justify-between font-bold text-lg mt-2 pt-2 border-t border-white/20' },
-          React.createElement('span', null, 'Total'),
+          React.createElement('span', null, t('Total')),
           React.createElement('span', null, formatRupiah(orderTotalOf(currentOrder)))
         )
       ),
@@ -3109,13 +3263,13 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
         React.createElement(Button, { variant:'outline', className:'gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => {
           printReceipt(buildReceipt(currentOrder.items), 'kasir');
         } },
-          React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), 'Cetak Struk'
+          React.createElement(Icon, { name:'printer', className:'w-4 h-4' }), t('Cetak Struk')
         ),
         React.createElement('div', { className:'relative' },
           printMenuOpen && React.createElement('div', { className:'absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-slate-900 text-white shadow-2xl overflow-hidden animate-mp-pop ring-1 ring-black/20' },
             [
-              { k:'full', icon:'chef-hat', t:'Cetak Dapur', d:'Semua item kecetak' },
-              { k:'add', icon:'plus-circle', t:'Cetak Tambahan', d:'Cuma menu tambahan aja' },
+              { k:'full', icon:'chef-hat', t:'Cetak Dapur', d: t('Semua item tercetak') },
+              { k:'add', icon:'plus-circle', t:'Cetak Tambahan', d: t('Hanya menu tambahan') },
             ].map(function(opt) {
               return React.createElement('button', { key: opt.k, onClick: () => doPrintDapur(opt.k),
                 className:'w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-slate-800 active:bg-slate-800 transition-colors border-b border-white/10 last:border-0' },
@@ -3129,14 +3283,14 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement(Button, { variant:'outline', className:'w-full justify-between gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50', onClick: () => setPrintMenuOpen(!printMenuOpen) },
             React.createElement('span', { className:'flex items-center gap-1.5 min-w-0' },
               React.createElement(Icon, { name:'chef-hat', className:'w-4 h-4 shrink-0' }),
-              React.createElement('span', { className:'truncate' }, 'Cetak Dapur')),
+              React.createElement('span', { className:'truncate' }, t('Cetak Dapur'))),
             React.createElement(Icon, { name: printMenuOpen ? 'chevron-down' : 'chevron-up', className:'w-4 h-4 shrink-0' })
           )
         )
       ),
       // Action buttons
       React.createElement('div', { className:'flex gap-2' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onCancel }, 'Tutup'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onCancel }, t('Tutup')),
         isUnpaid && React.createElement(Button, { className:'md-cta flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
           React.createElement(Icon, { name:'banknote', className:'w-4 h-4' }), 'Bayar Sekarang'
         )
@@ -3174,11 +3328,11 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
   function reset() { setPaidInput(''); setMethod('CASH'); }
   return React.createElement(Modal, { open: true, onClose: () => { reset(); onClose(); }, className:'sm:max-w-full max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
-      React.createElement('h2', { className:'text-lg font-bold mb-1' }, 'Bayar Pesanan #' + order.number),
-      React.createElement('p', { className:'text-sm text-slate-500 mb-3' }, order.customerName ? 'Pelanggan: ' + order.customerName : 'Tanpa nama pelanggan'),
+      React.createElement('h2', { className:'text-lg font-bold mb-1' }, t('Bayar Pesanan #') + order.number),
+      React.createElement('p', { className:'text-sm text-slate-500 mb-3' }, order.customerName ? t('Pelanggan: ') + order.customerName : t('Tanpa nama pelanggan')),
       React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between font-bold text-lg' },
-          React.createElement('span', null, 'Total Tagihan'),
+          React.createElement('span', null, t('Total Tagihan')),
           React.createElement('span', null, formatRupiah(total))
         )
       ),
@@ -3186,7 +3340,7 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
         React.createElement('div', { className:'grid grid-cols-3 gap-2' },
           React.createElement('button', { onClick: () => setMethod('CASH'), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', method === 'CASH' ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
             React.createElement(Icon, { name:'banknote', className:'w-6 h-6' }),
-            React.createElement('span', { className:'text-sm font-medium' }, 'Tunai')
+            React.createElement('span', { className:'text-sm font-medium' }, t('Tunai'))
           ),
           React.createElement('button', { onClick: () => setMethod('QRIS'), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', method === 'QRIS' ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
             React.createElement(Icon, { name:'qr-code', className:'w-6 h-6' }),
@@ -3202,24 +3356,24 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
             qrisImg
               ? React.createElement('img', { src: qrisImg, alt:'QRIS Resto', className:'w-full h-full object-contain' })
               : React.createElement(QRPattern, null)),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? 'Scan QRIS resto kamu untuk membayar' : 'Scan QRIS untuk membayar — (gambar QRIS belum diatur, upload di Pengaturan → Owner Zone → QRIS Resto)')
+          React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? t('Scan QRIS resto Anda untuk membayar') : t('Scan QRIS untuk membayar — (gambar QRIS belum diatur, unggah di Pengaturan → Owner Zone → QRIS Resto)'))
         ),
         method === 'TRANSFER' && React.createElement('div', { className:'rounded-lg border bg-emerald-50/60 p-4 text-center' },
           React.createElement(Icon, { name:'landmark', className:'w-8 h-8 mx-auto text-emerald-600 mb-1' }),
-          React.createElement('p', { className:'text-sm font-semibold' }, 'Transfer Bank'),
-          React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, 'Konfirmasi setelah transfer diterima')
+          React.createElement('p', { className:'text-sm font-semibold' }, t('Transfer Bank')),
+          React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, t('Konfirmasi setelah transfer diterima'))
         ),
         method === 'CASH' && React.createElement(React.Fragment, null,
           React.createElement('div', null,
-            React.createElement(Label, null, 'Uang Diterima'),
+            React.createElement(Label, null, t('Uang Diterima')),
             React.createElement(Input, { type:'number', placeholder: String(total), value: paidInput, onChange: e => setPaidInput(e.target.value), autoFocus: true })
           ),
           React.createElement('div', { className:'grid grid-cols-4 gap-2' },
-            [total, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? 'Uang Pas' : formatRupiah(amt).replace('Rp','').trim()))
+            [total, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? t('Uang Pas') : formatRupiah(amt).replace('Rp','').trim()))
           ),
-          React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, 'Kembalian'), React.createElement('span', { className:'font-bold' }, formatRupiah(change)))
+          React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Kembalian')), React.createElement('span', { className:'font-bold' }, formatRupiah(change)))
         ),
-        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < total, onClick: () => { onConfirm(method, method === 'CASH' ? paid : total); reset(); } }, method === 'CASH' && paid < total ? 'Uang tidak cukup' : 'Konfirmasi Pembayaran')
+        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < total, onClick: () => { onConfirm(method, method === 'CASH' ? paid : total); reset(); } }, method === 'CASH' && paid < total ? t('Uang tidak cukup') : t('Konfirmasi Pembayaran'))
       )
     )
   );
@@ -3270,9 +3424,9 @@ function MenuSalesView({ onBack }) {
   var isToday = selectedDate === today;
   var isYesterday = selectedDate === yesterday;
   var dateLong = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
-  var dayWord = isToday ? 'Hari Ini' : (isYesterday ? 'Kemarin' : formatDate(selectedDate + 'T12:00:00Z'));
+  var dayWord = isToday ? t('Hari Ini') : (isYesterday ? t('Kemarin') : formatDate(selectedDate + 'T12:00:00Z'));
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Laporan Menu', subtitle: dayWord + ' · ' + paidSel.length + ' pesanan lunas', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Laporan Menu'), subtitle: dayWord + ' · ' + paidSel.length + t(' pesanan lunas'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       // ===== v2.10: NAVIGATOR TANGGAL — panah maju/mundur + klik label buat
       // buka kalender native + tombol cepat Hari Ini / Kemarin =====
@@ -3310,7 +3464,7 @@ function MenuSalesView({ onBack }) {
       ),
       React.createElement(Card, null,
         React.createElement('div', { className:'p-4' },
-          React.createElement('h3', { className:'text-base font-semibold' }, 'Peringkat Menu ' + dayWord),
+          React.createElement('h3', { className:'text-base font-semibold' }, t('Peringkat Menu ') + dayWord),
           React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Diurutkan otomatis dari yang paling banyak terjual'),
           rows.length === 0 && React.createElement('div', { className:'text-center py-10 text-slate-400' },
             React.createElement(Icon, { name:'utensils-crossed', className:'w-10 h-10 mx-auto mb-2 opacity-25' }),
@@ -3366,10 +3520,10 @@ function InventoryView({ onBack }) {
   const lowStockCount = outletMaterials.filter(m => m.stock <= m.minStock).length;
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Stok & Resep', subtitle:'Manajemen bahan baku, produk, dan resep', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Stok & Resep'), subtitle: t('Manajemen bahan baku, produk, dan resep'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'flex gap-1 bg-slate-100 rounded-lg p-1 mb-4 max-w-full' },
-        [['materials','Bahan Baku'],['products','Produk'],['history','Riwayat']].map(([t, label]) => React.createElement('button', { key: t, onClick: () => setTab(t), className: cn('flex-1 py-2 rounded-md text-xs font-semibold', tab === t ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
+        [['materials', t('Bahan Baku')],['products', t('Produk')],['history', t('Riwayat')]].map(([tk, label]) => React.createElement('button', { key: tk, onClick: () => setTab(tk), className: cn('flex-1 py-2 rounded-md text-xs font-semibold', tab === tk ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
       ),
       tab === 'materials' && React.createElement('div', { className:'space-y-4' },
         React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-3' },
@@ -3430,7 +3584,7 @@ function InventoryView({ onBack }) {
               React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), 'Tambah Menu')
           ),
           React.createElement('div', { className:'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3' },
-            outletProducts.length === 0 && React.createElement('p', { className:'text-sm text-slate-500 text-center py-6 col-span-full' }, 'Belum ada menu. Klik "Tambah Menu" untuk membuat.'),
+            outletProducts.length === 0 && React.createElement('p', { className:'text-sm text-slate-500 text-center py-6 col-span-full' }, t('Belum ada menu. Klik "Tambah Menu" untuk membuat.')),
             outletProducts.map(p => {
               const margin = p.price - p.cost;
               const marginPct = p.price > 0 ? (margin / p.price) * 100 : 0;
@@ -3458,7 +3612,7 @@ function InventoryView({ onBack }) {
       ),
       tab === 'history' && React.createElement(Card, null,
         React.createElement('div', { className:'p-4' },
-          React.createElement('h3', { className:'text-base font-semibold' }, 'Riwayat Pergerakan Stok'),
+          React.createElement('h3', { className:'text-base font-semibold' }, t('Riwayat Pergerakan Stok')),
           React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, '100 transaksi terbaru'),
           React.createElement('div', { className:'divide-y max-h-[600px] overflow-y-auto' },
             state.movements.length === 0 && React.createElement('p', { className:'text-center py-8 text-sm text-slate-500' }, 'Belum ada riwayat'),
@@ -3479,7 +3633,7 @@ function InventoryView({ onBack }) {
     adjustDialog && React.createElement(AdjustStockDialog, { material: adjustDialog, onClose: () => setAdjustDialog(null), onConfirm: (delta, reason) => { adjustMaterial(adjustDialog.id, delta, reason); setAdjustDialog(null); } }),
     newMaterialOpen && React.createElement(MaterialEditDialog, { material: null, onClose: () => setNewMaterialOpen(false), onSave: (m) => { addMaterial(m); setNewMaterialOpen(false); show('Bahan baku ditambahkan'); } }),
     editMaterial && React.createElement(MaterialEditDialog, { material: editMaterial, onClose: () => setEditMaterial(null), onSave: (patch) => { updateMaterial(editMaterial.id, patch); setEditMaterial(null); show('Bahan baku diperbarui'); } }),
-    (prodDialogOpen || editProduct) && React.createElement(AddMenuDialog, { open: true, editProduct: editProduct, onClose: () => { setProdDialogOpen(false); setEditProduct(null); }, onSaved: () => { setProdDialogOpen(false); setEditProduct(null); show(editProduct ? 'Menu diperbarui' : 'Menu baru ditambahkan'); } })
+    (prodDialogOpen || editProduct) && React.createElement(AddMenuDialog, { open: true, editProduct: editProduct, onClose: () => { setProdDialogOpen(false); setEditProduct(null); }, onSaved: () => { setProdDialogOpen(false); setEditProduct(null); show(editProduct ? t('Menu diperbarui') : t('Menu baru ditambahkan')); } })
   );
 }
 
@@ -3500,7 +3654,7 @@ function MaterialEditDialog({ material, onClose, onSave }) {
       React.createElement('div', { className:'space-y-3' },
         React.createElement('div', null,
           React.createElement(Label, null, 'Nama Bahan'),
-          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Beras Pulen', autoFocus: true })
+          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'contoh: Beras Pulen', autoFocus: true })
         ),
         React.createElement('div', { className:'grid grid-cols-2 gap-3' },
           React.createElement('div', null,
@@ -3526,9 +3680,9 @@ function MaterialEditDialog({ material, onClose, onSave }) {
         )
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim(), onClick: () => onSave({ name: name.trim(), unit, stock: parseFloat(stock) || 0, minStock: parseFloat(minStock) || 0, cost: parseFloat(cost) || 0 }) },
-          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? t('Simpan') : t('Tambah')
         )
       )
     )
@@ -3555,7 +3709,7 @@ const AdjustStockDialog = ({ material, onClose, onConfirm }) => {
         )
       ),
       React.createElement('div', { className:'flex gap-2 mt-4' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { className:'flex-1', disabled: !amount, onClick: () => { let d = parseFloat(amount) || 0; if (mode === 'WASTE') d = -Math.abs(d); onConfirm(d, mode); setAmount(''); } }, 'Simpan')
       )
     )
@@ -3663,7 +3817,7 @@ function ReportsView({ onBack }) {
         payMethodLabel(o.paymentMethod),
         o.items.map(function(it) { return it.quantity + 'x ' + it.productName; }).join(', '),
         o.subtotal || 0, o.discount || 0, o.total || 0,
-        o.paymentStatus === 'PAID' ? 'Sudah Bayar' : 'Belum Bayar'
+        o.paymentStatus === 'PAID' ? t('Sudah Bayar') : t('Belum Bayar')
       ].map(esc).join(sep));
     });
     rows.push(['TOTAL','','','','','','','', totalSubtotal, totalDiscount, totalRevenue, ''].map(esc).join(sep));
@@ -3715,7 +3869,7 @@ function ReportsView({ onBack }) {
       ),
       // ===== METODE PEMBAYARAN =====
       React.createElement('div', { className:'grid grid-cols-3 gap-2 md:gap-3' },
-        [['Tunai','CASH','banknote','bg-emerald-50 text-emerald-700 border-emerald-100'],['QRIS','QRIS','qr-code','bg-cyan-50 text-cyan-700 border-cyan-100'],['Transfer','TRANSFER','landmark','bg-indigo-50 text-indigo-700 border-indigo-100']].map(function([label, key, icon, cls]) {
+        [[t('Tunai'),'CASH','banknote','bg-emerald-50 text-emerald-700 border-emerald-100'],['QRIS','QRIS','qr-code','bg-cyan-50 text-cyan-700 border-cyan-100'],['Transfer','TRANSFER','landmark','bg-indigo-50 text-indigo-700 border-indigo-100']].map(function([label, key, icon, cls]) {
           return React.createElement('div', { key: key, className: cn('rounded-xl border p-3 text-center', cls) },
             React.createElement(Icon, { name: icon, className:'w-4 h-4 mx-auto mb-1' }),
             React.createElement('p', { className:'text-[10px] font-semibold' }, label),
@@ -3758,10 +3912,10 @@ function ReportsView({ onBack }) {
                   ),
                   React.createElement('div', { className:'flex items-center justify-between gap-2' },
                     React.createElement('div', { className:'flex items-center gap-1.5 min-w-0 flex-1' },
-                      React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, ORDER_TYPE_LABELS[o.type] || o.type),
+                      React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, t(ORDER_TYPE_LABELS[o.type]) || o.type),
                       o.customerName && React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName)
                     ),
-                    React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? 'Belum Bayar' : payMethodLabel(o.paymentMethod))
+                    React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : payMethodLabel(o.paymentMethod))
                   )
                 );
               })
@@ -3776,7 +3930,7 @@ function ReportsView({ onBack }) {
         React.createElement(KpiCard, { label:'Avg Order', value: formatRupiah(avgOrder), sub: totalItems + ' item terjual', icon:'shopping-bag', color:'violet' })
       ),
       React.createElement('div', { className:'flex gap-1 bg-slate-100 rounded-lg p-1 max-w-full overflow-x-auto no-scrollbar' },
-        [['overview','Overview']].concat(hpp ? [['profit-loss','Laba Rugi']] : []).concat([['best-sellers','Menu Terlaris'],['transactions','Transaksi'],['riwayat','Riwayat Pesanan']]).map(([t, label]) => React.createElement('button', { key: t, onClick: () => setTab(t), className: cn('flex-1 py-2 px-2 rounded-md text-xs font-semibold whitespace-nowrap', tab === t ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
+        [['overview', t('Overview')]].concat(hpp ? [['profit-loss', t('Laba Rugi')]] : []).concat([['best-sellers', t('Menu Terlaris')],['transactions', t('Transaksi')],['riwayat', t('Riwayat Pesanan')]]).map(([tk, label]) => React.createElement('button', { key: tk, onClick: () => setTab(tk), className: cn('flex-1 py-2 px-2 rounded-md text-xs font-semibold whitespace-nowrap', tab === tk ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
       ),
       tab === 'overview' && React.createElement('div', { className:'space-y-4' },
         React.createElement(Card, null, React.createElement('div', { className:'p-4' },
@@ -3841,11 +3995,11 @@ function ReportsView({ onBack }) {
         )
       )),
       tab === 'transactions' && React.createElement(Card, null, React.createElement('div', { className:'p-4' },
-        React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'receipt', className:'w-4 h-4' }), 'Riwayat Transaksi'),
+        React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'receipt', className:'w-4 h-4' }), t('Riwayat Transaksi')),
         React.createElement('div', { className:'overflow-x-auto max-h-[600px] overflow-y-auto' },
           React.createElement('table', { className:'w-full text-sm' },
             React.createElement('thead', { className:'sticky top-0 bg-white' }, React.createElement('tr', { className:'border-b text-left' },
-              React.createElement('th', { className:'py-2' }, 'No.'), React.createElement('th', { className:'py-2' }, 'Waktu'), React.createElement('th', { className:'py-2' }, 'Item'), React.createElement('th', { className:'py-2' }, 'Metode'), React.createElement('th', { className:'py-2 text-right' }, 'Total')
+              React.createElement('th', { className:'py-2' }, 'No.'), React.createElement('th', { className:'py-2' }, t('Waktu')), React.createElement('th', { className:'py-2' }, t('Item')), React.createElement('th', { className:'py-2' }, t('Metode')), React.createElement('th', { className:'py-2 text-right' }, t('Total'))
             )),
             React.createElement('tbody', null,
               filtered.slice().reverse().map(o => React.createElement('tr', { key: o.id, className:'border-b' },
@@ -3893,7 +4047,7 @@ function RiwayatPesananTab({ state }) {
     // Date picker & summary
     React.createElement(Card, null, React.createElement('div', { className:'p-4' },
       React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2 mb-3' },
-        React.createElement(Icon, { name:'calendar', className:'w-4 h-4' }), 'Riwayat Pesanan per Tanggal'
+        React.createElement(Icon, { name:'calendar', className:'w-4 h-4' }), t('Riwayat Pesanan per Tanggal')
       ),
       React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3' },
         React.createElement('div', null,
@@ -3917,11 +4071,11 @@ function RiwayatPesananTab({ state }) {
           React.createElement('p', { className:'text-base font-bold' }, dayOrders.length)
         ),
         React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 text-center' },
-          React.createElement('p', { className:'text-xs text-slate-500' }, 'Sudah Bayar'),
+          React.createElement('p', { className:'text-xs text-slate-500' }, t('Sudah Bayar')),
           React.createElement('p', { className:'text-base font-bold text-emerald-600' }, dayPaidCount)
         ),
         React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 text-center' },
-          React.createElement('p', { className:'text-xs text-slate-500' }, 'Belum Bayar'),
+          React.createElement('p', { className:'text-xs text-slate-500' }, t('Belum Bayar')),
           React.createElement('p', { className:'text-base font-bold text-orange-600' }, dayUnpaidCount)
         )
       )
@@ -3948,10 +4102,10 @@ function RiwayatPesananTab({ state }) {
                 ),
                 React.createElement('div', { className:'flex items-center justify-between gap-2' },
                   React.createElement('div', { className:'flex items-center gap-2 min-w-0 flex-1' },
-                    React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, ORDER_TYPE_LABELS[o.type] || o.type),
+                    React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, t(ORDER_TYPE_LABELS[o.type]) || o.type),
                     React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName || '-')
                   ),
-                  React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? 'Belum Bayar' : 'Sudah Bayar')
+                  React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
                 ),
                 React.createElement('div', { className:'mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500' },
                   o.items.length + ' item · ' + o.items.reduce((s, it) => s + it.quantity, 0) + ' porsi',
@@ -4006,7 +4160,7 @@ function ConfirmDialog({ open, title, message, confirmLabel, onClose, onConfirm,
       React.createElement('h2', { className:'text-lg font-bold mb-1' }, title || 'Yakin?'),
       React.createElement('p', { className:'text-sm text-slate-500 mb-4' }, message || ''),
       React.createElement('div', { className:'flex gap-2' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { variant: danger ? 'destructive' : 'default', className:'flex-1', onClick: function() { onConfirm(); onClose(); } }, confirmLabel || 'Ya, Lanjutkan')
       )
     )
@@ -4429,13 +4583,13 @@ function ProductsView({ onBack }) {
       )
     ),
     React.createElement(BarcodeScanModal, { open: scanOpen, onClose: () => setScanOpen(false) }),
-    React.createElement(AddMenuDialog, { open: addOpen, onClose: () => setAddOpen(false), onSaved: () => { setAddOpen(false); show('Menu baru ditambahkan'); } }),
-    React.createElement(AddMenuDialog, { open: !!editProduct, editProduct: editProduct, onClose: () => setEditProduct(null), onSaved: () => { setEditProduct(null); show('Perubahan produk disimpan'); } }),
+    React.createElement(AddMenuDialog, { open: addOpen, onClose: () => setAddOpen(false), onSaved: () => { setAddOpen(false); show(t('Menu baru ditambahkan')); } }),
+    React.createElement(AddMenuDialog, { open: !!editProduct, editProduct: editProduct, onClose: () => setEditProduct(null), onSaved: () => { setEditProduct(null); show(t('Perubahan produk disimpan')); } }),
     React.createElement(ConfirmDialog, {
-      open: !!deleteTarget, danger: true, title: 'Hapus produk?',
-      message: (deleteTarget ? deleteTarget.name : '') + ' akan dihapus dari daftar menu. Pesanan lama yang sudah tercatat tidak ikut terhapus.',
-      confirmLabel: 'Ya, Hapus', onClose: () => setDeleteTarget(null),
-      onConfirm: function() { deleteProduct(deleteTarget.id); show('Produk "' + deleteTarget.name + '" dihapus', 'info'); }
+      open: !!deleteTarget, danger: true, title: t('Hapus produk?'),
+      message: (deleteTarget ? deleteTarget.name : '') + t(' akan dihapus dari daftar menu. Pesanan lama yang sudah tercatat tidak ikut terhapus.'),
+      confirmLabel: t('Ya, Hapus'), onClose: () => setDeleteTarget(null),
+      onConfirm: function() { deleteProduct(deleteTarget.id); show(t('Produk "') + deleteTarget.name + t('" dihapus'), 'info'); }
     })
   );
 }
@@ -4450,14 +4604,14 @@ function MoreView({ onNavigate }) {
   const cashier = employees.find(e => e.id === settings.cashierId);
   const outlet = state.outlets.find(o => o.id === settings.outletId);
   const items = [
-    { key:'orders', icon:'clipboard-list', label:'Pesanan', desc:'Pesanan hari ini, bayar & batalkan', badge: unpaidCount > 0 ? unpaidCount + ' belum bayar' : null, badgeCls:'bg-emerald-100 text-emerald-700' },
+    { key:'orders', icon:'clipboard-list', label:'Pesanan', desc:'Pesanan hari ini, bayar & batalkan', badge: unpaidCount > 0 ? unpaidCount + t(' belum bayar') : null, badgeCls:'bg-emerald-100 text-emerald-700' },
     { key:'kitchen', icon:'utensils-crossed', label:'Laporan Menu', desc:'Menu terjual hari ini — per item & qty, auto sortir' },
     { key:'inventory', icon:'boxes', label:'Stok & Resep', desc:'Bahan baku, stok masuk/keluar' },
     { key:'outlets', icon:'store', label:'Outlet & Staf', desc:'Multi-cabang & karyawan' },
     { key:'settings', icon:'settings', label:'Pengaturan', desc:'Printer, info resto, mesin & data' },
   ];
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Lainnya', subtitle: (outlet?.name || '-') + ' \u00b7 Kasir: ' + (cashier?.name || '-') }),
+    React.createElement(Topbar, { title: t('Lainnya'), subtitle: (outlet?.name || '-') + t(' \u00b7 Kasir: ') + (cashier?.name || '-') }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'space-y-2 max-w-2xl' },
         items.map(it => React.createElement('button', {
@@ -4478,9 +4632,9 @@ function MoreView({ onNavigate }) {
         ))
       ),
       React.createElement('div', { className:'max-w-2xl mt-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-4' },
-        React.createElement('p', { className:'text-sm font-bold' }, 'Tips Full Screen'),
+        React.createElement('p', { className:'text-sm font-bold' }, t('Tips Layar Penuh')),
         React.createElement('p', { className:'text-xs text-emerald-100 mt-1 leading-relaxed' },
-          'Buka di Chrome > menu titik tiga > "Tambahkan ke layar utama". App terpasang sebagai PWA mode fullscreen \u2014 bilah status & navigasi Android ikut tersembunyi, rasanya seperti APK beneran.')
+          t('Buka di Chrome > menu titik tiga > "Tambahkan ke layar utama". Aplikasi terpasang sebagai PWA mode fullscreen \u2014 bilah status & navigasi Android ikut tersembunyi, rasanya seperti aplikasi sungguhan.'))
       )
     )
   );
@@ -4504,7 +4658,7 @@ function OutletsView({ onBack }) {
   const totalRevenue = stats.reduce((s, x) => s+x.revenue, 0);
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Outlet & Staf', subtitle:'Manajemen multi-outlet dan hak akses', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Outlet & Staf'), subtitle: t('Manajemen multi-outlet dan hak akses'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
       React.createElement('div', { className:'flex gap-1 bg-slate-100 rounded-lg p-1 mb-4 max-w-full' },
         [['outlets','Outlet'],['employees','Karyawan'],['overview','Ringkasan']].map(([t, label]) => React.createElement('button', { key: t, onClick: () => setTab(t), className: cn('flex-1 py-2 rounded-md text-xs font-semibold', tab === t ? 'bg-white shadow-sm' : 'text-slate-500') }, label))
@@ -4743,7 +4897,7 @@ function OwnerZoneScreen({ onBack }) {
   // ---- Tampilan terkunci: minta password ----
   if (!unlocked) {
     return React.createElement('div', { className:'flex flex-col min-h-full' },
-      React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner — masukkan password dulu', onBack: onBack }),
+      React.createElement(Topbar, { title:'Owner Zone', subtitle: t('Khusus owner — masukkan kata sandi dulu'), onBack: onBack }),
       React.createElement('main', { className:'flex-1 overflow-y-auto p-3 md:p-6 flex items-start justify-center' },
         React.createElement(Card, { className:'w-full max-w-sm mt-6 md:mt-12 animate-mp-pop' },
           React.createElement('div', { className:'p-5 text-center' },
@@ -4765,7 +4919,7 @@ function OwnerZoneScreen({ onBack }) {
 
   // ---- Terbuka: panel owner — disortir jadi SEKSI GULUNG (klik = layarnya kebuka) ----
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Owner Zone', subtitle:'Khusus owner', onBack: onBack }),
+    React.createElement(Topbar, { title:'Owner Zone', subtitle: t('Khusus owner'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-2xl mx-auto w-full space-y-3 min-h-0' },
       // ===== SEKSI 1 — QRIS RESTO =====
       React.createElement(Card, { className:'overflow-hidden' },
@@ -4805,33 +4959,33 @@ function OwnerZoneScreen({ onBack }) {
   );
 }
 
-// ===== v2.6: PEMILIH TEMA — popup + kartu preview 3 tema (ala setelan dark mode HP) =====
-function ThemePreviewCard({ t, active, onPick }) {
-  const dark = !!t.dark;
+// ===== v2.6: PEMILIH TEMA — popup + kartu preview 4 tema (ala setelan dark mode HP) =====
+function ThemePreviewCard({ th, active, onPick }) {
+  const dark = !!th.dark;
   const surface = dark ? '#1B1B1B' : '#FFFFFF';
   const line = dark ? '#2E2E2E' : '#E2E8F0';
-  const txt = t.text;
+  const txt = th.text;
   return React.createElement('button', { onClick: onPick,
       className: cn('relative w-full text-left rounded-2xl border-2 p-2.5 transition-all active:scale-[0.99]', active ? 'border-slate-900 shadow-lg' : 'border-slate-200 hover:border-slate-400'),
       style: { background: surface } },
-    React.createElement('div', { className:'rounded-xl overflow-hidden border', style: { borderColor: line, background: t.bg } },
+    React.createElement('div', { className:'rounded-xl overflow-hidden border', style: { borderColor: line, background: th.bg } },
       React.createElement('div', { className:'flex items-center justify-between px-2.5 py-1.5', style: { background: surface, borderBottom: '1px solid ' + line } },
         React.createElement('span', { className:'text-[9px] font-extrabold tracking-wide', style: { color: txt } }, 'MIAPOS'),
-        React.createElement('span', { className:'text-[8px] font-bold px-1.5 py-0.5 rounded-full', style: { background: t.main, color: dark ? '#101010' : '#FFFFFF' } }, 'Kasir')
+        React.createElement('span', { className:'text-[8px] font-bold px-1.5 py-0.5 rounded-full', style: { background: th.main, color: dark ? '#101010' : '#FFFFFF' } }, 'Kasir')
       ),
       React.createElement('div', { className:'p-2.5 space-y-1.5' },
         React.createElement('div', { className:'h-1.5 rounded-full', style: { width:'68%', background: dark ? '#2E2E2E' : '#E2E8F0' } }),
         React.createElement('div', { className:'h-1.5 rounded-full', style: { width:'44%', background: dark ? '#262626' : '#EEF2F6' } }),
-        React.createElement('div', { className:'h-6 rounded-lg flex items-center justify-center text-[9px] font-bold', style: { background: t.cta, color: dark ? '#101010' : '#FFFFFF' } }, 'Bayar')
+        React.createElement('div', { className:'h-6 rounded-lg flex items-center justify-center text-[9px] font-bold', style: { background: th.cta, color: dark ? '#101010' : '#FFFFFF' } }, 'Bayar')
       )
     ),
     React.createElement('div', { className:'flex items-center justify-between mt-2 px-0.5' },
       React.createElement('div', { className:'min-w-0' },
-        React.createElement('p', { className:'text-[13px] font-bold truncate', style: { color: txt } }, t.name),
-        React.createElement('p', { className:'text-[10px] truncate', style: { color: dark ? '#8A8A8A' : '#64748B' } }, t.desc)
+        React.createElement('p', { className:'text-[13px] font-bold truncate', style: { color: txt } }, t(th.name)),
+        React.createElement('p', { className:'text-[10px] truncate', style: { color: dark ? '#8A8A8A' : '#64748B' } }, t(th.desc))
       ),
       React.createElement('div', { className:'flex items-center gap-1 shrink-0 ml-2' },
-        [t.main, t.cta, t.bg].map(function(c, i) { return React.createElement('span', { key:i, className:'h-4 w-4 rounded-full border', style: { background:c, borderColor: dark ? '#3A3A3A' : 'rgba(0,0,0,0.15)' } }); })
+        [th.main, th.cta, th.bg].map(function(c, i) { return React.createElement('span', { key:i, className:'h-4 w-4 rounded-full border', style: { background:c, borderColor: dark ? '#3A3A3A' : 'rgba(0,0,0,0.15)' } }); })
       )
     ),
     active && React.createElement('span', { className:'absolute -top-2 -right-2 grid h-6 w-6 place-items-center rounded-full bg-slate-900 text-white shadow-md ring-2 ring-white' },
@@ -4841,15 +4995,44 @@ function ThemePreviewCard({ t, active, onPick }) {
 }
 
 function ThemePickerModal({ open, onClose, current, onPick }) {
-  const keys = ['emerald','royal','charcoal'];
+  const keys = MD_THEME_KEYS;
   return React.createElement(Modal, { open: open, onClose: onClose },
     React.createElement('div', { className:'p-4' },
-      React.createElement('h2', { className:'text-lg font-bold' }, 'Tema Warna'),
-      React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, 'Ketuk salah satu — warna seluruh app langsung berubah & tersimpan otomatis.'),
-      React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-3 gap-3' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Tema Warna')),
+      React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Ketuk salah satu — warna seluruh app langsung berubah & tersimpan otomatis.')),
+      React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-3' },
         keys.map(function(k) {
-          const t = MD_THEMES[k];
-          return React.createElement(ThemePreviewCard, { key:k, t:t, active: current === k, onPick: function() { onPick(k); } });
+          const th = MD_THEMES[k];
+          return React.createElement(ThemePreviewCard, { key:k, th:th, active: current === k, onPick: function() { onPick(k); } });
+        })
+      )
+    )
+  );
+}
+
+// ===== v2.13: PEMILIH BAHASA — Indonesia / English (Pengaturan → Aplikasi → Bahasa) =====
+function BahasaPickerModal({ open, onClose, current, onPick }) {
+  var langs = [
+    { key:'id', name:'Indonesia', sub:t('Bahasa utama aplikasi'), emoji:'\uD83C\uDDEE\uD83C\uDDE9' },
+    { key:'en', name:'English', sub:t('Terjemahan fitur utama'), emoji:'\uD83C\uDDEC\uD83C\uDDE7' },
+  ];
+  return React.createElement(Modal, { open: open, onClose: onClose },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Bahasa')),
+      React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Pilih bahasa tampilan aplikasi — tersimpan otomatis.')),
+      React.createElement('div', { className:'grid grid-cols-1 sm:grid-cols-2 gap-3' },
+        langs.map(function(l) {
+          return React.createElement('button', { key:l.key, onClick: function() { onPick(l.key); },
+            className: cn('relative w-full text-left rounded-2xl border-2 p-3 transition-all active:scale-[0.99]', current === l.key ? 'border-slate-900 shadow-lg' : 'border-slate-200 hover:border-slate-400') },
+            React.createElement('div', { className:'flex items-center gap-2.5' },
+              React.createElement('span', { className:'text-2xl' }, l.emoji),
+              React.createElement('span', { className:'min-w-0' },
+                React.createElement('span', { className:'block text-sm font-bold text-slate-900' }, l.name),
+                React.createElement('span', { className:'block text-[11px] text-slate-500' }, l.sub))
+            ),
+            current === l.key && React.createElement('span', { className:'absolute -top-2 -right-2 grid h-6 w-6 place-items-center rounded-full bg-slate-900 text-white shadow-md ring-2 ring-white' },
+              React.createElement(Icon, { name:'check', className:'w-3.5 h-3.5' }))
+          );
         })
       )
     )
@@ -4859,13 +5042,13 @@ function ThemePickerModal({ open, onClose, current, onPick }) {
 function NotaPrinterScreen({ onBack }) {
   const [ver, setVer] = React.useState(0);
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Nota & Printer', subtitle:'Header nota + pratinjau + printer kasir & dapur', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Nota & Printer'), subtitle: t('Header nota + pratinjau + printer kasir & dapur'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
-      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1' }, 'Pratinjau Nota (persis saat keprint)'),
+      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1' }, t('Pratinjau Nota (persis saat keprint)')),
       React.createElement(ReceiptPreview, { ver: ver }),
-      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 pt-2' }, 'Header & Footer Nota'),
+      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 pt-2' }, t('Header & Footer Nota')),
       React.createElement(RestoInfoCard, { onSaved: function() { setVer(function(v) { return v + 1; }); } }),
-      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 pt-2' }, 'Koneksi Printer (Nota Kasir & Dapur)'),
+      React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 pt-2' }, t('Koneksi Printer (Nota Kasir & Dapur)')),
       React.createElement(Card, null, React.createElement('div', { className:'p-4' }, React.createElement(PrinterManager, null)))
     )
   );
@@ -4873,7 +5056,7 @@ function NotaPrinterScreen({ onBack }) {
 
 function CashierScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Kasir & Karyawan', subtitle:'Kelola kasir, PIN & hak akses', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Kasir & Karyawan'), subtitle: t('Kelola kasir, PIN & hak akses'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
       React.createElement(CashierManagerCard, null)
     )
@@ -4882,7 +5065,7 @@ function CashierScreen({ onBack }) {
 
 function EngineScreen({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Backup Cloud & Mesin Lokal', subtitle:'Otomatis ke GitHub · tanpa Termux · opsional', onBack: onBack }),
+    React.createElement(Topbar, { title: t('Backup Cloud & Mesin Lokal'), subtitle: t('Otomatis ke GitHub · tanpa Termux · opsional'), onBack: onBack }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-4 min-h-0' },
       React.createElement(EngineCard, null)
     )
@@ -4890,15 +5073,16 @@ function EngineScreen({ onBack }) {
 }
 
 function SettingsView({ onBack }) {
-  const { state, toggleOnline, resetDemo, setTheme } = useAppStore();
+  const { state, toggleOnline, resetDemo, setTheme, setLang } = useAppStore();
   const { settings, orders, products, materials } = state;
   const { show } = useToast();
   const [sub, setSub] = React.useState(null);
   const [temaOpen, setTemaOpen] = React.useState(false);
+  const [bahasaOpen, setBahasaOpen] = React.useState(false); // v2.13: pilih bahasa Indonesia/English
   const [resetAsk, setResetAsk] = React.useState(false); // v2.12: konfirmasi reset + jeda 5 detik (dulu gak ada, bahaya ke pencet)
 
   function clearLocal() {
-    if (confirm('Hapus semua data lokal dan mulai bersih dari awal?')) {
+    if (confirm(t('Hapus semua data lokal dan mulai bersih dari awal?'))) {
       localStorage.removeItem('miapos-store-v4');
       localStorage.removeItem('miapos-store-v3');
       window.location.reload();
@@ -4915,27 +5099,28 @@ function SettingsView({ onBack }) {
   if (sub === 'owner') return React.createElement(OwnerZoneScreen, { onBack: function() { setSub(null); } });
 
   const groups = [
-    { title:'Kelola', items: [
-      { key:'produk', icon:'package', label:'Kelola Menu', desc:'Tambah, edit & hapus menu' },
-      { key:'inventory', icon:'boxes', label:'Stok & Bahan', desc:'Bahan baku, stok masuk/keluar' },
-      { key:'kitchen', icon:'utensils-crossed', label:'Laporan Menu', desc:'Menu terjual hari ini — per item & qty' },
-      { key:'kasir', icon:'users', label:'Kasir & Karyawan', desc:'Kelola kasir, PIN & hak akses' },
-      { key:'outlets', icon:'store', label:'Cabang & Outlet', desc:'Multi-cabang & data per outlet' },
+    { title: t('Kelola'), items: [
+      { key:'produk', icon:'package', label: t('Kelola Menu'), desc: t('Tambah, edit & hapus menu') },
+      { key:'inventory', icon:'boxes', label: t('Stok & Bahan'), desc: t('Bahan baku, stok masuk/keluar') },
+      { key:'kitchen', icon:'utensils-crossed', label: t('Laporan Menu'), desc: t('Menu terjual hari ini — per item & qty') },
+      { key:'kasir', icon:'users', label: t('Kasir & Karyawan'), desc: t('Kelola kasir, PIN & hak akses') },
+      { key:'outlets', icon:'store', label: t('Cabang & Outlet'), desc: t('Multi-cabang & data per outlet') },
     ]},
-    { title:'Nota & Perangkat', items: [
-      { key:'nota', icon:'printer', label:'Nota & Printer', desc:'Ganti header nota + sambung printer kasir & dapur' },
+    { title: t('Nota & Perangkat'), items: [
+      { key:'nota', icon:'printer', label: t('Nota & Printer'), desc: t('Ganti header nota + sambung printer kasir & dapur') },
     ]},
-    { title:'Aplikasi', items: [
-      { key:'tema', icon:'palette', label:'Tema Warna', desc:'Aktif: ' + (MD_THEMES[settings.theme] || MD_THEMES.emerald).name + ' · 3 pilihan warna' },
-      { key:'engine', icon:'cpu', label:'Backup Cloud & Mesin Lokal', desc:'Auto-backup GitHub · mesin lokal opsional' },
+    { title: t('Aplikasi'), items: [
+      { key:'tema', icon:'palette', label: t('Tema Warna'), desc: t('Aktif: ') + (MD_THEMES[settings.theme] || MD_THEMES.emerald).name + ' · ' + t('4 pilihan warna') },
+      { key:'bahasa', icon:'languages', label: t('Bahasa'), desc: t('Aktif: ') + (settings.lang === 'en' ? 'English' : 'Indonesia') },
+      { key:'engine', icon:'cpu', label: t('Backup Cloud & Mesin Lokal'), desc: t('Auto-backup GitHub · mesin lokal opsional') },
     ]},
-    { title:'Khusus Owner', items: [
-      { key:'owner', icon:'lock', label:'Owner Zone', desc:'' },
+    { title: t('Khusus Owner'), items: [
+      { key:'owner', icon:'lock', label: t('Owner Zone'), desc:'' },
     ]},
   ];
 
   return React.createElement('div', { className:'flex flex-col min-h-full' },
-    React.createElement(Topbar, { title:'Pengaturan', subtitle:'Ketuk fitur untuk membuka layarnya' }),
+    React.createElement(Topbar, { title: t('Pengaturan'), subtitle: t('Ketuk fitur untuk membuka layarnya') }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-5 min-h-0' },
       groups.map(function(g) {
         return React.createElement('div', { key: g.title },
@@ -4943,7 +5128,7 @@ function SettingsView({ onBack }) {
           React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100 shadow-sm overflow-hidden' },
             g.items.map(function(it) {
               return React.createElement('button', {
-                key: it.key, onClick: function() { if (it.key === 'tema') setTemaOpen(true); else setSub(it.key); },
+                key: it.key, onClick: function() { if (it.key === 'tema') setTemaOpen(true); else if (it.key === 'bahasa') setBahasaOpen(true); else setSub(it.key); },
                 className:'w-full flex items-center gap-3 p-3.5 text-left transition-colors hover:bg-slate-50 active:bg-slate-100'
               },
                 React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 border border-slate-200/70 text-slate-700' },
@@ -4968,8 +5153,8 @@ function SettingsView({ onBack }) {
                 React.createElement(Icon, { name: settings.online ? 'wifi' : 'wifi-off', className:'w-5 h-5 text-slate-700' })
               ),
               React.createElement('div', { className:'min-w-0' },
-                React.createElement('p', { className:'font-bold text-sm text-slate-900' }, settings.online ? 'Mode Online' : 'Mode Offline'),
-                React.createElement('p', { className:'text-xs text-slate-500' }, settings.online ? 'Pesanan tersinkron real-time' : 'Pesanan tersimpan lokal')
+                React.createElement('p', { className:'font-bold text-sm text-slate-900' }, settings.online ? t('Mode Online') : t('Mode Offline')),
+                React.createElement('p', { className:'text-xs text-slate-500' }, settings.online ? t('Pesanan tersinkron real-time') : t('Pesanan tersimpan lokal'))
               )
             ),
             React.createElement('button', { onClick: toggleOnline, className: cn('relative w-11 h-6 rounded-full transition-colors shrink-0', settings.online ? 'bg-emerald-500' : 'bg-slate-300') },
@@ -4981,26 +5166,28 @@ function SettingsView({ onBack }) {
         React.createElement('div', { className:'px-3.5' }, React.createElement(HPPToggleRow, null))
       ),
       React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm' },
-        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'database', className:'w-4 h-4' }), 'Data Lokal'),
+        React.createElement('h3', { className:'text-sm font-bold flex items-center gap-2 mb-3' }, React.createElement(Icon, { name:'database', className:'w-4 h-4' }), t('Data Lokal')),
         React.createElement('div', { className:'grid grid-cols-3 gap-2 mb-3' },
-          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, orders.length), React.createElement('p', { className:'text-xs text-slate-500' }, 'Pesanan')),
-          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, products.length), React.createElement('p', { className:'text-xs text-slate-500' }, 'Produk')),
-          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, materials.length), React.createElement('p', { className:'text-xs text-slate-500' }, 'Bahan Baku'))
+          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, orders.length), React.createElement('p', { className:'text-xs text-slate-500' }, t('Pesanan'))),
+          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, products.length), React.createElement('p', { className:'text-xs text-slate-500' }, t('Produk'))),
+          React.createElement('div', { className:'rounded-lg border p-3 text-center' }, React.createElement('p', { className:'text-2xl font-bold' }, materials.length), React.createElement('p', { className:'text-xs text-slate-500' }, t('Bahan Baku')))
         ),
         React.createElement(Separator, { className:'mb-3' }),
         React.createElement('div', { className:'flex flex-col sm:flex-row gap-2' },
-          React.createElement(Button, { variant:'outline', className:'flex-1 gap-2', onClick: function() { setResetAsk(true); } }, React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }), 'Reset Data'),
-          React.createElement(Button, { variant:'destructive', className:'flex-1 gap-2', onClick: clearLocal }, React.createElement(Icon, { name:'trash-2', className:'w-4 h-4' }), 'Hapus Semua Data Lokal')
+          React.createElement(Button, { variant:'outline', className:'flex-1 gap-2', onClick: function() { setResetAsk(true); } }, React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }), t('Reset Data')),
+          React.createElement(Button, { variant:'destructive', className:'flex-1 gap-2', onClick: clearLocal }, React.createElement(Icon, { name:'trash-2', className:'w-4 h-4' }), t('Hapus Semua Data Lokal'))
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.12 · Python + C++ Engine'),
-        React.createElement('p', { className:'mt-1' }, 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)'),
-        React.createElement('p', { className:'mt-2' }, 'Data awal bersih: 0 transaksi · menu siap kamu isi sendiri')
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.13 · Python + C++ Engine'),
+        React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
+        React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),
-      React.createElement(ThemePickerModal, { open: temaOpen, onClose: function() { setTemaOpen(false); }, current: settings.theme || 'emerald', onPick: function(k) { setTheme(k); show('Tema: ' + (MD_THEMES[k] || MD_THEMES.emerald).name); } }),
+      React.createElement(ThemePickerModal, { open: temaOpen, onClose: function() { setTemaOpen(false); }, current: settings.theme || 'emerald', onPick: function(k) { setTheme(k); show(t('Tema: ') + (MD_THEMES[k] || MD_THEMES.emerald).name); } }),
+      // v2.13: pilih bahasa aplikasi — Indonesia / English
+      React.createElement(BahasaPickerModal, { open: bahasaOpen, onClose: function() { setBahasaOpen(false); }, current: settings.lang || 'id', onPick: function(l) { setLang(l); setBahasaOpen(false); show(t('Bahasa: ') + (l === 'en' ? 'English' : 'Indonesia')); } }),
       // v2.12: konfirmasi reset data — tombol oke terkunci 5 detik dulu
-      React.createElement(ConfirmResetModal, { open: resetAsk, onClose: function() { setResetAsk(false); }, onConfirm: function() { setResetAsk(false); resetDemo(); show('Data direset ke awal'); } })
+      React.createElement(ConfirmResetModal, { open: resetAsk, onClose: function() { setResetAsk(false); }, onConfirm: function() { setResetAsk(false); resetDemo(); show(t('Data direset ke awal')); } })
     )
   );
 }
@@ -5093,7 +5280,7 @@ function CashierEditDialog({ employee, onClose, onSave }) {
       React.createElement('div', { className:'space-y-3' },
         React.createElement('div', null,
           React.createElement(Label, null, 'Nama Kasir'),
-          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'cth: Chelsa', autoFocus: true })
+          React.createElement(Input, { value: name, onChange: e => setName(e.target.value), placeholder:'contoh: Chelsa', autoFocus: true })
         ),
         React.createElement('div', null,
           React.createElement(Label, null, 'Email (opsional)'),
@@ -5105,9 +5292,9 @@ function CashierEditDialog({ employee, onClose, onSave }) {
         )
       ),
       React.createElement('div', { className:'flex gap-2 mt-5 pt-4 border-t' },
-        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, 'Batal'),
+        React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onClose }, t('Batal')),
         React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', disabled: !name.trim() || pin.length < 4, onClick: () => onSave({ name: name.trim(), email: email.trim(), pin }) },
-          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? 'Simpan' : 'Tambah'
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), isEdit ? t('Simpan') : t('Tambah')
         )
       )
     )
@@ -5729,10 +5916,12 @@ function App() {
   // Tema terang = putih tulang (#f8fafc) nyatu sama header putih (habis masalah blend
   // ijo di header); Charcoal = #121212 gelap total. Splash tetap gelap (#020617).
   var themeKey = (state.settings && state.settings.theme) || 'emerald';
+  APP_LANG = (state.settings && state.settings.lang) || 'id'; // v2.13: bahasa aktif untuk t() — di-set tiap render sebelum children
   React.useEffect(function() {
     var el = document.documentElement;
     el.classList.toggle('theme-emerald', themeKey === 'emerald');
     el.classList.toggle('theme-royal', themeKey === 'royal');
+    el.classList.toggle('theme-pink', themeKey === 'pink');
     el.classList.toggle('theme-charcoal', themeKey === 'charcoal');
     try { el.style.colorScheme = (MD_THEMES[themeKey] && MD_THEMES[themeKey].dark) ? 'dark' : 'light'; } catch (e) {}
   }, [themeKey]);

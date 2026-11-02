@@ -1,8 +1,66 @@
 ================================================
-  MIAPOS v2.12 — RESET DATA PAKAI KONFIRMASI 5 DETIK
-     + README.md BARU BUAT HALAMAN GITHUB
-     (di atas: fix tulisan bawah + scan barcode + laporan
+  MIAPOS v2.13 — CATATAN PER MENU · 2 BAHASA · 4 TEMA
+     (di atas: reset anti ke pencet + README GitHub
+     + fix tulisan bawah + scan barcode + laporan
      menu + QRIS + owner zone + cuaca + backup cloud)
+================================================
+
+APA YANG BARU DI v2.13 (catatan item, nota rapi, bahasa, tema)
+------------------------------------------------------------
+1. CATATAN BUAT DAPUR BISA DIISI PER MENU:
+   • Dulu catatan dapur cuma 1 buat seluruh pesanan
+     (yang di bagian bawah keranjang). Sekarang DI
+     BAWAH TIAP MENU yang udah masuk keranjang ada
+     kolom catatan sendiri — contoh: "pedas, tanpa
+     es" cuma buat Mie Ayam-nya doang.
+   • Catatannya ikut kecetak di NOTA DAPUR (baris
+     "cat: ..." di bawah nama menunya).
+   • Ada di keranjang desktop & drawer keranjang HP.
+   • PESANAN YANG UDH MASUK PUN BISA: buka detail
+     pesanan → tiap menu ada kolom catatan (ikon
+     pensil editor catatan lama tetap ada).
+2. NOTA CETAKAN GAK KAPITAL-KAPITAL AMAT LAGI:
+   • Dulu nota dapur nyetak nama menu HURUF KAPITAL
+     SEMUA (contoh: 2 NASI GORENG SPESIAL) — makan
+     tempat & susah dibaca. Sekarang huruf normal
+     persis kaya nama di daftar menu (2 Nasi Goreng
+     Spesial).
+   • Berlaku untuk SEMUA nota: nota dapur & struk
+     kasir sama-sama huruf normal. Hemat kertas 😄
+3. TOMBOL CETAK DI LAYAR "SUDAH BAYAR" JADI 2:
+   • Kejadian belinya: pembeli habis pesen langsung
+     bayar. Dulu pas udah bayar cuma ada 1 tombol
+     cetak struk (buat kasir). Sekarang jadi 2:
+     - CETAK DAPUR → nota dapur langsung kecetak,
+       dapur bisa mulai masak.
+     - STRUK KASIR → bukti bayar buat pembeli.
+4. BAHASA BAKU + TOMBOL 2 BAHASA (Indonesia/English):
+   • Tulisan di aplikasi dirapikan pake bahasa baku
+     (contoh: "cth:" jadi "contoh:", "Belum pilih
+     meja" jadi "Meja belum dipilih", "item kecetak"
+     jadi "item tercetak", dsb).
+   • Pengaturan → Aplikasi → BAHASA: pilih Indonesia
+     atau English — tersimpan otomatis. Fitur utama
+     (kasir, pesanan, pembayaran, pengaturan) ikut
+     keganti bahasanya; layar panduan dalam tetap
+     Indonesia.
+5. TEMA WARNA: ROYAL ORANGE DIPERBAIKI + PINK & PUTIH:
+   • Bug: tema "Royal & Orange" ternyata warna
+     utamanya BIRU (masa iya biru namanya orange 😅).
+     Udah dibenerin — sekarang beneran ORANYE, dari
+     header sampai tombol bayar.
+   • Tema BARU: "Pink & Putih" — aksen pink di atas
+     latar terang.
+   • Total jadi 4 tema: Emerald & Slate, Royal &
+     Orange, Pink & Putih, Charcoal Dark.
+6. VERSI NAIK:
+   • Versi app jadi v2.13 (sidebar + kartu bawah
+     Pengaturan). Cache sw.js jadi miapos-v2.13-r1.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.12 (rilis sebelumnya) — RESET DATA PAKAI
+     KONFIRMASI 5 DETIK + README.md BARU
 ================================================
 
 APA YANG BARU DI v2.12 (reset anti ke pencet + README GitHub)
@@ -533,4 +591,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.12
+SELAMAT PAKAI! — Miapos v2.13

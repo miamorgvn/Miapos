@@ -5,7 +5,7 @@
 **Aplikasi kasir (POS) yang jalan 100% offline di HP.**
 Buat warung, kafe, kedai, sampai resto — kasir, dapur, stok, laporan, semua ada. 🚀
 
-![versi](https://img.shields.io/badge/versi-2.12-10b981?style=flat-square&labelColor=0f172a)
+![versi](https://img.shields.io/badge/versi-2.13-10b981?style=flat-square&labelColor=0f172a)
 ![PWA](https://img.shields.io/badge/PWA-offline%20ready-5A0FC8?style=flat-square&labelColor=0f172a)
 ![teknologi](https://img.shields.io/badge/React%20%2B%20Tailwind-single%20file%20HTML-orange?style=flat-square&labelColor=0f172a)
 ![mesin](https://img.shields.io/badge/Python%20%2B%20C%2B%2B-engine-blue?style=flat-square&labelColor=0f172a)
@@ -32,7 +32,11 @@ Yang bikin beda:
 ### 🧾 Kasir & Pembayaran
 - Buat pesanan cepat, keranjang, promo & diskon
 - Metode bayar **Tunai / QRIS / Transfer** — QRIS resto bisa upload gambar sendiri 📱
+- 📝 **Catatan per menu** — di bawah tiap menu di keranjang ada kolom catatan sendiri
+  (contoh: "pedas, tanpa es" buat Mie Ayam-nya aja) — walau pesanannya udah masuk
 - Nota otomatis: cetak struk kasir, nota dapur, dan nota **tambahan** (item yang ditambah belakangan)
+- Nama menu di nota dicetak **huruf normal** (bukan KAPITAL semua) — hemat kertas 👍
+- Habis bayar langsung muncul 2 tombol: **Cetak Dapur** (dapur langsung masak) & **Struk Kasir** 🖨️
 - Label "Tambahan" cuma tampil di app — nota cetakan tetap bersih ✨
 
 ### 📷 Scan Barcode & QR Buat Input Menu
@@ -70,8 +74,13 @@ Yang bikin beda:
 - Update app? Timpa file ke repo → semua HP otomatis ke-refresh tanpa ngapa-ngapain 🔄
 - Reset data dikunci konfirmasi **5 detik** — biar gak ke pencet gak sengaja (pernah kejadian 😅)
 
+### 🌏 2 Bahasa — Indonesia / English
+- Pengaturan → **Bahasa** → pilih Indonesia atau English — tersimpan otomatis 💬
+
 ### 🎨 Puluhan Sentuhan Kecil
-- 3 tema warna, mode layar penuh (judul gak ketutup lensa kamera),
+- **4 tema warna**: Emerald & Slate · Royal & Orange (beneran oranye! 🍊) ·
+  Pink & Putih 🌸 · Charcoal Dark — ganti tema = seluruh app ikut berubah instan
+- Mode layar penuh (judul gak ketutup lensa kamera),
   scan QRIS dari galeri, kategori menu bebas dibuat/dihapus, dan lain-lain
 
 ---
@@ -103,7 +112,7 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama pakai file baru di repo
 2. Pengguna buka app (saat online) → otomatis ambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti tiap rilis
-   (mis. `miapos-v2.12-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
+   (mis. `miapos-v2.13-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
 
 > 💡 Aturan project ini: **setiap update, versi selalu naik** (2.11 → 2.12 → 2.13 → ...).
 
@@ -154,6 +163,7 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.13** | 📝 Catatan per menu (ikut ke nota dapur) · 🔤 2 bahasa ID/EN + bahasa baku · 🍊 tema Royal Orange dibenerin + Pink & Putih · 🖨️ tombol cetak dapur & kasir di layar sukses · nota gak kapital semua |
 | **v2.12** | 🔒 Reset data wajib konfirmasi + tombol terkunci 5 detik (anti ke pencet) · README GitHub baru |
 | **v2.11** | ✂️ Fix tulisan paling bawah kepotong di semua layar (akar bugnya: tinggi layar nembus batas app) |
 | **v2.10** | 📷 Scan barcode & QR massal · 📊 Laporan Menu bertanggal · 📱 QRIS · 🔖 Cetak tambahan · 🚫 fitur notifikasi dicabut |
