@@ -1,13 +1,68 @@
 ================================================
-  MIAPOS v2.13 — AKUN ANTAR HP · CATATAN PER MENU
-     · 2 BAHASA · 4 TEMA
-     (di atas: reset anti ke pencet + README GitHub
-     + fix tulisan bawah + scan barcode + laporan
-     menu + QRIS + owner zone + cuaca + backup cloud)
+  MIAPOS v2.14 — SINKRON OTOMATIS ANTAR HP VIA AKUN
+     · LAPORAN PEMBAYARAN + KALENDER
+     (di atas: akun antar HP + catatan per menu
+     + 2 bahasa + 4 tema + reset anti ke pencet
+     + scan barcode + laporan menu + QRIS + cuaca
+     + backup cloud)
 ================================================
 
-APA YANG BARU DI v2.13 (akun antar HP, catatan item, nota rapi, 2 bahasa, 4 tema)
+APA YANG BARU DI v2.14 (sinkron otomatis akun + laporan pembayaran)
 ------------------------------------------------------------
+1. SINKRON OTOMATIS ANTAR HP — GAK PERLU INPUT/SCAN ULANG:
+   • Dulu: HP lain mau dipakai jualan? Harus scan QR
+     akun / tempel kode manual dulu, capek sendiri.
+   • Sekarang: cukup LOGIN ke akun yang sama di HP
+     baru → SEMUA DATA LANGSUNG MASUK SENDIRI — menu,
+     pesanan, omzet, stok, laporan, pengaturan.
+     Gak perlu scan apa-apa. 🎉
+   • DUA ARAH & BERJALAN TERUS: HP A nambah menu →
+     HP B otomatis ke-update beberapa detik kemudian
+     (saat online). Internet mati? Tetap jalan normal,
+     begitu online datanya ketrimbalan sendiri.
+   • PENGHAPUSAN JUGA IKUT: menu/pesanan yang dihapus
+     di HP A gak bakal bangkit lagi di HP B
+     (pencatatan hapus / tombstone).
+   • CARA PAKAI:
+     1. HP utama: isi Kata Sandi Backup Cloud di
+        Pengaturan → Backup Cloud & Mesin Lokal
+        (ini kunci sinkronnya — jangan lupa!).
+     2. HP lain: Pengaturan → Akun → masuk dengan
+        nomor HP + kata sandi akun yang sama.
+     3. Selesai — data masuk sendiri, statusnya bisa
+        dilihat di kartu akun: "Sinkron otomatis
+        AKTIF" + waktu sinkron terakhir.
+   • BUTUH SERVER: deploy di Vercel (file api/sync.js
+     udah disediakan) atau jalanin main.py di Termux/
+     komputer. Data akun disimpan satu file JSON per
+     akun di folder sync/ repo — kuncinya kata sandi,
+     bukan siapa-siapa bisa baca.
+   • Tetap ada mode lama buat kondisi offline: QR Akun
+     & Kode Data Lengkap gak diilangin.
+2. LAPORAN PEMBAYARAN (DI PENGATURAN):
+   • Pengaturan → LAPORAN PEMBAYARAN — lihat hari
+     ini orang bayar pakai apa aja: Tunai / QRIS /
+     Transfer, ada total per metode + daftar per
+     transaksi (jam, meja, jumlah, metode).
+   • Cocok buat jam tutup: cocokin uang fisik di
+     kasir sama catatan app.
+3. BISA LIHAT HARI-HARI SEBELUMNYA (KALENDER DI ATAS):
+   • Sama persis kaya Laporan Menu: panah mundur/
+     maju + ketuk tanggalnya buka kalender + tombol
+     cepat Hari Ini / Kemarin.
+   • Pesanan lama yang terarsip tetap kehitung.
+4. VERSI NAIK:
+   • Versi app jadi v2.14 (footer bawah + kartu
+     Pengaturan). Cache sw.js jadi miapos-v2.14-r1.
+   • Server ikut nambah: api/sync.js (Vercel) &
+     main.py v2.14 (Termux) — dua-duanya harus di-
+     update barengan biar sinkron jalan.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.13 (rilis sebelumnya) — AKUN ANTAR HP ·
+     CATATAN PER MENU · 2 BAHASA · 4 TEMA
+================================================
 1. CATATAN BUAT DAPUR BISA DIISI PER MENU:
    • Dulu catatan dapur cuma 1 buat seluruh pesanan
      (yang di bagian bawah keranjang). Sekarang DI
@@ -54,7 +109,7 @@ APA YANG BARU DI v2.13 (akun antar HP, catatan item, nota rapi, 2 bahasa, 4 tema
      latar terang.
    • Total jadi 4 tema: Emerald & Slate, Royal &
      Orange, Pink & Putih, Charcoal Dark.
-6. AKUN & SINKRON ANTAR HP (FITUR BARU!):
+6. AKUN & QR ANTAR HP (DASAR SINKRON — DILENGKAP DI v2.14):
    • Sekarang ada AKUN: Pengaturan → bagian AKUN
      (paling atas). Daftar dulu: nama lengkap, no.
      handphone, nama usaha, alamat, kata sandi —
@@ -85,6 +140,9 @@ APA YANG BARU DI v2.13 (akun antar HP, catatan item, nota rapi, 2 bahasa, 4 tema
    • Catatan jujur: sinkronnya lewat QR/kode (100%
      offline, tanpa server). Bukan real-time antar
      HP — tapi sekali pindah, datanya utuh semua.
+     (UPDATE v2.14: kini udah ada sinkron otomatis
+     real-time via server — baca catatan v2.14 di
+     paling atas!)
      Kalau nanti mau real-time via cloud, tinggal
      bilang, butuh server sendiri.
 7. VERSI NAIK:
@@ -625,4 +683,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.13
+SELAMAT PAKAI! — Miapos v2.14

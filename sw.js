@@ -13,7 +13,7 @@
    Tidak jalan di file:// (Termux) — aman, app tetap offline.
    ============================================================ */
 
-const CACHE = 'miapos-v2.13-r1';
+const CACHE = 'miapos-v2.14-r1';
 
 const CORE = [
   './',

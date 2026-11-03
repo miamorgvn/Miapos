@@ -677,6 +677,40 @@ var I18N_EN = {
     'Outlet & Staf':'Outlets & Staff',
     'Multi-cabang & karyawan':'Multi-branch & employees',
     'Printer, info resto, mesin & data':'Printers, resto info, engine & data',
+// ===== v2.14: TERJEMAHAN STRING BARU (sinkron otomatis + laporan pembayaran) =====
+    'Laporan Pembayaran':'Payment Report',
+    'Bayar pakai apa aja hari ini — per metode & per transaksi':'What customers paid with today — per method & per transaction',
+    'Daftar Pembayaran':'Payment List',
+    'Total Pembayaran':'Total Payments',
+    'Metode Teratas':'Top Method',
+    'metode dipakai':'methods used',
+    'Pembayaran ':'Payments ',
+    'Belum ada pembayaran ':'No payments yet ',
+    'di tanggal ini':'on this date',
+    'hari ini':'today',
+    'Diurutkan dari total terbesar':'Sorted from the biggest total',
+    'Tips: cocokan uang kas tunai tiap tutup kasir — laporan ini nunjukin mana yang tunai, QRIS, dan transfer.':'Tip: match your cash drawer at closing — this report shows which payments were cash, QRIS, or transfer.',
+    'Geser tanggalnya, atau laporan terisi sendiri begitu ada yang bayar':'Move the date, or the report fills itself once someone pays',
+    'Metode':'Method',
+    'Tidak ada yang membayar ':'Nobody paid ',
+    'Sinkron otomatis AKTIF':'Auto-sync ON',
+    'Sinkron otomatis':'Auto sync',
+    'Sinkron sekarang':'Sync now',
+    'Menyinkronkan...':'Syncing...',
+    'Sinkron selesai':'Sync complete',
+    'Sinkron gagal — cek koneksi':'Sync failed — check connection',
+    'terakhir ditarik':'last pulled',
+    'galat terakhir':'last error',
+    'Memeriksa server...':'Checking server...',
+    'Isi password Backup Cloud (Pengaturan → Backup Cloud & Mesin Lokal) biar data akun otomatis ke-sync antar HP.':'Enter the cloud backup password (Settings → Cloud Backup & Local Engine) so account data auto-syncs across phones.',
+    'Password backup salah — sinkron tidak jalan. Cek Pengaturan → Backup Cloud & Mesin Lokal.':'Wrong backup password — sync is off. Check Settings → Cloud Backup & Local Engine.',
+    'Server belum punya fitur sinkron — update dulu deployment Vercel/Termux-nya.':'Server does not support sync yet — update your Vercel/Termux deployment first.',
+    'Buka lewat Vercel/Termux biar sinkron otomatis jalan. Untuk sekarang, QR akun tetap bisa dipakai.':'Open via Vercel/Termux so auto-sync works. For now, the account QR still works.',
+    'Mencari data akun di cloud...':'Looking for account data in the cloud...',
+    'Kalau Backup Cloud aktif, masuk dengan akun yang sama di HP lain otomatis membawa semua data — tanpa scan QR. Tanpa cloud, pakai Tampilkan/Pindai QR Akun.':'When cloud backup is active, signing in with the same account on another phone automatically brings all data — no QR scanning. Without cloud, use Show/Scan Account QR.',
+    'HP lain cukup masuk dengan akun yang sama — datanya otomatis ikut.':'Other phones just sign in with the same account — data follows automatically.',
+    'Data akun berhasil diambil dari cloud — semua data usaha ikut masuk.':'Account data fetched from the cloud — all business data comes along.',
+    'Ada pembaruan data dari perangkat lain.':'New data arrived from another device.',
 'contoh: st4 / Meja 5 / Gojek':'e.g. st4 / Table 5 / Gojek'
 };
 function t(s) {
@@ -774,6 +808,7 @@ function generateSeed() {
   const orders = [];
   return {
     outlets, employees, tables, products, materials, orders, movements: [],
+    tombstones: {}, // v2.14: catatan hapus — biar penghapusan ikut tersinkron antar HP
     settings: { taxRate: 0, outletId:'outlet-1', cashierId:'emp-1', online:true, fiturHPP:false, theme:'emerald', lang:'id', qrisImage:'' },
   };
 }
@@ -786,7 +821,9 @@ const LEGACY_STORAGE_KEY = 'miapos-store-v3';
 // Satu akun (nomor HP + kata sandi) dapat dipakai di beberapa HP. Data usaha
 // (menu, pesanan, omzet, stok, laporan) disimpan per akun; perangkat lain yang
 // masuk dengan akun yang sama memuat data itu lewat QR akun / kode data.
-const ACC_DATA_KEYS = ['outlets','employees','tables','products','materials','orders','movements','archivedOrders','lastArchiveDate'];
+// v2.14: kini OTOMATIS — akun yang sama di HP lain langsung mengunduh datanya
+// dari cloud (tanpa scan QR), dan perubahan tiap HP saling mengikuti.
+const ACC_DATA_KEYS = ['outlets','employees','tables','products','materials','orders','movements','archivedOrders','lastArchiveDate','tombstones'];
 const ACC_REG_KEY = 'miapos-acc-reg';
 function accKey(phone) { return 'miapos-acc-' + String(phone || 'guest').replace(/[^0-9A-Za-z_-]/g, ''); }
 function hashPass(pw) {
@@ -843,7 +880,9 @@ function switchToAccount(acc, incoming) {
     if (incoming && incoming.store) {
       try { localStorage.setItem(curKey, JSON.stringify(accPayload(cur))); } catch (e) {}
       st = Object.assign(generateSeed(), incoming.store || {});
-      st.settings = cur.settings;
+      // v2.14: data dari cloud boleh membawa pengaturan akun (tema, pajak, QRIS,
+      // bahasa) — pilihan per-HP (outlet, kasir aktif, mode online) tetap lokal.
+      st.settings = (incoming.settings) ? incoming.settings : cur.settings;
       st.account = acc;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
       if (incoming.resto) { try { localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(incoming.resto)); } catch (e) {} }
@@ -896,6 +935,288 @@ function logoutToGuest() {
   } catch (e) {}
   try { location.reload(); } catch (e) {}
 }
+
+// ===== v2.14 SINKRON OTOMATIS ANTAR HP (CLOUD SYNC) =====
+// Satu akun = satu data. HP lain yang MASUK dengan akun yang sama otomatis
+// mengunduh seluruh data akun (menu, pesanan, omzet, stok, laporan,
+// pengaturan, info usaha) — TANPA scan QR. Selama dipakai bareng, perubahan
+// tiap HP saling mengikuti: kirim (push) saat data berubah, tarik (pull)
+// rutin tiap ±45 detik saat layar aktif + tiap app dibuka lagi.
+// Server: /api/sync (Vercel v2.14 atau python main.py v2.14). Kuncinya sama
+// dengan Backup Cloud (x-backup-key) — tanpa setup tambahan.
+// Aturan merge ANTI-HILANG:
+//   • Pesanan & arsip selalu DIGABUNG per-ID (yang lebih baru menang) —
+//     penjualan yang dibuat saat HP lain mati internet tetap masuk semua.
+//   • Menu/staf/outlet/bahan: digabung per-ID juga; ubah-ubah ikut yang
+//     terbaru (updatedAt); yang DIHAPUS dicatat di tombstones biar tidak
+//     bangkit lagi dari data HP lain.
+//   • Pengaturan & info usaha mengikuti kirim terakhir, KECUALI pilihan
+//     outlet, kasir aktif & mode online — itu tetap milik masing-masing HP.
+var SYNC_LS = 'miapos-sync-meta';
+var SYNC_PUSH_DEBOUNCE = 4000;   // jeda ketat setelah data berubah
+var SYNC_MIN_GAP = 20000;        // jeda minimal antar kirim (hemat kuota)
+var SYNC_PULL_EVERY = 45000;     // jeda tarik rutin
+var SYNC_FIELDS_LOCAL = ['outletId', 'cashierId', 'online']; // setelan per-HP
+var SYNC_TOMB_LISTS = ['products', 'materials', 'employees', 'outlets', 'tables'];
+
+function syncMeta() { try { return JSON.parse(localStorage.getItem(SYNC_LS) || '{}') || {}; } catch (e) { return {}; } }
+function syncMetaSave(patch) { try { var m = syncMeta(); Object.assign(m, patch); localStorage.setItem(SYNC_LS, JSON.stringify(m)); } catch (e) {} }
+function syncNotify() { try { window.dispatchEvent(new CustomEvent('miapos-sync')); } catch (e) {} }
+function syncDeviceId() {
+  var m = syncMeta();
+  if (!m.did) { m.did = 'dev-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6); syncMetaSave({ did: m.did }); }
+  return m.did;
+}
+function syncStrHash(s) { var h = 0; for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; } return String(h); }
+// Catat penghapusan item (tombstone) — dipakai aksi delete* di store
+function withTombstone(s, listName, id) {
+  var tb = Object.assign({}, s.tombstones || {});
+  var m = Object.assign({}, tb[listName] || {});
+  m[id] = new Date().toISOString();
+  tb[listName] = m;
+  return tb;
+}
+// Gabungkan beberapa daftar ber-ID: semua item masuk, duplikat ambil terbaru
+function unionById(lists, tsOf) {
+  var byId = {}, order = [];
+  for (var i = 0; i < lists.length; i++) {
+    var list = lists[i] || [];
+    for (var j = 0; j < list.length; j++) {
+      var x = list[j];
+      if (!x || !x.id) continue;
+      if (!byId[x.id]) { byId[x.id] = x; order.push(x.id); }
+      else if (tsOf(x) > tsOf(byId[x.id])) byId[x.id] = x;
+    }
+  }
+  var out = [];
+  for (var k = 0; k < order.length; k++) out.push(byId[order[k]]);
+  return out;
+}
+function syncTsOrder(o) { return o.updatedAt || o.paidAt || o.createdAt || ''; }
+function syncTsEnt(x) { return x.updatedAt || x.createdAt || ''; }
+function syncTsMove(m) { return m.createdAt || m.date || ''; }
+// Buang item yang sudah dihapus (catatan hapusnya lebih baru dari item)
+function syncAlive(tomb, listName, list) {
+  var tt = tomb[listName] || {};
+  return (list || []).filter(function (x) {
+    if (!x || !x.id || !tt[x.id]) return true;
+    // item masih hidup kalau itemnya LEBIH BARU (atau sama) dari catatan hapusnya
+    return (x.updatedAt || x.createdAt || '') >= tt[x.id];
+  });
+}
+// Payload data usaha yang disinkronkan = data akun + pengaturan
+function syncStorePayload(state) {
+  var p = accPayload(state);
+  p.settings = state.settings;
+  return p;
+}
+
+var SyncNet = {
+  _getState: null, _apply: null, _pushTimer: 0, _pullTimer: 0,
+  _busyPush: false, _busyPull: false, _applying: false,
+  _lastPushHash: '', _lastSha: '', _lastSeenUpd: '',
+  _cap: null, _srv: null, // cap: 'ok' | 'SERVER_LAMA' | 'TANPA_SERVER' | 'KEY_SALAH'
+  status: function () {
+    var m = syncMeta();
+    return {
+      cap: this._cap, srv: this._srv ? (this._srv.server || '?') : null,
+      key: !!CloudStore.getKey(),
+      lastPush: m.lastPush || 0, lastPull: m.lastPull || 0,
+      lastErr: m.lastErr || '', lastErrAt: m.lastErrAt || 0,
+      busy: this._busyPush || this._busyPull, device: syncDeviceId()
+    };
+  },
+  _needsKey: function () { return !(this._srv && this._srv.server === 'python'); },
+  checkCap: function () {
+    var self = this;
+    return ServerBridge.ping().then(function (p) {
+      self._srv = p || null;
+      self._cap = (p && p.sync === true) ? 'ok' : (p ? 'SERVER_LAMA' : 'TANPA_SERVER');
+      syncNotify();
+      return self._cap;
+    });
+  },
+  headers: function () { return ServerBridge.keyHeaders(); },
+  // ---- ambil data akun dari cloud apa adanya (dipakai saat LOGIN) ----
+  fetchAccount: function (phone) {
+    var self = this;
+    if (!ServerBridge.isHttp()) return Promise.resolve(null);
+    return fetch('/api/sync?acc=' + encodeURIComponent(phone), { cache: 'no-store', headers: this.headers() })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (j) {
+        if (j && j.ok && j.data) { self._cap = 'ok'; self._lastSha = j.sha || ''; return j.data; }
+        if (j && j.error === 'AKUN_BELUM_ADA_DI_CLOUD') { self._cap = 'ok'; return null; }
+        if (j && j.error === 'KEY_SALAH') { self._cap = 'KEY_SALAH'; syncNotify(); }
+        return null;
+      })
+      .catch(function () { return null; });
+  },
+  // ---- GABUNGkan store lokal + store remote (fungsi murni) ----
+  mergeStores: function (localP, remoteP) {
+    var tomb = {};
+    SYNC_TOMB_LISTS.forEach(function (k) {
+      var m = {};
+      var cs = (localP && localP.tombstones && localP.tombstones[k]) || {};
+      var rs = (remoteP && remoteP.tombstones && remoteP.tombstones[k]) || {};
+      Object.keys(cs).forEach(function (id) { m[id] = cs[id]; });
+      Object.keys(rs).forEach(function (id) { if (!m[id] || rs[id] > m[id]) m[id] = rs[id]; });
+      tomb[k] = m;
+    });
+    var out = {
+      outlets: unionById([syncAlive(tomb, 'outlets', localP && localP.outlets), syncAlive(tomb, 'outlets', remoteP && remoteP.outlets)], syncTsEnt),
+      employees: unionById([syncAlive(tomb, 'employees', localP && localP.employees), syncAlive(tomb, 'employees', remoteP && remoteP.employees)], syncTsEnt),
+      tables: unionById([syncAlive(tomb, 'tables', localP && localP.tables), syncAlive(tomb, 'tables', remoteP && remoteP.tables)], syncTsEnt),
+      products: unionById([syncAlive(tomb, 'products', localP && localP.products), syncAlive(tomb, 'products', remoteP && remoteP.products)], syncTsEnt),
+      materials: unionById([syncAlive(tomb, 'materials', localP && localP.materials), syncAlive(tomb, 'materials', remoteP && remoteP.materials)], syncTsEnt),
+      orders: unionById([localP && localP.orders, remoteP && remoteP.orders], syncTsOrder),
+      archivedOrders: unionById([localP && localP.archivedOrders, remoteP && remoteP.archivedOrders], syncTsOrder),
+      movements: unionById([localP && localP.movements, remoteP && remoteP.movements], syncTsMove),
+      lastArchiveDate: (((remoteP && remoteP.lastArchiveDate) || '') > ((localP && localP.lastArchiveDate) || '')) ? (remoteP && remoteP.lastArchiveDate) : (localP && localP.lastArchiveDate),
+      tombstones: tomb
+    };
+    if (remoteP && remoteP.resto) out.resto = remoteP.resto;
+    else if (localP && localP.resto) out.resto = localP.resto;
+    out.settings = Object.assign({}, (localP && localP.settings) || {}, (remoteP && remoteP.settings) || {});
+    return out;
+  },
+  // ---- tarik dari cloud lalu gabungkan ke state yang sedang jalan ----
+  _mergeRemote: function (data) {
+    try {
+      var cur = this._getState();
+      if (!cur || !cur.account || !cur.account.phone) return false;
+      if (!data || !data.acc || String(data.acc.phone || '') !== String(cur.account.phone)) return false;
+      var upd = String(data.updatedAt || '');
+      if (upd && this._lastSeenUpd && upd <= this._lastSeenUpd) return false; // tidak ada yang baru
+      var merged = this.mergeStores(accPayload(cur), data.store || {});
+      var settings = Object.assign({}, cur.settings, (merged.settings) || {});
+      SYNC_FIELDS_LOCAL.forEach(function (k) { settings[k] = cur.settings[k]; }); // tetap milik HP ini
+      var accNew = Object.assign({}, cur.account, data.acc || {});
+      accNew.phone = cur.account.phone; // nomor akun tidak diganti lewat sinkron
+      var next = Object.assign({}, cur, merged, { settings: settings, account: accNew });
+      (next.products || []).forEach(function (p) {
+        if (!Array.isArray(p.variants) || p.variants.length === 0) p.variants = [{ id: 'var-' + p.id + '-1', productId: p.id, name: 'Reguler', priceMod: 0 }];
+        if (!Array.isArray(p.recipeItems)) p.recipeItems = [];
+        if (typeof p.available !== 'boolean') p.available = true;
+        if (typeof p.price !== 'number') p.price = Number(p.price) || 0;
+      });
+      next = applyRollover(next);
+      try { if (merged.resto) localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(merged.resto)); } catch (e) {}
+      this._lastSeenUpd = upd;
+      this._applying = true; // jangan echo balik: hasil tarikan tidak perlu di-push balik
+      this._apply(next);
+      return true;
+    } catch (e) { return false; }
+  },
+  pull: function (reason) {
+    var self = this;
+    if (this._busyPush || this._busyPull || !this._getState) return Promise.resolve(false);
+    if (this._cap !== 'ok') return Promise.resolve(false);
+    var st = this._getState();
+    var acc = st && st.account;
+    if (!acc || !acc.phone) return Promise.resolve(false);
+    if (this._needsKey() && !CloudStore.getKey()) return Promise.resolve(false);
+    this._busyPull = true;
+    var url = '/api/sync?acc=' + encodeURIComponent(acc.phone) + (this._lastSha ? '&rev=' + encodeURIComponent(this._lastSha) : '');
+    return fetch(url, { cache: 'no-store', headers: this.headers() })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (j) {
+        self._busyPull = false;
+        if (!j || !j.ok) {
+          if (j && j.error === 'KEY_SALAH') { self._cap = 'KEY_SALAH'; syncMetaSave({ lastErr: 'KEY_SALAH', lastErrAt: Date.now() }); }
+          syncNotify();
+          return false;
+        }
+        if (j.unchanged) { syncMetaSave({ lastPull: Date.now() }); syncNotify(); return false; }
+        self._lastSha = j.sha || '';
+        var changed = false;
+        if (j.data && j.data.store) changed = self._mergeRemote(j.data);
+        syncMetaSave({ lastPull: Date.now() });
+        syncNotify();
+        return changed;
+      })
+      .catch(function () { self._busyPull = false; return false; });
+  },
+  // ---- kirim data akun ini ke cloud ----
+  push: function (reason) {
+    var self = this;
+    if (this._busyPush || !this._getState || this._cap !== 'ok') return Promise.resolve(false);
+    var st = this._getState();
+    var acc = st && st.account;
+    if (!acc || !acc.phone) return Promise.resolve(false);
+    if (this._needsKey() && !CloudStore.getKey()) return Promise.resolve(false);
+    var body = JSON.stringify({
+      acc: { phone: acc.phone, name: acc.name || '', business: acc.business || '', address: acc.address || '', role: acc.role || 'Pemilik', passHash: acc.passHash || '', createdAt: acc.createdAt || '' },
+      store: syncStorePayload(st),
+      deviceId: syncDeviceId()
+    });
+    var h = syncStrHash(body);
+    if (h === this._lastPushHash && reason !== 'manual') return Promise.resolve(false);
+    var now = Date.now();
+    if (reason !== 'manual' && reason !== 'hide' && now - (syncMeta().lastPush || 0) < SYNC_MIN_GAP) {
+      if (!this._pushTimer) {
+        this._pushTimer = setTimeout(function () { self._pushTimer = 0; self.push('trailing'); }, SYNC_MIN_GAP + 250);
+      }
+      return Promise.resolve(false);
+    }
+    this._busyPush = true;
+    var url = '/api/sync?acc=' + encodeURIComponent(acc.phone) + (this._lastSha ? '&base=' + encodeURIComponent(this._lastSha) : '');
+    return fetch(url, { method: 'PUT', headers: Object.assign({ 'Content-Type': 'application/json' }, this.headers()), body: body, keepalive: reason === 'hide' })
+      .then(function (r) { return r.json().catch(function () { return null; }); })
+      .then(function (j) {
+        self._busyPush = false;
+        if (j && j.ok) {
+          self._lastPushHash = h;
+          self._lastSha = j.sha || self._lastSha;
+          syncMetaSave({ lastPush: Date.now(), lastErr: '' });
+        } else if (j && j.error === 'CONFLICT' && j.sha) {
+          // perangkat lain baru saja mengirim → tarik, gabungkan, kirim ulang
+          self._lastSha = j.sha;
+          syncMetaSave({ lastErr: 'CONFLICT', lastErrAt: Date.now() });
+          setTimeout(function () { self.pull('conflict').then(function () { self.push('conflict-retry'); }); }, 700);
+        } else {
+          syncMetaSave({ lastErr: (j && j.error) || 'GAGAL', lastErrAt: Date.now() });
+        }
+        syncNotify();
+        return !!(j && j.ok);
+      })
+      .catch(function () {
+        self._busyPush = false;
+        syncMetaSave({ lastErr: 'OFFLINE', lastErrAt: Date.now() });
+        syncNotify();
+        return false;
+      });
+  },
+  // ---- dipanggil store tiap data berubah ----
+  onLocalChange: function () {
+    if (this._applying) { this._applying = false; return; } // hasil tarikan → jangan kirim balik
+    if (this._pushTimer || !this._getState) return;
+    var self = this;
+    this._pushTimer = setTimeout(function () { self._pushTimer = 0; self.push('change'); }, SYNC_PUSH_DEBOUNCE);
+  },
+  // ---- tombol manual "Sinkron sekarang" ----
+  syncNow: function () {
+    var self = this;
+    return this.pull('manual').then(function () { return self.push('manual'); });
+  },
+  init: function (getState, apply) {
+    var self = this;
+    this._getState = getState;
+    this._apply = apply;
+    this.checkCap();
+    setTimeout(function () { self.pull('open'); }, 2500); // tarik pertama saat app dibuka
+    this._pullTimer = setInterval(function () {
+      try { if (document.visibilityState === 'visible') self.pull('interval'); } catch (e) {}
+    }, SYNC_PULL_EVERY);
+    try {
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') self.pull('focus');
+        else { if (self._pushTimer) { clearTimeout(self._pushTimer); self._pushTimer = 0; } self.push('hide'); }
+      });
+      window.addEventListener('online', function () { self.checkCap(); setTimeout(function () { self.pull('online'); }, 1500); });
+    } catch (e) {}
+  }
+};
+
 const AppContext = React.createContext(null);
 const useAppStore = () => React.useContext(AppContext);
 
@@ -941,6 +1262,7 @@ function AppProvider({ children }) {
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     if (loaded.settings.lang !== 'en') loaded.settings.lang = 'id'; // v2.13: hanya 'id' | 'en'
     loaded.archivedOrders = loaded.archivedOrders || [];
+    loaded.tombstones = loaded.tombstones || {}; // v2.14: catatan hapus per daftar
     // v2.13 AKUN: normalisasi akun aktif + daftarkan ke registry perangkat ini
     loaded.account = (loaded.account && loaded.account.phone) ? {
       phone: String(loaded.account.phone), name: loaded.account.name || '', business: loaded.account.business || '',
@@ -970,13 +1292,30 @@ function AppProvider({ children }) {
   const [cart, setCart] = React.useState([]);
   const [cartTableId, setCartTableId] = React.useState(undefined);
   const [cartOrderType, setCartOrderType] = React.useState('DINE_IN');
+  // v2.14 SINKRON: ref data terkini buat mesin sinkron (push/pull di luar render)
+  const stateRef = React.useRef(state);
+  stateRef.current = state;
 
   React.useEffect(() => {
     if (window.__MIAPOS_ACC_SWITCH) return; // v2.13: sedang ganti akun — jangan timpa swap
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
     // v2.13 AKUN: snapshot data usaha per akun — dipakai saat akun yang sama masuk di HP lain
     try { if (state.account && state.account.phone) saveAccSnapshot(state.account.phone, state); } catch(e) {}
+    // v2.14 SINKRON: data berubah → jadwalkan kirim ke cloud (biar HP lain ikut)
+    try { SyncNet.onLocalChange(); } catch(e) {}
   }, [state]);
+
+  // v2.14 SINKRON OTOMATIS: init mesin sinkron — tarik saat app dibuka /
+  // kembali aktif + rutin tiap 45 detik; kirim saat data berubah.
+  React.useEffect(function() {
+    try {
+      SyncNet.init(
+        function() { return stateRef.current; },
+        function(next) { setState(function() { return next; }); }
+      );
+    } catch (e) {}
+    return function() { try { clearInterval(SyncNet._pullTimer); } catch (e) {} };
+  }, []);
 
   // v2.7 CLOUD AUTO-BACKUP: tiap data berubah & online, snapshot dikirim ke
   // /api/backup (Vercel) → tersimpan ke folder backups/ di repo GitHub.
@@ -1237,27 +1576,34 @@ function AppProvider({ children }) {
     setTableStatus: (tableId, status, currentOrderId) => setState(s => ({ ...s, tables: s.tables.map(t => t.id===tableId ? { ...t, status, currentOrderId } : t) })),
     adjustMaterial: (materialId, delta, reason) => setState(s => ({
       ...s,
-      materials: s.materials.map(m => m.id===materialId ? { ...m, stock: Math.max(0, m.stock + delta) } : m),
+      materials: s.materials.map(m => m.id===materialId ? { ...m, stock: Math.max(0, m.stock + delta), updatedAt: new Date().toISOString() } : m),
       movements: [...s.movements, { id:uid(), materialId, materialName: s.materials.find(m => m.id===materialId)?.name || '', quantity:delta, reason, createdAt:new Date().toISOString() }],
     })),
-    addMaterial: (m) => setState(s => ({ ...s, materials: [...s.materials, { id:'mat-'+Date.now()+'-'+Math.random().toString(36).slice(2,5), outletId: s.settings.outletId, ...m }] })),
-    updateMaterial: (id, patch) => setState(s => ({ ...s, materials: s.materials.map(m => m.id===id ? { ...m, ...patch } : m) })),
-    deleteMaterial: (id) => setState(s => ({ ...s, materials: s.materials.filter(m => m.id !== id) })),
+    // v2.14: semua aksi tambah/ubah/hapus dicatat waktu (updatedAt) + tombstone
+    // penghapusan — biar sinkron antar HP tahu mana yang lebih baru / terhapus.
+    addMaterial: (m) => setState(s => ({ ...s, materials: [...s.materials, { id:'mat-'+Date.now()+'-'+Math.random().toString(36).slice(2,5), outletId: s.settings.outletId, updatedAt:new Date().toISOString(), ...m }] })),
+    updateMaterial: (id, patch) => setState(s => ({ ...s, materials: s.materials.map(m => m.id===id ? { ...m, ...patch, updatedAt: new Date().toISOString() } : m) })),
+    deleteMaterial: (id) => setState(s => ({ ...s, materials: s.materials.filter(m => m.id !== id), tombstones: withTombstone(s, 'materials', id) })),
     upsertProduct: (p) => setState(s => {
+      const p2 = Object.assign({}, p, { updatedAt: new Date().toISOString() });
       const idx = s.products.findIndex(x => x.id === p.id);
-      if (idx < 0) return { ...s, products:[...s.products, p] };
-      return { ...s, products: s.products.map(x => x.id === p.id ? p : x) };
+      if (idx < 0) return { ...s, products:[...s.products, p2] };
+      return { ...s, products: s.products.map(x => x.id === p.id ? p2 : x) };
     }),
     // v2.10 revisi 2: import BANYAK menu sekaligus (QR massal) — sekali setState
     // biar 94 menu masuk rapih atomik, gak 94× update berantakan.
-    importProducts: (list) => setState(s => ({ ...s, products: [...s.products, ...list] })),
-    updateRecipe: (productId, recipe) => setState(s => ({ ...s, products: s.products.map(p => p.id===productId ? { ...p, recipeItems:recipe } : p) })),
-    deleteProduct: (productId) => setState(s => ({ ...s, products: s.products.filter(p => p.id !== productId) })),
-    addOutlet: (o) => setState(s => ({ ...s, outlets:[...s.outlets, { ...o, id:'outlet-'+Date.now(), createdAt:new Date().toISOString() }] })),
-    updateOutlet: (id, patch) => setState(s => ({ ...s, outlets: s.outlets.map(o => o.id===id ? { ...o, ...patch } : o) })),
-    addEmployee: (e) => setState(s => ({ ...s, employees:[...s.employees, { ...e, id:'emp-'+Date.now(), createdAt:new Date().toISOString() }] })),
-    updateEmployee: (id, patch) => setState(s => ({ ...s, employees: s.employees.map(e => e.id===id ? { ...e, ...patch } : e) })),
-    deleteEmployee: (id) => setState(s => ({ ...s, employees: s.employees.filter(e => e.id !== id) })),
+    importProducts: (list) => setState(s => {
+      const stamp = new Date().toISOString();
+      const list2 = (list || []).map(p => Object.assign({}, p, { updatedAt: stamp }));
+      return { ...s, products: [...s.products, ...list2] };
+    }),
+    updateRecipe: (productId, recipe) => setState(s => ({ ...s, products: s.products.map(p => p.id===productId ? { ...p, recipeItems:recipe, updatedAt: new Date().toISOString() } : p) })),
+    deleteProduct: (productId) => setState(s => ({ ...s, products: s.products.filter(p => p.id !== productId), tombstones: withTombstone(s, 'products', productId) })),
+    addOutlet: (o) => setState(s => ({ ...s, outlets:[...s.outlets, { ...o, id:'outlet-'+Date.now(), createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }] })),
+    updateOutlet: (id, patch) => setState(s => ({ ...s, outlets: s.outlets.map(o => o.id===id ? { ...o, ...patch, updatedAt: new Date().toISOString() } : o) })),
+    addEmployee: (e) => setState(s => ({ ...s, employees:[...s.employees, { ...e, id:'emp-'+Date.now(), createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }] })),
+    updateEmployee: (id, patch) => setState(s => ({ ...s, employees: s.employees.map(e => e.id===id ? { ...e, ...patch, updatedAt: new Date().toISOString() } : e) })),
+    deleteEmployee: (id) => setState(s => ({ ...s, employees: s.employees.filter(e => e.id !== id), tombstones: withTombstone(s, 'employees', id) })),
     resetDemo: () => { setState(generateSeed()); setCart([]); setCartTableId(undefined); },
   }), [state, cart, cartTableId, cartOrderType]);
 
@@ -1552,7 +1898,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.13')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.14')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -3700,6 +4046,164 @@ function MenuSalesView({ onBack }) {
 }
 
 console.log('Miapos: Laporan Menu siap');
+
+// ===== v2.14 LAPORAN PEMBAYARAN (Pengaturan → Kelola) =====
+// Permintaan owner: mau lihat HARI INI orang bayar pakai apa aja (tunai, QRIS,
+// transfer, e-wallet) — dan bisa intip hari-hari sebelumnya pakai tanggalan
+// yang sama kaya Laporan Menu (panah mundur/maju + ketuk buka kalender).
+function PaymentReportView({ onBack }) {
+  const { state } = useAppStore();
+  const { settings } = state;
+  const today = new Date().toISOString().slice(0,10);
+  const yesterday = (function() {
+    var d = new Date(today + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  const [selectedDate, setSelectedDate] = React.useState(today);
+  // Semua pesanan lunas (aktif + arsip) milik outlet aktif — arsip dibikin
+  // otomatis tiap ganti hari (rollover), jadi tanggal berbulan-bulan lalu
+  // tetap kelihatan.
+  const allPaid = React.useMemo(function() {
+    var all = [...state.orders, ...(state.archivedOrders || [])];
+    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID');
+  }, [state.orders, state.archivedOrders, settings.outletId]);
+  // Yang dihitung: WAKTU BAYAR-nya (paidAt), bukan waktu pesanan dibuat —
+  // biar sama dengan arti "org pada bayar hari ini".
+  const paidSel = React.useMemo(function() {
+    return allPaid
+      .filter(o => ((o.paidAt || o.createdAt) || '').slice(0, 10) === selectedDate)
+      .sort((a, b) => String(b.paidAt || b.createdAt || '').localeCompare(String(a.paidAt || a.createdAt || '')));
+  }, [allPaid, selectedDate]);
+  // Rincian per metode bayar — metode apa pun (CASH/QRIS/TRANSFER/EWALET/ketikan)
+  var methodMap = new Map();
+  paidSel.forEach(function(o) {
+    var key = String(o.paymentMethod || 'CASH').trim().toUpperCase() || 'CASH';
+    var cur = methodMap.get(key) || { key: key, label: payMethodLabel(key), count: 0, total: 0 };
+    cur.count++; cur.total += (Number(o.total) || 0);
+    methodMap.set(key, cur);
+  });
+  var methods = Array.from(methodMap.values()).sort((a, b) => b.total - a.total);
+  var totalCount = paidSel.length;
+  var totalMoney = paidSel.reduce((s, o) => s + (Number(o.total) || 0), 0);
+  var top = methods[0] || null;
+  const METHOD_CLS = {
+    CASH: ['banknote', 'bg-emerald-50 text-emerald-700 border-emerald-100'],
+    QRIS: ['qr-code', 'bg-cyan-50 text-cyan-700 border-cyan-100'],
+    TRANSFER: ['landmark', 'bg-indigo-50 text-indigo-700 border-indigo-100'],
+    EWALLET: ['smartphone', 'bg-violet-50 text-violet-700 border-violet-100']
+  };
+  function shiftDate(delta) {
+    var d = new Date(selectedDate + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + delta);
+    var ds = d.toISOString().slice(0, 10);
+    if (ds > today) ds = today;
+    setSelectedDate(ds);
+  }
+  var isToday = selectedDate === today;
+  var isYesterday = selectedDate === yesterday;
+  var dateLong = new Date(selectedDate + 'T12:00:00Z').toLocaleDateString('id-ID', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  var dayWord = isToday ? t('Hari Ini') : (isYesterday ? t('Kemarin') : formatDate(selectedDate + 'T12:00:00Z'));
+  return React.createElement('div', { className:'flex flex-col min-h-full' },
+    React.createElement(Topbar, { title: t('Laporan Pembayaran'), subtitle: dayWord + ' · ' + totalCount + t(' pesanan lunas'), onBack: onBack }),
+    React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 min-h-0' },
+      // ===== TANGGALAN — persis kaya Laporan Menu: panah ‹ › + ketuk label
+      // buat buka kalender native + tombol cepat Hari Ini / Kemarin =====
+      React.createElement(Card, { className:'border-emerald-100 mb-3' }, React.createElement('div', { className:'p-3 space-y-2' },
+        React.createElement('div', { className:'flex items-center gap-2' },
+          React.createElement('button', { onClick: () => shiftDate(-1), className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 transition-colors', title:'Hari sebelumnya' },
+            React.createElement(Icon, { name:'chevron-left', className:'w-5 h-5 text-slate-600' })
+          ),
+          React.createElement('label', { className:'flex-1 min-w-0 cursor-pointer text-center' },
+            React.createElement('p', { className:'text-sm md:text-base font-extrabold text-slate-900 truncate' }, dateLong),
+            React.createElement('p', { className:'text-[10px] text-emerald-600 font-semibold' }, 'Ketuk buat pilih tanggal lain'),
+            React.createElement('input', { type:'date', value: selectedDate, max: today, onChange: e => { if (e.target.value) setSelectedDate(e.target.value); }, className:'sr-only' })
+          ),
+          React.createElement('button', { onClick: () => shiftDate(1), disabled: isToday, className:'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 transition-colors disabled:opacity-30 disabled:pointer-events-none', title:'Hari berikutnya' },
+            React.createElement(Icon, { name:'chevron-right', className:'w-5 h-5 text-slate-600' })
+          )
+        ),
+        React.createElement('div', { className:'flex gap-2' },
+          [['Hari Ini', today], ['Kemarin', yesterday]].map(function(pair) {
+            var aktif = selectedDate === pair[1];
+            return React.createElement('button', { key: pair[0], onClick: () => setSelectedDate(pair[1]), className: cn('flex-1 py-1.5 rounded-lg text-xs font-bold border transition-colors', aktif ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50') }, pair[0]);
+          })
+        )
+      )),
+      // ===== KARTU STATISTIK =====
+      React.createElement('div', { className:'grid grid-cols-3 gap-2 mb-3' },
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-2xl font-bold' }, String(totalCount)),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, t('Transaksi')))),
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-2xl font-bold text-emerald-600' }, formatRupiah(totalMoney)),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, t('Total Pembayaran')))),
+        React.createElement(Card, null, React.createElement('div', { className:'p-3 text-center' },
+          React.createElement('p', { className:'text-lg font-bold truncate' }, top ? top.label : '—'),
+          React.createElement('p', { className:'text-[10px] text-slate-500' }, t('Metode Teratas'))))
+      ),
+      // ===== RINCIAN PER METODE =====
+      React.createElement(Card, { className:'mb-3' },
+        React.createElement('div', { className:'p-4' },
+          React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2' },
+            React.createElement(Icon, { name:'wallet', className:'w-4 h-4 text-emerald-600' }), t('Metode') + ' — ' + dayWord),
+          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, methods.length + ' ' + t('metode dipakai') + ' · ' + t('Diurutkan dari total terbesar')),
+          methods.length === 0 && React.createElement('div', { className:'text-center py-10 text-slate-400' },
+            React.createElement(Icon, { name:'wallet', className:'w-10 h-10 mx-auto mb-2 opacity-25' }),
+            React.createElement('p', { className:'text-sm' }, t('Belum ada pembayaran ') + (isToday ? t('hari ini') : t('di tanggal ini'))),
+            React.createElement('p', { className:'text-xs mt-1' }, t('Geser tanggalnya, atau laporan terisi sendiri begitu ada yang bayar'))),
+          React.createElement('div', { className:'grid grid-cols-2 md:grid-cols-4 gap-2' },
+            methods.map(function(m) {
+              var mc = METHOD_CLS[m.key] || ['credit-card', 'bg-slate-50 text-slate-700 border-slate-200'];
+              return React.createElement('div', { key: m.key, className:'rounded-xl border p-3 text-center ' + mc[1] },
+                React.createElement(Icon, { name: mc[0], className:'w-4 h-4 mx-auto mb-1' }),
+                React.createElement('p', { className:'text-[10px] font-semibold truncate' }, m.label),
+                React.createElement('p', { className:'text-sm md:text-base font-extrabold text-slate-900' }, formatRupiah(m.total)),
+                React.createElement('p', { className:'text-[10px] text-slate-500' }, m.count + ' ' + t('Transaksi')));
+            })
+          )
+        )
+      ),
+      // ===== DAFTAR PEMBAYARAN PER TRANSAKSI =====
+      React.createElement(Card, null,
+        React.createElement('div', { className:'p-4' },
+          React.createElement('div', { className:'flex items-center justify-between mb-3' },
+            React.createElement('h3', { className:'text-base font-semibold flex items-center gap-2' },
+              React.createElement(Icon, { name:'receipt', className:'w-4 h-4 text-emerald-600' }), t('Daftar Pembayaran') + ' ' + dayWord),
+            React.createElement(Badge, { variant:'secondary' }, totalCount + ' ' + t('Transaksi'))
+          ),
+          paidSel.length === 0 && React.createElement('div', { className:'text-center py-8 text-slate-400' },
+            React.createElement(Icon, { name:'receipt', className:'w-10 h-10 mx-auto mb-2 opacity-30' }),
+            React.createElement('p', { className:'text-sm' }, t('Tidak ada yang membayar ') + (isToday ? t('hari ini') : t('di tanggal ini')))),
+          React.createElement('div', { className:'space-y-2 max-h-[420px] overflow-y-auto' },
+            paidSel.map(function(o, i) {
+              var key = String(o.paymentMethod || 'CASH').trim().toUpperCase() || 'CASH';
+              var mc = METHOD_CLS[key] || ['credit-card', 'bg-slate-50 text-slate-700 border-slate-200'];
+              var when = o.paidAt || o.createdAt;
+              return React.createElement('div', { key: o.id + '-' + i, className:'flex items-center gap-3 rounded-xl border border-slate-200 p-2.5' },
+                React.createElement('div', { className:'w-11 shrink-0 text-center' },
+                  React.createElement('p', { className:'text-sm font-extrabold text-slate-800 leading-none' }, formatTime(when)),
+                  React.createElement('p', { className:'text-[10px] text-slate-400 mt-0.5' }, formatDate(when))),
+                React.createElement('div', { className:'min-w-0 flex-1' },
+                  React.createElement('p', { className:'font-bold text-sm truncate' }, t('Pesanan') + ' #' + (o.queueNumber || o.number || '-')),
+                  React.createElement('p', { className:'text-xs text-slate-500 truncate' },
+                    ((o.tableNumber || o.customerName) ? (o.tableNumber || o.customerName) + ' · ' : '') +
+                    (o.cashierName ? o.cashierName : ''))),
+                React.createElement('span', { className:'inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ' + mc[1] },
+                  React.createElement(Icon, { name: mc[0], className:'w-3 h-3' }), payMethodLabel(key)),
+                React.createElement('p', { className:'shrink-0 text-sm font-extrabold text-emerald-700' }, formatRupiah(o.total))
+              );
+            })
+          ),
+          paidSel.length > 0 && React.createElement('p', { className:'text-[10px] text-slate-400 mt-3' },
+            t('Total Pembayaran') + ': ' + formatRupiah(totalMoney) + ' dari ' + totalCount + ' ' + t('Transaksi'))
+        )
+      ),
+      React.createElement('p', { className:'text-[10px] text-slate-400 px-1 mt-2' }, t('Tips: cocokan uang kas tunai tiap tutup kasir — laporan ini nunjukin mana yang tunai, QRIS, dan transfer.'))
+    )
+  );
+}
+
+console.log('Miapos: Laporan Pembayaran siap');
 </script>
 
 <script type="text/babel" data-presets="react">
@@ -5297,6 +5801,58 @@ function AccountAvatar({ name, className }) {
   return React.createElement('div', { className: cn('grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 font-bold text-white', className || 'h-12 w-12 text-base') }, initials);
 }
 
+// v2.14: status sinkron otomatis — reaktif terhadap event 'miapos-sync'
+function useSyncStatus() {
+  const [st, setSt] = React.useState(function() { return SyncNet.status(); });
+  React.useEffect(function() {
+    function up() { setSt(SyncNet.status()); }
+    try { window.addEventListener('miapos-sync', up); } catch (e) {}
+    var iv = setInterval(up, 15000);
+    return function() { try { window.removeEventListener('miapos-sync', up); } catch (e) {} clearInterval(iv); };
+  }, []);
+  return st;
+}
+function syncTimeLabel(ms) {
+  try { return new Date(ms).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }); } catch (e) { return '-'; }
+}
+// v2.14: baris status sinkron di kartu akun (Pengaturan → AKUN)
+function SyncStatusRow() {
+  var st = useSyncStatus();
+  const { show } = useToast();
+  const [busy, setBusy] = React.useState(false);
+  var tone = 'slate', text = '';
+  if (st.cap === 'ok') {
+    if (st.srv !== 'python' && !st.key) { tone = 'amber'; text = t('Isi password Backup Cloud (Pengaturan → Backup Cloud & Mesin Lokal) biar data akun otomatis ke-sync antar HP.'); }
+    else if (st.lastErr === 'KEY_SALAH') { tone = 'red'; text = t('Password backup salah — sinkron tidak jalan. Cek Pengaturan → Backup Cloud & Mesin Lokal.'); }
+    else {
+      tone = 'green';
+      text = t('Sinkron otomatis AKTIF') + ' · ' + t('terakhir ditarik') + ' ' + (st.lastPull ? syncTimeLabel(st.lastPull) : '—');
+      if (st.lastErr && st.lastErr !== 'KEY_SALAH') text += ' · ' + t('galat terakhir') + ': ' + st.lastErr;
+    }
+  } else if (st.cap === 'SERVER_LAMA') { tone = 'amber'; text = t('Server belum punya fitur sinkron — update dulu deployment Vercel/Termux-nya.'); }
+  else if (st.cap === 'TANPA_SERVER') { tone = 'slate'; text = t('Buka lewat Vercel/Termux biar sinkron otomatis jalan. Untuk sekarang, QR akun tetap bisa dipakai.'); }
+  else text = t('Memeriksa server...');
+  function doSync() {
+    setBusy(true);
+    SyncNet.syncNow().then(function(ok) {
+      setBusy(false);
+      show(ok === false ? t('Sinkron gagal — cek koneksi') : t('Sinkron selesai'));
+    });
+  }
+  var dotCls = { green:'bg-emerald-500', amber:'bg-amber-500', red:'bg-red-500', slate:'bg-slate-300' }[tone];
+  var txtCls = { green:'text-emerald-700', amber:'text-amber-700', red:'text-red-600', slate:'text-slate-500' }[tone];
+  return React.createElement('div', { className:'flex items-start gap-2 border-t border-slate-100 bg-slate-50/60 px-3.5 py-2.5' },
+    React.createElement('span', { className:'mt-1.5 h-2 w-2 shrink-0 rounded-full ' + dotCls }),
+    React.createElement('div', { className:'min-w-0 flex-1' },
+      React.createElement('p', { className:'text-[10px] font-bold uppercase tracking-wide text-slate-400' }, t('Sinkron otomatis')),
+      React.createElement('p', { className:'mt-0.5 text-[11px] leading-snug ' + txtCls }, text)
+    ),
+    React.createElement(Button, { variant:'outline', size:'sm', className:'h-7 shrink-0 gap-1 px-2 text-[11px]', onClick: doSync, disabled: busy || st.cap !== 'ok' },
+      React.createElement(Icon, { name:'refresh-cw', className:'w-3 h-3' + (busy ? ' animate-spin' : '') }),
+      busy ? t('Menyinkronkan...') : t('Sinkron sekarang'))
+  );
+}
+
 function AccountCard({ acc, onAuth, onShowQR, onScan, onEdit, onLogout }) {
   if (acc) {
     return React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden' },
@@ -5327,6 +5883,8 @@ function AccountCard({ acc, onAuth, onShowQR, onScan, onEdit, onLogout }) {
         React.createElement(Icon, { name:'history', className:'h-3.5 w-3.5 shrink-0 text-slate-400' }),
         React.createElement('span', { className:'text-slate-500' }, t('Terdaftar') + ': ' + (acc.createdAt ? formatDateTime(acc.createdAt) : '-'))
       ),
+      // v2.14: status sinkron otomatis + tombol sinkron manual
+      React.createElement(SyncStatusRow, null),
       React.createElement('div', { className:'grid grid-cols-2 gap-2 border-t border-slate-100 p-3' },
         React.createElement(Button, { variant:'outline', size:'sm', className:'gap-1.5', onClick: onEdit },
           React.createElement(Icon, { name:'pencil', className:'w-3.5 h-3.5' }), t('Ubah Akun')),
@@ -5364,19 +5922,62 @@ function AccountAuthModal({ open, onClose, show }) {
   const [pass2, setPass2] = React.useState('');
   const [err, setErr] = React.useState('');
   const [unknown, setUnknown] = React.useState(null);
-  React.useEffect(function() { if (open) { setTab('masuk'); setErr(''); setUnknown(null); setPass(''); setPass2(''); } }, [open]);
+  const [checking, setChecking] = React.useState(false); // v2.14: mencari data akun di cloud
+  React.useEffect(function() { if (open) { setTab('masuk'); setErr(''); setUnknown(null); setPass(''); setPass2(''); setChecking(false); } }, [open]);
   function cleanPhone(v) { return String(v || '').replace(/[^0-9]/g, ''); }
+  // v2.14: masuk ke akun yang sama di HP lain TANPA scan QR — data akun
+  // otomatis diunduh dari cloud (jika Backup Cloud aktif), digabung dengan
+  // snapshot lokal akun itu bila ada, lalu app dimuat ulang dengan data itu.
+  function enterWithCloud(data) {
+    var p2 = cleanPhone(phone);
+    var passH = hashPass(pass);
+    var reg2 = accRegistry()[p2];
+    var acc2 = Object.assign({}, reg2 || {}, data.acc || {}, { phone: p2, passHash: (data.acc && data.acc.passHash) || passH });
+    accRegistrySave(acc2);
+    var cur = null;
+    try { cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+    // gabungkan snapshot lokal akun ini (kalau ada) dengan data cloud — anti hilang
+    var snap = loadAccSnapshot(p2);
+    var merged = SyncNet.mergeStores(snap, data.store || {});
+    var settings = Object.assign({}, (cur && cur.settings) || {}, merged.settings || {});
+    if (cur && cur.settings) SYNC_FIELDS_LOCAL.forEach(function(k) { if (cur.settings[k] !== undefined) settings[k] = cur.settings[k]; });
+    setChecking(false);
+    onClose();
+    switchToAccount(acc2, { store: merged, resto: merged.resto, settings: settings, fromCloud: true });
+  }
   function submitMasuk() {
     setErr('');
     var p = cleanPhone(phone);
     if (p.length < 8) { setErr(t('Nomor handphone tidak valid. Contoh: 628987654321.')); return; }
+    var passH = hashPass(pass);
     var reg = accRegistry()[p];
+    // 1) Coba cloud dulu (v2.14) — akun yang sama di HP lain otomatis bawa datanya
+    if (ServerBridge.isHttp()) {
+      setChecking(true);
+      SyncNet.fetchAccount(p).then(function(data) {
+        if (data && data.store) {
+          if (data.acc && data.acc.passHash && data.acc.passHash !== passH) { setChecking(false); setErr(t('Kata sandi salah untuk akun ini.')); return; }
+          enterWithCloud(data);
+          return;
+        }
+        // 2) Tidak ada di cloud (offline / server lama / akun baru) → perilaku lama
+        setChecking(false);
+        if (reg) {
+          if (reg.passHash && reg.passHash !== passH) { setErr(t('Kata sandi salah untuk akun ini.')); return; }
+          if (loadAccSnapshot(p)) { onClose(); switchToAccount(reg, null); }
+          else setUnknown(reg);
+        } else {
+          setUnknown({ phone: p, name: '', business: '', address: '', passHash: passH, role: 'Pemilik', createdAt: new Date().toISOString() });
+        }
+      });
+      return;
+    }
     if (reg) {
-      if (reg.passHash && reg.passHash !== hashPass(pass)) { setErr(t('Kata sandi salah untuk akun ini.')); return; }
+      if (reg.passHash && reg.passHash !== passH) { setErr(t('Kata sandi salah untuk akun ini.')); return; }
       if (loadAccSnapshot(p)) { onClose(); switchToAccount(reg, null); }
       else setUnknown(reg);
     } else {
-      setUnknown({ phone: p, name: '', business: '', address: '', passHash: hashPass(pass), role: 'Pemilik', createdAt: new Date().toISOString() });
+      setUnknown({ phone: p, name: '', business: '', address: '', passHash: passH, role: 'Pemilik', createdAt: new Date().toISOString() });
     }
   }
   function submitDaftar() {
@@ -5430,8 +6031,10 @@ function AccountAuthModal({ open, onClose, show }) {
           React.createElement(Input, { value: phone, onChange: function(e) { setPhone(e.target.value); }, placeholder: t('contoh: 628987654321'), inputMode:'numeric' })),
         React.createElement('div', null, React.createElement(Label, null, t('Kata Sandi')),
           React.createElement(AccountPassInput, { value: pass, onChange: function(e) { setPass(e.target.value); } })),
-        React.createElement(Button, { className:'mt-1 w-full', onClick: submitMasuk },
-          React.createElement(Icon, { name:'log-in', className:'w-4 h-4' }), t('Masuk'))
+        React.createElement(Button, { className:'mt-1 w-full', onClick: submitMasuk, disabled: checking },
+          checking
+            ? React.createElement('span', { className:'inline-flex items-center gap-2' }, React.createElement(Icon, { name:'cloud', className:'w-4 h-4 animate-pulse' }), t('Mencari data akun di cloud...'))
+            : React.createElement('span', { className:'inline-flex items-center gap-2' }, React.createElement(Icon, { name:'log-in', className:'w-4 h-4' }), t('Masuk')))
       ) : React.createElement('div', { className:'space-y-2.5' },
         React.createElement('div', null, React.createElement(Label, null, t('Nama Lengkap')),
           React.createElement(Input, { value: name, onChange: function(e) { setName(e.target.value); }, placeholder: t('contoh: Pak Budi / Nunung') })),
@@ -5449,7 +6052,8 @@ function AccountAuthModal({ open, onClose, show }) {
           React.createElement(Icon, { name:'user-plus', className:'w-4 h-4' }), t('Daftar Akun'))
       ),
       React.createElement('p', { className:'mt-3 text-[10px] leading-relaxed text-slate-400' },
-        t('Akun & datanya disimpan di perangkat ini. Untuk memindahkannya ke HP lain, gunakan Tampilkan QR Akun atau Pindai QR Akun.'))
+        t('HP lain cukup masuk dengan akun yang sama — datanya otomatis ikut.') + ' ' +
+        t('Kalau Backup Cloud aktif, masuk dengan akun yang sama di HP lain otomatis membawa semua data — tanpa scan QR. Tanpa cloud, pakai Tampilkan/Pindai QR Akun.'))
     )
   );
 }
@@ -5733,6 +6337,8 @@ function SettingsView({ onBack }) {
   if (sub === 'produk') return React.createElement(ProductsView, { onBack: function() { setSub(null); } });
   if (sub === 'inventory') return React.createElement(InventoryView, { onBack: function() { setSub(null); } });
   if (sub === 'kitchen') return React.createElement(MenuSalesView, { onBack: function() { setSub(null); } });
+  // v2.14: laporan pembayaran — metode bayar per tanggal (Pengaturan)
+  if (sub === 'payrep') return React.createElement(PaymentReportView, { onBack: function() { setSub(null); } });
   if (sub === 'outlets') return React.createElement(OutletsView, { onBack: function() { setSub(null); } });
   if (sub === 'owner') return React.createElement(OwnerZoneScreen, { onBack: function() { setSub(null); } });
 
@@ -5741,6 +6347,7 @@ function SettingsView({ onBack }) {
       { key:'produk', icon:'package', label: t('Kelola Menu'), desc: t('Tambah, edit & hapus menu') },
       { key:'inventory', icon:'boxes', label: t('Stok & Bahan'), desc: t('Bahan baku, stok masuk/keluar') },
       { key:'kitchen', icon:'utensils-crossed', label: t('Laporan Menu'), desc: t('Menu terjual hari ini — per item & qty') },
+      { key:'payrep', icon:'wallet', label: t('Laporan Pembayaran'), desc: t('Bayar pakai apa aja hari ini — per metode & per transaksi') },
       { key:'kasir', icon:'users', label: t('Kasir & Karyawan'), desc: t('Kelola kasir, PIN & hak akses') },
       { key:'outlets', icon:'store', label: t('Cabang & Outlet'), desc: t('Multi-cabang & data per outlet') },
     ]},
@@ -5829,7 +6436,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.13 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.14 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

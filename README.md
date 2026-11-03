@@ -5,7 +5,7 @@
 **Aplikasi kasir (POS) yang jalan 100% offline di HP.**
 Buat warung, kafe, kedai, sampai resto — kasir, dapur, stok, laporan, semua ada. 🚀
 
-![versi](https://img.shields.io/badge/versi-2.13-10b981?style=flat-square&labelColor=0f172a)
+![versi](https://img.shields.io/badge/versi-2.14-10b981?style=flat-square&labelColor=0f172a)
 ![PWA](https://img.shields.io/badge/PWA-offline%20ready-5A0FC8?style=flat-square&labelColor=0f172a)
 ![teknologi](https://img.shields.io/badge/React%20%2B%20Tailwind-single%20file%20HTML-orange?style=flat-square&labelColor=0f172a)
 ![mesin](https://img.shields.io/badge/Python%20%2B%20C%2B%2B-engine-blue?style=flat-square&labelColor=0f172a)
@@ -29,12 +29,14 @@ Yang bikin beda:
 
 ## ✨ Fitur
 
-### 👤 Akun & Sinkron Antar HP (baru di v2.13!)
+### 👤 Akun & Sinkron Antar HP (baru di v2.14!)
 - **Satu akun untuk semua HP** — daftar sekali (nama, no. HP, usaha, alamat, kata sandi), data usaha tersimpan per akun
-- 📷 **QR Akun** — HP lain tinggal **Pindai QR Akun** → muncul popup info akun (nama, usaha, alamat lengkap) → konfirmasi → semua data (menu, pesanan, omzet, stok, laporan) langsung ke-load
-- Kalau data sudah kebesaran buat QR, otomatis ada **Kode Data Lengkap** — salin → kirim lewat WhatsApp ke HP lain → tempel → beres
+- 🔄 **Sinkron OTOMATIS (v2.14)** — HP lain login ke akun yang sama → menu, pesanan, omzet, stok, laporan **langsung masuk sendiri**. Gak perlu input ulang, gak perlu scan QR di tiap HP 🎉
+- ⚡ **Real-time dua arah** — HP A nambah menu → HP B otomatis ke-update (polling tiap beberapa detik saat online; offline tetap jalan, begitu online ketrimbalan sendiri)
+- 🛡️ **Anti tabrakan data** — penghapusan juga ikut tersinkron (tombstone), edit barengan tetap aman
+- 📷 **QR Akun** tetap ada buat kondisi offline — pindai → konfirmasi → data utuh ke-load tanpa internet
 - Ada **Ubah Akun** (ganti nama/nomor/kata sandi) & **Keluar** (log out — data akun tetap aman & bisa dimuat lagi)
-- 100% offline, tanpa server — sinkron lewat QR/kode, sekali pindah datanya utuh semua
+- Butuh deployment Vercel/Termux (server Python `main.py` / API `api/sync.js`) — kuncinya tetap kata sandi Backup Cloud, gak ada yang bisa nyolong data
 
 ### 🧾 Kasir & Pembayaran
 - Buat pesanan cepat, keranjang, promo & diskon
@@ -57,6 +59,10 @@ Yang bikin beda:
 ### 📊 Laporan & Laporan Menu
 - Omzet hari ini, jumlah transaksi, tren, metode pembayaran
 - **Laporan Menu**: apa aja yang kejual, berapa qty, ke-sortir dari yang paling laris 🏆 (+ medali 3 besar)
+- 💳 **Laporan Pembayaran (baru di v2.14!)** — ada di **Pengaturan → Laporan Pembayaran**:
+  lihat hari ini orang bayar pakai apa aja (Tunai/QRIS/Transfer), per metode & per transaksi
+- 📅 Bisa lihat **hari-hari sebelumnya** — tinggal ketuk tanggal di atas (kalender),
+  sama persis kaya laporan menu: panah mundur/maju + tombol cepat Hari Ini / Kemarin
 - Bisa intip tanggal kemarin, mundur sampai belakang — pesanan lama yang terarsip tetap kehitung
 
 ### 📦 Stok & Bahan Baku
@@ -119,9 +125,9 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama pakai file baru di repo
 2. Pengguna buka app (saat online) → otomatis ambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti tiap rilis
-   (mis. `miapos-v2.13-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
+   (mis. `miapos-v2.14-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
 
-> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.11 → 2.12 → 2.13 → ...).
+> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.12 → 2.13 → 2.14 → ...).
 
 ---
 
@@ -134,7 +140,9 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 | `manifest.json` | Identitas PWA (nama, ikon, warna) |
 | `lib/` | Library bundel (React, Babel, Tailwind, Lucide) — offline semua |
 | `engine/` | Native engine C++ (opsional, dipanggil server Python) |
-| `api/` | Serverless functions buat backup cloud (Vercel) |
+| `api/` | Serverless functions buat backup cloud & sinkron akun (Vercel) |
+| `main.py` | Server Python lokal/Termux — backup cloud + API sinkron akun |
+| `sync/` | Data sinkron per akun (`acc-<noHP>.json`) |
 | `.well-known/assetlinks.json` | Buat build Android (TWA / Play Store) |
 | `PANDUAN-*.txt` | 📚 Panduan lengkap tiap fitur (bahasa santai) |
 
@@ -170,6 +178,7 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.14** | 🔄 Sinkron otomatis antar HP via akun (menu/pesanan/omzet langsung masuk di HP lain, dua arah, anti tabrakan) · 💳 Laporan Pembayaran di Pengaturan (per metode bayar) · 📅 navigasi kalender kaya laporan menu |
 | **v2.13** | 📝 Catatan per menu (ikut ke nota dapur) · 🔤 2 bahasa ID/EN + bahasa baku · 🍊 tema Royal Orange dibenerin + Pink & Putih · 🖨️ tombol cetak dapur & kasir di layar sukses · nota gak kapital semua |
 | **v2.12** | 🔒 Reset data wajib konfirmasi + tombol terkunci 5 detik (anti ke pencet) · README GitHub baru |
 | **v2.11** | ✂️ Fix tulisan paling bawah kepotong di semua layar (akar bugnya: tinggi layar nembus batas app) |

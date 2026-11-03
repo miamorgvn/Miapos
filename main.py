@@ -40,6 +40,7 @@ ENGINE_SRC = os.path.join("engine", "miapos_engine.cpp")
 ENGINE_BIN = os.path.join("engine", "miapos_engine")
 MAX_BACKUPS = 30          # simpan maksimal 30 backup terakhir
 MAX_BODY = 15 * 1024 * 1024  # batas ukuran request 15 MB
+SYNC_DIR = "sync"         # v2.14: folder data sinkron antar HP (per akun)
 
 # Warna terminal (ANSI)
 class C:
@@ -200,10 +201,43 @@ def list_backups():
     return out
 
 
+# ---------- v2.14: SINKRON OTOMATIS ANTAR HP (per akun) ----------
+def sync_file(acc):
+    """acc (no. HP) -> path file sync/acc-<noHP>.json. None kalau tak valid."""
+    digits = "".join(ch for ch in str(acc or "") if ch.isdigit())[:20]
+    if len(digits) < 8:
+        return None
+    os.makedirs(SYNC_DIR, exist_ok=True)
+    return os.path.join(SYNC_DIR, f"acc-{digits}.json")
+
+
+def sync_sha(path):
+    """Token revisi sederhana dari mtime+size — untuk deteksi 'unchanged'."""
+    st = os.stat(path)
+    return f"{st.st_mtime_ns:x}-{st.st_size:x}"
+
+
+def load_sync(acc):
+    path = sync_file(acc)
+    if not path or not os.path.exists(path):
+        return None, None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f), sync_sha(path)
+
+
+def save_sync(acc, payload):
+    path = sync_file(acc)
+    if not path:
+        raise ValueError("nomor akun tidak valid")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+    return sync_sha(path)
+
+
 class MiaposHandler(SimpleHTTPRequestHandler):
     """Handler HTTP: file statis + API lokal (backup & analytics)."""
 
-    server_version = "MiaposServer/2.1"
+    server_version = "MiaposServer/2.14"
 
     # ---------- helper JSON ----------
     def _json(self, obj, code=200):
@@ -222,6 +256,51 @@ class MiaposHandler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
+    # ---------- v2.14: sinkron antar HP (GET = tarik) ----------
+    def _query(self):
+        from urllib.parse import parse_qs
+        try:
+            q = self.path.split("?", 1)[1] if "?" in self.path else ""
+            return {k: v[0] for k, v in parse_qs(q).items()}
+        except Exception:
+            return {}
+
+    def _api_sync_get(self):
+        q = self._query()
+        data, sha = load_sync(q.get("acc", ""))
+        if data is None:
+            self._json({"ok": False, "error": "AKUN_BELUM_ADA_DI_CLOUD"}, 404)
+            return
+        if q.get("rev") and q["rev"] == sha:
+            self._json({"ok": True, "unchanged": True, "sha": sha})
+            return
+        self._json({"ok": True, "data": data, "sha": sha,
+                    "updatedAt": (data or {}).get("updatedAt", "")})
+
+    def _api_sync_put(self):
+        q = self._query()
+        body = self._read_json()
+        if not isinstance(body, dict) or not body.get("store") or not isinstance(body.get("acc"), dict):
+            self._json({"ok": False, "error": "DATA_TIDAK_VALID"}, 400)
+            return
+        import time as _t
+        payload = {
+            "v": 2,
+            "acc": body["acc"],
+            "store": body["store"],
+            "deviceId": str(body.get("deviceId", ""))[:40],
+            "updatedAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z",
+        }
+        sha = save_sync(q.get("acc", ""), payload)
+        self._json({"ok": True, "sha": sha, "updatedAt": payload["updatedAt"]})
+
+    def _api_sync_delete(self):
+        q = self._query()
+        path = sync_file(q.get("acc", ""))
+        if path and os.path.exists(path):
+            os.remove(path)
+        self._json({"ok": True, "deleted": True})
+
     # ---------- GET ----------
     def do_GET(self):
         path = self.path.split("?")[0]
@@ -229,7 +308,7 @@ class MiaposHandler(SimpleHTTPRequestHandler):
             cpp = cpp_engine_available()
             self._json({
                 "ok": True, "app": "miapos", "server": "python",
-                "version": "2.2", "cppEngine": cpp,
+                "version": "2.14", "cppEngine": cpp, "sync": True,
                 "time": datetime.now().strftime("%H:%M:%S"),
             })
             return
@@ -239,7 +318,37 @@ class MiaposHandler(SimpleHTTPRequestHandler):
             except Exception as e:
                 self._json({"ok": False, "error": str(e)}, 500)
             return
+        if path == "/api/sync":
+            try:
+                self._api_sync_get()
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)}, 500)
+            return
         super().do_GET()
+
+    # ---------- PUT (v2.14: sinkron antar HP = kirim) ----------
+    def do_PUT(self):
+        path = self.path.split("?")[0]
+        try:
+            if path == "/api/sync":
+                self._api_sync_put()
+                return
+            self._json({"ok": False, "error": "endpoint tidak dikenal"}, 404)
+        except (ValueError, json.JSONDecodeError) as e:
+            self._json({"ok": False, "error": f"JSON tidak valid: {e}"}, 400)
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, 500)
+
+    # ---------- DELETE (v2.14: hapus data sinkron akun) ----------
+    def do_DELETE(self):
+        path = self.path.split("?")[0]
+        try:
+            if path == "/api/sync":
+                self._api_sync_delete()
+                return
+            self._json({"ok": False, "error": "endpoint tidak dikenal"}, 404)
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)}, 500)
 
     # ---------- POST ----------
     def do_POST(self):

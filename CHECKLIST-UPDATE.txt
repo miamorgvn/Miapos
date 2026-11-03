@@ -1,12 +1,63 @@
 ================================================
-  MIAPOS v2.13 — CHECKLIST
+  MIAPOS v2.14 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.13 — AKUN ANTAR HP · CATATAN PER MENU
-     · 2 BAHASA · 4 TEMA
+0. REVISI v2.14 — SINKRON OTOMATIS ANTAR HP VIA AKUN
+     · LAPORAN PEMBAYARAN + KALENDER
+=====================================================
+[x] 1. SINKRON OTOMATIS ANTAR HP (fitur baru):
+       • HP lain login ke akun yang SAMA → semua data
+         langsung masuk sendiri: menu, pesanan, omzet,
+         stok, laporan, pengaturan. Gak perlu scan QR
+         atau input ulang di tiap HP.
+       • Dua arah & jalan terus (saat online): HP A
+         nambah menu → HP B ke-update beberapa detik
+         kemudian. Offline tetap jalan, online lagi
+         ketrimbalan sendiri.
+       • Penghapusan ikut tersinkron (tombstone) —
+         menu yang dihapus di HP A gak bangkit lagi
+         di HP B.
+       • Server sinkron disediakan: api/sync.js buat
+         Vercel + main.py v2.14 buat Termux/komputer.
+         Data per akun: sync/acc-<noHP>.json.
+       • Kartu akun nunjukin status: "Sinkron otomatis
+         AKTIF" + waktu sinkron terakhir + tombol
+         SINKRON SEKARANG buat maksa langsung.
+       • QR Akun & Kode Data Lengkap tetap ada buat
+         kondisi offline.
+[x] 2. LAPORAN PEMBAYARAN (Pengaturan):
+       • Pengaturan → LAPORAN PEMBAYARAN: hari ini
+         orang bayar pakai apa aja (Tunai/QRIS/
+         Transfer), total per metode + daftar per
+         transaksi (jam, meja, jumlah, metode).
+[x] 3. KALENDER NAVIGASI TANGGAL DI LAPORAN PEMBAYARAN:
+       • Sama kaya Laporan Menu: panah mundur/maju +
+         ketuk tanggal buka kalender + tombol cepat
+         Hari Ini / Kemarin — bisa intip hari-hari
+         sebelumnya.
+[x] 4. VERSI v2.14 + cache sw.js miapos-v2.14-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 5. COBA SENDIRI (2 HP, butuh deployment online):
+       • Deploy repo ke Vercel (atau jalanin main.py
+         di Termux) — api/sync.js & main.py harus
+         versi baru (v2.14).
+       • HP 1: isi Kata Sandi Backup Cloud (Pengaturan
+         → Backup Cloud & Mesin Lokal) + pastiin udah
+         daftar/login akun & punya menu.
+       • HP 2: Pengaturan → Akun → masuk pakai nomor
+         HP + kata sandi akun yang sama.
+       • HP 2: menu & data harus muncul sendiri dalam
+         beberapa detik — tanpa scan QR.
+       • HP 1: Pengaturan → Laporan Pembayaran →
+         cek hari ini per metode bayar → ketuk
+         tanggal di atas buat lihat hari sebelumnya.
+
+=====================================================
+CATATAN v2.13 (rilis sebelumnya) — AKUN ANTAR HP ·
+     CATATAN PER MENU · 2 BAHASA · 4 TEMA
 =====================================================
 [x] 1. KOLOM CATATAN PER MENU (keranjang & pesanan):
        • Di bawah tiap menu di keranjang ada kolom
@@ -53,7 +104,7 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
        • Data disimpan per akun + snapshot otomatis
          — ganti-ganti akun aman, gak ada yang
          kehapus.
-[ ] 7. COBA SENDIRI (2 HP):
+[ ] 7. COBA SENDIRI (2 HP) — MODE QR (OFFLINE):
        • HP 1: Pengaturan → AKUN → Daftar → isi
          nama, no. HP, usaha, alamat, kata sandi.
        • HP 1: ketuk ikon QR di kartu akun →
