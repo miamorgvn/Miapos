@@ -27,7 +27,8 @@ const CORE = [
   './lib/react-dom.min.js',
   './lib/babel.min.js',
   './lib/tailwind.js',
-  './lib/lucide.min.js'
+  './lib/lucide.min.js',
+  './lib/qrcode.min.js'
 ];
 
 self.addEventListener('install', (e) => {

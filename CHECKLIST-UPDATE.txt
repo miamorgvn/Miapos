@@ -5,7 +5,8 @@ Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus lu lakuin sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.13 — CATATAN PER MENU · 2 BAHASA · 4 TEMA
+0. REVISI v2.13 — AKUN ANTAR HP · CATATAN PER MENU
+     · 2 BAHASA · 4 TEMA
 =====================================================
 [x] 1. KOLOM CATATAN PER MENU (keranjang & pesanan):
        • Di bawah tiap menu di keranjang ada kolom
@@ -31,7 +32,38 @@ yang harus lu lakuin sendiri (tinggal diklik/ketik).
        • Royal & Orange sekarang beneran oranye
          (dulu keliru biru). Tema baru Pink & Putih.
          Total 4 tema.
-[x] 6. VERSI v2.13 + cache sw.js miapos-v2.13-r1
+[x] 6. AKUN & SINKRON ANTAR HP (fitur baru):
+       • Pengaturan → AKUN (paling atas): daftar
+         akun (nama, no. HP, nama usaha, alamat,
+         kata sandi) — form-nya kaya layar "Ubah
+         Akun" yang lu tunjukin.
+       • 2 tombol di header kartu akun:
+         TAMPILKAN QR AKUN + PINDAI QR AKUN.
+       • Scan QR di HP lain → popup info akun
+         (nama, no HP, usaha, alamat lengkap) →
+         konfirmasi → langsung masuk + semua data
+         akun itu ke-load (menu, pesanan, omzet,
+         stok, laporan).
+       • Data kebesaran buat QR? Otomatis muncul
+         "Kode Data Lengkap" — salin → kirim WA ke
+         HP lain → tempel di Pindai QR Akun.
+       • Tombol KELUAR (log out, buat salah akun) +
+         UBAH AKUN (ganti nama/nomor/kata sandi) +
+         daftar akun baru langsung di tempat.
+       • Data disimpan per akun + snapshot otomatis
+         — ganti-ganti akun aman, gak ada yang
+         kehapus.
+[ ] 7. COBA SENDIRI (2 HP):
+       • HP 1: Pengaturan → AKUN → Daftar → isi
+         nama, no. HP, usaha, alamat, kata sandi.
+       • HP 1: ketuk ikon QR di kartu akun →
+         TAMPILKAN QR AKUN.
+       • HP 2: Pengaturan → AKUN → PINDAI QR AKUN →
+         arahkan ke QR di HP 1 → cek popup info →
+         "Masuk dengan Akun Ini".
+       • HP 2: cek Pesanan & Laporan — harus sama
+         kaya HP 1. Beres!
+[x] 8. VERSI v2.13 + cache sw.js miapos-v2.13-r1
        (aturan tetap: tiap update versi terus naik).
 
 =====================================================

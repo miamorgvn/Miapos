@@ -20,6 +20,7 @@
 <script src="lib/react-dom.min.js"></script>
 <script src="lib/babel.min.js"></script>
 <script src="lib/lucide.min.js"></script>
+<script src="lib/qrcode.min.js"></script>
 <style>
 * { -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; padding: 0; overscroll-behavior: none; height: 100%; }
@@ -600,7 +601,83 @@ var I18N_EN = {
     'Ya, Reset Data':'Yes, Reset Data', 'Yakin Reset Data?':'Reset the data?',
     '\n\nNota bisa disalin manual:':'\n\nThe receipt can be copied manually:', 'contoh: Pak Budi / Nunung':'e.g. Mr. Budi / Nunung',
     'contoh: bungkus / pedas / tanpa MSG':'e.g. takeaway / spicy / no MSG', 'contoh: pahit / tanpa es / tambah pedas':'e.g. bitter / no ice / extra spicy',
-    'contoh: st4 / Meja 5 / Gojek':'e.g. st4 / Table 5 / Gojek'
+        'Akun':'Account',
+    'Belum masuk akun':'Not signed in',
+    'Masuk agar pesanan & omzet tersimpan dalam satu akun dan bisa dibuka di HP lain.':'Sign in so orders & revenue are kept under one account and can be opened on another phone.',
+    'Masuk / Daftar':'Sign in / Register',
+    'Masuk':'Sign in',
+    'Daftar Akun':'Create Account',
+    'Pindai QR Akun':'Scan Account QR',
+    'Tampilkan QR Akun':'Show Account QR',
+    'QR Akun':'Account QR',
+    'Informasi Akun':'Account Information',
+    'Ubah Akun':'Edit Account',
+    'Keluar':'Sign Out',
+    'Keluar dari akun':'Sign out of account',
+    'Data usaha akun ini tetap tersimpan aman di perangkat ini dan bisa dimuat kembali saat Anda masuk lagi.':'This account\'s business data stays safely on this device and can be loaded again when you sign back in.',
+    '(Tanpa nama)':'(No name)',
+    'Pemilik':'Owner',
+    'Nama Lengkap':'Full Name',
+    'No. Handphone':'Phone Number',
+    'Nama Usaha':'Business Name',
+    'Alamat Usaha':'Business Address',
+    'Kata Sandi':'Password',
+    'Kata Sandi Baru':'New Password',
+    'Konfirmasi Kata Sandi':'Confirm Password',
+    'Konfirmasi Kata Sandi Baru':'Confirm New Password',
+    'Kosongkan kata sandi jika tidak ingin mengubah.':'Leave the password empty if you do not want to change it.',
+    'contoh: 628987654321':'e.g. 628987654321',
+    'contoh: Waroeng Semilir':'e.g. Waroeng Semilir',
+    'contoh: Jl. Raya Paron No. 10':'e.g. Jl. Raya Paron No. 10',
+    'Satu akun untuk semua HP — data pesanan & omzet mengikuti akun.':'One account for all phones — orders & revenue follow the account.',
+    'Akun & datanya disimpan di perangkat ini. Untuk memindahkannya ke HP lain, gunakan Tampilkan QR Akun atau Pindai QR Akun.':'Accounts & their data are stored on this device. To move them to another phone, use Show Account QR or Scan Account QR.',
+    'Nomor handphone tidak valid. Contoh: 628987654321.':'Invalid phone number. Example: 628987654321.',
+    'Nama wajib diisi.':'Name is required.',
+    'Kata sandi minimal 4 karakter.':'Password must be at least 4 characters.',
+    'Kata sandi dan konfirmasinya tidak sama.':'Password and its confirmation do not match.',
+    'Nomor ini sudah terdaftar di perangkat ini — silakan masuk.':'This number is already registered on this device — please sign in.',
+    'Kata sandi salah untuk akun ini.':'Wrong password for this account.',
+    'Akun Belum Ada di Perangkat Ini':'Account Not on This Device Yet',
+    'Nomor':'Number',
+    'belum memiliki data di perangkat ini. Pilih sumber data untuk akun tersebut:':'has no data on this device yet. Choose the data source for this account:',
+    'Pakai Data di Perangkat Ini':'Use Data on This Device',
+    'Data yang sekarang ada di HP ini menjadi milik akun.':'The data currently on this phone becomes the account\'s data.',
+    'Mulai Kosong':'Start Empty',
+    'Data akun dimulai dari nol di perangkat ini.':'The account starts from zero on this device.',
+    'Kembali':'Back',
+    'Pilih Data untuk Akun Ini':'Choose Data for This Account',
+    'Perangkat ini belum memiliki data untuk akun ini. Pilih sumber data yang ingin dipakai:':'This device has no data for this account yet. Choose which data to use:',
+    'Akun berhasil dibuat — data di perangkat ini kini tersimpan dalam akun Anda.':'Account created — the data on this device is now stored under your account.',
+    'Perubahan akun tersimpan.':'Account changes saved.',
+    'Nama usaha & alamat diambil dari info usaha saat akun dibuat.':'Business name & address are taken from the business info saved when the account was created.',
+    'Pindai QR ini di HP lain untuk masuk dengan akun yang sama.':'Scan this QR on another phone to sign in with the same account.',
+    'QR ini berisi akses masuk akun Anda — jangan dibagikan ke orang lain.':'This QR contains access to your account — do not share it with anyone.',
+    'QR ini membawa seluruh data usaha: menu, pesanan, omzet, stok & laporan.':'This QR carries all business data: menus, orders, revenue, stock & reports.',
+    'Kode ini membawa seluruh data usaha: menu, pesanan, omzet, stok & laporan.':'This code carries all business data: menus, orders, revenue, stock & reports.',
+    'Data usaha belum muat di QR (terlalu besar).':'Business data does not fit in the QR (too large).',
+    'Salin kode lengkap di bawah, kirim lewat WhatsApp ke HP lain, lalu tempel di menu Pindai QR Akun.':'Copy the full code below, send it via WhatsApp to the other phone, then paste it in the Scan Account QR menu.',
+    'Salin Kode Data Lengkap':'Copy Full Data Code',
+    'Kode disalin.':'Code copied.',
+    'Gagal menyalin — salin manual dari kotak di bawah.':'Copy failed — copy it manually from the box below.',
+    'Arahkan kamera ke QR akun di HP lain.':'Point the camera at the account QR on the other phone.',
+    'Tempel Kode Akun':'Paste Account Code',
+    'Tempel kode akun di sini (dari QR/kode teks).':'Paste the account code here (from the QR/text code).',
+    'Gunakan Kode':'Use Code',
+    'Kode tidak dikenali — pastikan ini QR/kode akun Miapos.':'Unrecognized code — make sure it is a Miapos account QR/code.',
+    'Kamera tidak dapat dibuka — beri izin kamera, atau tempel kode akun secara manual di bawah.':'Camera cannot be opened — allow camera access, or paste the account code manually below.',
+    'Perangkat ini tidak mendukung pemindaian kamera — tempel kode akun di bawah.':'This device does not support camera scanning — paste the account code below.',
+    'Periksa akunnya sebelum masuk — pastikan akun tersebut benar.':'Check the account before signing in — make sure it is the right one.',
+    'Alamat':'Address',
+    'Terdaftar':'Registered',
+    'Masuk dengan Akun Ini':'Sign in with This Account',
+    'Batal':'Cancel',
+    'Pesanan hari ini, bayar & batalkan':'Today\'s orders, pay & cancel',
+    'Menu terjual hari ini — per item & qty, auto sortir':'Today\'s sold menus — per item & qty, auto sorted',
+    'Stok & Resep':'Stock & Recipes',
+    'Outlet & Staf':'Outlets & Staff',
+    'Multi-cabang & karyawan':'Multi-branch & employees',
+    'Printer, info resto, mesin & data':'Printers, resto info, engine & data',
+'contoh: st4 / Meja 5 / Gojek':'e.g. st4 / Table 5 / Gojek'
 };
 function t(s) {
   if (APP_LANG !== 'en' || s == null) return s;
@@ -704,6 +781,121 @@ function generateSeed() {
 // ===== STORE (Context API based) =====
 const STORAGE_KEY = 'miapos-store-v4';
 const LEGACY_STORAGE_KEY = 'miapos-store-v3';
+
+// ===== v2.13 AKUN & SINKRON ANTAR PERANGKAT =====
+// Satu akun (nomor HP + kata sandi) dapat dipakai di beberapa HP. Data usaha
+// (menu, pesanan, omzet, stok, laporan) disimpan per akun; perangkat lain yang
+// masuk dengan akun yang sama memuat data itu lewat QR akun / kode data.
+const ACC_DATA_KEYS = ['outlets','employees','tables','products','materials','orders','movements','archivedOrders','lastArchiveDate'];
+const ACC_REG_KEY = 'miapos-acc-reg';
+function accKey(phone) { return 'miapos-acc-' + String(phone || 'guest').replace(/[^0-9A-Za-z_-]/g, ''); }
+function hashPass(pw) {
+  var s = 'miapos::v1::' + String(pw || '');
+  var h = 0x811c9dc5, h2 = 0x811c9dc5;
+  for (var i = 0; i < s.length; i++) { h = ((h ^ s.charCodeAt(i)) * 0x01000193) >>> 0; h2 = ((h2 ^ s.charCodeAt(s.length - 1 - i)) * 0x01000193) >>> 0; }
+  return 'fnv' + h.toString(36) + '-' + h2.toString(36);
+}
+function accPayload(state) {
+  var p = {};
+  for (var i = 0; i < ACC_DATA_KEYS.length; i++) { var k = ACC_DATA_KEYS[i]; p[k] = state[k]; }
+  try { if (typeof getRestoInfo === 'function') p.resto = getRestoInfo(); } catch (e) {}
+  return p;
+}
+function saveAccSnapshot(phone, state) { try { localStorage.setItem(accKey(phone), JSON.stringify(accPayload(state))); } catch (e) {} }
+function loadAccSnapshot(phone) { try { var s = localStorage.getItem(accKey(phone)); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function accRegistry() { try { return JSON.parse(localStorage.getItem(ACC_REG_KEY) || '{}') || {}; } catch (e) { return {}; } }
+function accRegistrySave(acc) { try { if (!acc || !acc.phone) return; var r = accRegistry(); r[String(acc.phone)] = acc; localStorage.setItem(ACC_REG_KEY, JSON.stringify(r)); } catch (e) {} }
+function b64encodeUtf8(s) { try { return btoa(unescape(encodeURIComponent(s))); } catch (e) { return ''; } }
+function b64decodeUtf8(s) { try { return decodeURIComponent(escape(atob(s))); } catch (e) { return ''; } }
+// Kode akun: 'MIAPOS-ACC1:' + base64(JSON). QR membawa profil akun; bila muat,
+// QR ikut membawa seluruh data usaha sehingga sekali scan = pindah perangkat.
+function buildAccountCode(acc, state, withData) {
+  var payload = { v: 1, t: 'MIAPOS-ACC', acc: { phone: acc.phone, name: acc.name, business: acc.business, address: acc.address, role: acc.role || 'Pemilik', passHash: acc.passHash, createdAt: acc.createdAt } };
+  if (withData) payload.store = accPayload(state);
+  return 'MIAPOS-ACC1:' + b64encodeUtf8(JSON.stringify(payload));
+}
+// v2.13: pintu debug/tes — build & parse kode akun dari console
+try { window.MIAPOS_ACC_TOOLS = { buildAccountCode: buildAccountCode, parseAccountCode: parseAccountCode }; } catch (e) {}
+function parseAccountCode(text) {
+  var s = String(text || '').trim();
+  if (s.indexOf('MIAPOS-ACC1:') === 0) {
+    try {
+      var o = JSON.parse(b64decodeUtf8(s.slice(12)));
+      if (o && o.t === 'MIAPOS-ACC' && o.acc && o.acc.phone) return o;
+    } catch (e) {}
+    return null;
+  }
+  try { var o2 = JSON.parse(s); if (o2 && o2.t === 'MIAPOS-ACC' && o2.acc && o2.acc.phone) return o2; } catch (e) {}
+  return null;
+}
+// Ganti akun: snapshot data sekarang disimpan, data akun tujuan dimuat, app
+// dimuat ulang agar seluruh layar (termasuk info resto) konsisten.
+// incoming: null = muat snapshot akun / adopsi; 'ADOPT' = data perangkat ini
+// menjadi milik akun; 'CLEAN' = mulai kosong; {store,resto} = data dari QR/kode.
+function switchToAccount(acc, incoming) {
+  try {
+    window.__MIAPOS_ACC_SWITCH = true; // cegah persist effect menimpa swap
+    var cur = null;
+    try { cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) {}
+    if (!cur || !cur.settings) cur = generateSeed();
+    var curKey = (cur.account && cur.account.phone) ? accKey(cur.account.phone) : accKey('guest');
+    var st;
+    if (incoming && incoming.store) {
+      try { localStorage.setItem(curKey, JSON.stringify(accPayload(cur))); } catch (e) {}
+      st = Object.assign(generateSeed(), incoming.store || {});
+      st.settings = cur.settings;
+      st.account = acc;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
+      if (incoming.resto) { try { localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(incoming.resto)); } catch (e) {} }
+    } else if (incoming === 'CLEAN') {
+      try { localStorage.setItem(curKey, JSON.stringify(accPayload(cur))); } catch (e) {}
+      st = generateSeed();
+      st.settings = cur.settings;
+      st.account = acc;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
+    } else {
+      try { localStorage.setItem(curKey, JSON.stringify(accPayload(cur))); } catch (e) {}
+      var snap = loadAccSnapshot(acc.phone);
+      if (snap && snap.store) {
+        st = Object.assign(generateSeed(), snap.store || {});
+        st.settings = cur.settings;
+        st.account = acc;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
+        if (snap.resto) { try { localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(snap.resto)); } catch (e) {} }
+      } else {
+        cur.account = acc;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+      }
+    }
+    accRegistrySave(acc);
+    try { var fin = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); if (fin) saveAccSnapshot(acc.phone, fin); } catch (e) {}
+  } catch (e) {}
+  try { location.reload(); } catch (e) {}
+}
+function logoutToGuest() {
+  try {
+    window.__MIAPOS_ACC_SWITCH = true;
+    var cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if (cur && cur.settings) {
+      if (cur.account && cur.account.phone) { try { localStorage.setItem(accKey(cur.account.phone), JSON.stringify(accPayload(cur))); } catch (e) {} }
+      var guest = loadAccSnapshot('guest');
+      var st;
+      if (guest && guest.store) {
+        st = Object.assign(generateSeed(), guest.store || {});
+        st.settings = cur.settings;
+        st.account = null;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
+        if (guest.resto) { try { localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(guest.resto)); } catch (e) {} }
+      } else {
+        st = generateSeed();
+        st.settings = cur.settings;
+        st.account = null;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(applyRollover(st)));
+      }
+    }
+  } catch (e) {}
+  try { location.reload(); } catch (e) {}
+}
 const AppContext = React.createContext(null);
 const useAppStore = () => React.useContext(AppContext);
 
@@ -749,6 +941,13 @@ function AppProvider({ children }) {
     if (MD_THEME_KEYS.indexOf(loaded.settings.theme) === -1) loaded.settings.theme = 'emerald';
     if (loaded.settings.lang !== 'en') loaded.settings.lang = 'id'; // v2.13: hanya 'id' | 'en'
     loaded.archivedOrders = loaded.archivedOrders || [];
+    // v2.13 AKUN: normalisasi akun aktif + daftarkan ke registry perangkat ini
+    loaded.account = (loaded.account && loaded.account.phone) ? {
+      phone: String(loaded.account.phone), name: loaded.account.name || '', business: loaded.account.business || '',
+      address: loaded.account.address || '', role: loaded.account.role || 'Pemilik',
+      passHash: loaded.account.passHash || '', createdAt: loaded.account.createdAt || ''
+    } : null;
+    if (loaded.account) accRegistrySave(loaded.account);
     // v2.10 NORMALISASI DATA — perbaiki layar blank putih di Stok & Bahan → tab
     // Produk: data lama/backup kadang punya produk TANPA varian (p.variants
     // undefined) → p.variants.length meledak → React unmount → layar putih.
@@ -773,7 +972,10 @@ function AppProvider({ children }) {
   const [cartOrderType, setCartOrderType] = React.useState('DINE_IN');
 
   React.useEffect(() => {
+    if (window.__MIAPOS_ACC_SWITCH) return; // v2.13: sedang ganti akun — jangan timpa swap
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    // v2.13 AKUN: snapshot data usaha per akun — dipakai saat akun yang sama masuk di HP lain
+    try { if (state.account && state.account.phone) saveAccSnapshot(state.account.phone, state); } catch(e) {}
   }, [state]);
 
   // v2.7 CLOUD AUTO-BACKUP: tiap data berubah & online, snapshot dikirim ke
@@ -862,6 +1064,10 @@ function AppProvider({ children }) {
     setTheme: (t) => setState(s => (MD_THEME_KEYS.indexOf(t) === -1 || t === s.settings.theme) ? s : ({ ...s, settings: { ...s.settings, theme: t } })),
     // v2.13: ganti bahasa aplikasi (Indonesia / English) — tersimpan di settings.lang
     setLang: (l) => setState(s => (['id','en'].indexOf(l) === -1 || l === s.settings.lang) ? s : ({ ...s, settings: { ...s.settings, lang: l } })),
+    // v2.13 AKUN: daftar akun baru — data yang sudah ada di perangkat ini diadopsi menjadi milik akun
+    registerAccount: (acc2) => { if (!acc2 || !acc2.phone) return; var a2 = { ...acc2, role: 'Pemilik' }; accRegistrySave(a2); setState(s => ({ ...s, account: a2 })); },
+    // v2.13 AKUN: ubah profil akun (nama / nomor / kata sandi)
+    updateAccount: (patch) => setState(s => { if (!s.account || !patch) return s; var a3 = { ...s.account, ...patch }; accRegistrySave(a3); return { ...s, account: a3 }; }),
     addToCart: (productId, variantId) => {
       const p = state.products.find(x => x.id === productId); if (!p) return;
       const v = variantId ? p.variants.find(x => x.id === variantId) : undefined;
@@ -4604,11 +4810,11 @@ function MoreView({ onNavigate }) {
   const cashier = employees.find(e => e.id === settings.cashierId);
   const outlet = state.outlets.find(o => o.id === settings.outletId);
   const items = [
-    { key:'orders', icon:'clipboard-list', label:'Pesanan', desc:'Pesanan hari ini, bayar & batalkan', badge: unpaidCount > 0 ? unpaidCount + t(' belum bayar') : null, badgeCls:'bg-emerald-100 text-emerald-700' },
-    { key:'kitchen', icon:'utensils-crossed', label:'Laporan Menu', desc:'Menu terjual hari ini — per item & qty, auto sortir' },
-    { key:'inventory', icon:'boxes', label:'Stok & Resep', desc:'Bahan baku, stok masuk/keluar' },
-    { key:'outlets', icon:'store', label:'Outlet & Staf', desc:'Multi-cabang & karyawan' },
-    { key:'settings', icon:'settings', label:'Pengaturan', desc:'Printer, info resto, mesin & data' },
+    { key:'orders', icon:'clipboard-list', label: t('Pesanan'), desc: t('Pesanan hari ini, bayar & batalkan'), badge: unpaidCount > 0 ? unpaidCount + t(' belum bayar') : null, badgeCls:'bg-emerald-100 text-emerald-700' },
+    { key:'kitchen', icon:'utensils-crossed', label: t('Laporan Menu'), desc: t('Menu terjual hari ini — per item & qty, auto sortir') },
+    { key:'inventory', icon:'boxes', label: t('Stok & Resep'), desc: t('Bahan baku, stok masuk/keluar') },
+    { key:'outlets', icon:'store', label: t('Outlet & Staf'), desc: t('Multi-cabang & karyawan') },
+    { key:'settings', icon:'settings', label: t('Pengaturan'), desc: t('Printer, info resto, mesin & data') },
   ];
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title: t('Lainnya'), subtitle: (outlet?.name || '-') + t(' \u00b7 Kasir: ') + (cashier?.name || '-') }),
@@ -5072,6 +5278,417 @@ function EngineScreen({ onBack }) {
   );
 }
 
+
+// ===== v2.13 AKUN — komponen akun & sinkron antar perangkat =====
+function AccountPassInput({ value, onChange, placeholder, hint }) {
+  const [vis, setVis] = React.useState(false);
+  return React.createElement('div', null,
+    React.createElement('div', { className:'relative' },
+      React.createElement(Input, { type: vis ? 'text' : 'password', value: value, onChange: onChange, placeholder: placeholder || '\u2022\u2022\u2022\u2022\u2022\u2022', className:'pr-10' }),
+      React.createElement('button', { type:'button', onClick: function() { setVis(!vis); }, className:'absolute right-2 top-1/2 -translate-y-1/2 grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-600' },
+        React.createElement(Icon, { name: vis ? 'eye-off' : 'eye', className:'w-4 h-4' }))
+    ),
+    hint ? React.createElement('p', { className:'text-[10px] text-slate-400 mt-1' }, hint) : null
+  );
+}
+
+function AccountAvatar({ name, className }) {
+  var initials = String(name || '?').trim().split(/\s+/).slice(0, 2).map(function(w) { return (w[0] || '').toUpperCase(); }).join('') || '?';
+  return React.createElement('div', { className: cn('grid shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 font-bold text-white', className || 'h-12 w-12 text-base') }, initials);
+}
+
+function AccountCard({ acc, onAuth, onShowQR, onScan, onEdit, onLogout }) {
+  if (acc) {
+    return React.createElement('div', { className:'rounded-2xl border border-slate-200/80 bg-white shadow-sm overflow-hidden' },
+      React.createElement('div', { className:'flex items-center gap-3 p-3.5 pb-3' },
+        React.createElement(AccountAvatar, { name: acc.name || acc.phone }),
+        React.createElement('div', { className:'min-w-0 flex-1' },
+          React.createElement('div', { className:'flex min-w-0 items-center gap-1.5' },
+            React.createElement('p', { className:'truncate text-sm font-bold text-slate-900' }, acc.name || t('(Tanpa nama)')),
+            React.createElement('span', { className:'inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700' },
+              React.createElement(Icon, { name:'shield-check', className:'w-3 h-3' }), t(acc.role || 'Pemilik'))
+          ),
+          React.createElement('p', { className:'mt-0.5 truncate text-xs text-slate-500' }, acc.phone)
+        ),
+        React.createElement('button', { onClick: onShowQR, title: t('Tampilkan QR Akun'), className:'grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 active:scale-95' },
+          React.createElement(Icon, { name:'qr-code', className:'w-4 h-4' })),
+        React.createElement('button', { onClick: onScan, title: t('Pindai QR Akun'), className:'grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100 active:scale-95' },
+          React.createElement(Icon, { name:'scan-line', className:'w-4 h-4' }))
+      ),
+      (acc.business || acc.address) ? React.createElement('div', { className:'space-y-1.5 px-3.5 pb-3' },
+        acc.business ? React.createElement('div', { className:'flex items-start gap-2 text-xs' },
+          React.createElement(Icon, { name:'building-2', className:'mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400' }),
+          React.createElement('span', { className:'break-words text-slate-600' }, acc.business)) : null,
+        acc.address ? React.createElement('div', { className:'flex items-start gap-2 text-xs' },
+          React.createElement(Icon, { name:'map-pin', className:'mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400' }),
+          React.createElement('span', { className:'break-words text-slate-600' }, acc.address)) : null
+      ) : null,
+      React.createElement('div', { className:'flex items-center gap-2 px-3.5 pb-3 text-xs' },
+        React.createElement(Icon, { name:'history', className:'h-3.5 w-3.5 shrink-0 text-slate-400' }),
+        React.createElement('span', { className:'text-slate-500' }, t('Terdaftar') + ': ' + (acc.createdAt ? formatDateTime(acc.createdAt) : '-'))
+      ),
+      React.createElement('div', { className:'grid grid-cols-2 gap-2 border-t border-slate-100 p-3' },
+        React.createElement(Button, { variant:'outline', size:'sm', className:'gap-1.5', onClick: onEdit },
+          React.createElement(Icon, { name:'pencil', className:'w-3.5 h-3.5' }), t('Ubah Akun')),
+        React.createElement(Button, { variant:'outline', size:'sm', className:'gap-1.5 border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50', onClick: onLogout },
+          React.createElement(Icon, { name:'log-out', className:'w-3.5 h-3.5' }), t('Keluar'))
+      )
+    );
+  }
+  return React.createElement('div', { className:'rounded-2xl border border-dashed border-slate-300 bg-white shadow-sm' },
+    React.createElement('div', { className:'flex items-center gap-3 p-3.5' },
+      React.createElement('div', { className:'grid h-12 w-12 shrink-0 place-items-center rounded-full border border-slate-200 bg-slate-100 text-slate-400' },
+        React.createElement(Icon, { name:'user-circle', className:'w-7 h-7' })),
+      React.createElement('div', { className:'min-w-0 flex-1' },
+        React.createElement('p', { className:'text-sm font-bold text-slate-900' }, t('Belum masuk akun')),
+        React.createElement('p', { className:'mt-0.5 text-xs text-slate-500' }, t('Masuk agar pesanan & omzet tersimpan dalam satu akun dan bisa dibuka di HP lain.'))
+      )
+    ),
+    React.createElement('div', { className:'grid grid-cols-2 gap-2 px-3.5 pb-3.5' },
+      React.createElement(Button, { size:'sm', className:'gap-1.5', onClick: onAuth },
+        React.createElement(Icon, { name:'log-in', className:'w-3.5 h-3.5' }), t('Masuk / Daftar')),
+      React.createElement(Button, { variant:'outline', size:'sm', className:'gap-1.5', onClick: onScan },
+        React.createElement(Icon, { name:'scan-line', className:'w-3.5 h-3.5' }), t('Pindai QR Akun'))
+    )
+  );
+}
+
+function AccountAuthModal({ open, onClose, show }) {
+  const { registerAccount } = useAppStore();
+  const [tab, setTab] = React.useState('masuk');
+  const [name, setName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [business, setBusiness] = React.useState('');
+  const [address, setAddress] = React.useState('');
+  const [pass, setPass] = React.useState('');
+  const [pass2, setPass2] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [unknown, setUnknown] = React.useState(null);
+  React.useEffect(function() { if (open) { setTab('masuk'); setErr(''); setUnknown(null); setPass(''); setPass2(''); } }, [open]);
+  function cleanPhone(v) { return String(v || '').replace(/[^0-9]/g, ''); }
+  function submitMasuk() {
+    setErr('');
+    var p = cleanPhone(phone);
+    if (p.length < 8) { setErr(t('Nomor handphone tidak valid. Contoh: 628987654321.')); return; }
+    var reg = accRegistry()[p];
+    if (reg) {
+      if (reg.passHash && reg.passHash !== hashPass(pass)) { setErr(t('Kata sandi salah untuk akun ini.')); return; }
+      if (loadAccSnapshot(p)) { onClose(); switchToAccount(reg, null); }
+      else setUnknown(reg);
+    } else {
+      setUnknown({ phone: p, name: '', business: '', address: '', passHash: hashPass(pass), role: 'Pemilik', createdAt: new Date().toISOString() });
+    }
+  }
+  function submitDaftar() {
+    setErr('');
+    var p = cleanPhone(phone);
+    if (!name.trim()) { setErr(t('Nama wajib diisi.')); return; }
+    if (p.length < 8) { setErr(t('Nomor handphone tidak valid. Contoh: 628987654321.')); return; }
+    if (pass.length < 4) { setErr(t('Kata sandi minimal 4 karakter.')); return; }
+    if (pass !== pass2) { setErr(t('Kata sandi dan konfirmasinya tidak sama.')); return; }
+    if (accRegistry()[p]) { setErr(t('Nomor ini sudah terdaftar di perangkat ini — silakan masuk.')); return; }
+    var r = {};
+    try { r = getRestoInfo() || {}; } catch (e) {}
+    var acc2 = { phone: p, name: name.trim(), business: business.trim() || r.name || '', address: address.trim() || r.address || '', passHash: hashPass(pass), role: 'Pemilik', createdAt: new Date().toISOString() };
+    registerAccount(acc2);
+    show(t('Akun berhasil dibuat — data di perangkat ini kini tersimpan dalam akun Anda.'));
+    onClose();
+  }
+  if (unknown) {
+    return React.createElement(Modal, { open: open, onClose: onClose },
+      React.createElement('div', { className:'p-4' },
+        React.createElement('h2', { className:'text-lg font-bold' }, t('Akun Belum Ada di Perangkat Ini')),
+        React.createElement('p', { className:'mt-1 text-xs leading-relaxed text-slate-500' },
+          t('Nomor') + ' ' + unknown.phone + ' ' + t('belum memiliki data di perangkat ini. Pilih sumber data untuk akun tersebut:')),
+        React.createElement('div', { className:'mt-3 space-y-2' },
+          React.createElement(Button, { variant:'outline', className:'w-full justify-start gap-2', onClick: function() { var u = unknown; onClose(); switchToAccount(u, 'ADOPT'); } },
+            React.createElement(Icon, { name:'smartphone', className:'w-4 h-4' }),
+            React.createElement('span', { className:'text-left' },
+              React.createElement('span', { className:'block text-sm font-bold' }, t('Pakai Data di Perangkat Ini')),
+              React.createElement('span', { className:'block text-[10px] font-normal text-slate-500' }, t('Data yang sekarang ada di HP ini menjadi milik akun.')))),
+          React.createElement(Button, { variant:'outline', className:'w-full justify-start gap-2', onClick: function() { var u = unknown; onClose(); switchToAccount(u, 'CLEAN'); } },
+            React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }),
+            React.createElement('span', { className:'text-left' },
+              React.createElement('span', { className:'block text-sm font-bold' }, t('Mulai Kosong')),
+              React.createElement('span', { className:'block text-[10px] font-normal text-slate-500' }, t('Data akun dimulai dari nol di perangkat ini.')))),
+          React.createElement(Button, { variant:'ghost', className:'w-full', onClick: function() { setUnknown(null); } }, t('Kembali'))
+        )
+      )
+    );
+  }
+  return React.createElement(Modal, { open: open, onClose: onClose },
+    React.createElement('div', { className:'max-h-[80vh] overflow-y-auto p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Akun')),
+      React.createElement('p', { className:'mb-3 mt-0.5 text-xs text-slate-500' }, t('Satu akun untuk semua HP — data pesanan & omzet mengikuti akun.')),
+      React.createElement('div', { className:'mb-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1' },
+        React.createElement('button', { onClick: function() { setTab('masuk'); setErr(''); }, className: cn('h-8 rounded-lg text-xs font-bold transition', tab === 'masuk' ? 'bg-white text-slate-900 shadow' : 'text-slate-500') }, t('Masuk')),
+        React.createElement('button', { onClick: function() { setTab('daftar'); setErr(''); }, className: cn('h-8 rounded-lg text-xs font-bold transition', tab === 'daftar' ? 'bg-white text-slate-900 shadow' : 'text-slate-500') }, t('Daftar Akun'))
+      ),
+      err ? React.createElement('div', { className:'mb-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600' }, err) : null,
+      tab === 'masuk' ? React.createElement('div', { className:'space-y-2.5' },
+        React.createElement('div', null, React.createElement(Label, null, t('No. Handphone')),
+          React.createElement(Input, { value: phone, onChange: function(e) { setPhone(e.target.value); }, placeholder: t('contoh: 628987654321'), inputMode:'numeric' })),
+        React.createElement('div', null, React.createElement(Label, null, t('Kata Sandi')),
+          React.createElement(AccountPassInput, { value: pass, onChange: function(e) { setPass(e.target.value); } })),
+        React.createElement(Button, { className:'mt-1 w-full', onClick: submitMasuk },
+          React.createElement(Icon, { name:'log-in', className:'w-4 h-4' }), t('Masuk'))
+      ) : React.createElement('div', { className:'space-y-2.5' },
+        React.createElement('div', null, React.createElement(Label, null, t('Nama Lengkap')),
+          React.createElement(Input, { value: name, onChange: function(e) { setName(e.target.value); }, placeholder: t('contoh: Pak Budi / Nunung') })),
+        React.createElement('div', null, React.createElement(Label, null, t('No. Handphone')),
+          React.createElement(Input, { value: phone, onChange: function(e) { setPhone(e.target.value); }, placeholder: t('contoh: 628987654321'), inputMode:'numeric' })),
+        React.createElement('div', null, React.createElement(Label, null, t('Nama Usaha')),
+          React.createElement(Input, { value: business, onChange: function(e) { setBusiness(e.target.value); }, placeholder: t('contoh: Waroeng Semilir') })),
+        React.createElement('div', null, React.createElement(Label, null, t('Alamat Usaha')),
+          React.createElement(Input, { value: address, onChange: function(e) { setAddress(e.target.value); }, placeholder: t('contoh: Jl. Raya Paron No. 10') })),
+        React.createElement('div', null, React.createElement(Label, null, t('Kata Sandi')),
+          React.createElement(AccountPassInput, { value: pass, onChange: function(e) { setPass(e.target.value); } })),
+        React.createElement('div', null, React.createElement(Label, null, t('Konfirmasi Kata Sandi')),
+          React.createElement(AccountPassInput, { value: pass2, onChange: function(e) { setPass2(e.target.value); } })),
+        React.createElement(Button, { className:'mt-1 w-full', onClick: submitDaftar },
+          React.createElement(Icon, { name:'user-plus', className:'w-4 h-4' }), t('Daftar Akun'))
+      ),
+      React.createElement('p', { className:'mt-3 text-[10px] leading-relaxed text-slate-400' },
+        t('Akun & datanya disimpan di perangkat ini. Untuk memindahkannya ke HP lain, gunakan Tampilkan QR Akun atau Pindai QR Akun.'))
+    )
+  );
+}
+
+function AccountEditModal({ open, onClose, acc, show }) {
+  const { updateAccount } = useAppStore();
+  const [name, setName] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [pass, setPass] = React.useState('');
+  const [pass2, setPass2] = React.useState('');
+  const [err, setErr] = React.useState('');
+  React.useEffect(function() {
+    if (open && acc) { setName(acc.name || ''); setPhone(acc.phone || ''); setPass(''); setPass2(''); setErr(''); }
+  }, [open]);
+  if (!acc) return null;
+  function save() {
+    setErr('');
+    var p = String(phone).replace(/[^0-9]/g, '');
+    if (!name.trim()) { setErr(t('Nama wajib diisi.')); return; }
+    if (p.length < 8) { setErr(t('Nomor handphone tidak valid. Contoh: 628987654321.')); return; }
+    if (pass && pass.length < 4) { setErr(t('Kata sandi minimal 4 karakter.')); return; }
+    if (pass && pass !== pass2) { setErr(t('Kata sandi dan konfirmasinya tidak sama.')); return; }
+    if (p !== acc.phone) {
+      try {
+        var old = localStorage.getItem(accKey(acc.phone));
+        if (old) { localStorage.setItem(accKey(p), old); localStorage.removeItem(accKey(acc.phone)); }
+      } catch (e) {}
+    }
+    var patch = { name: name.trim(), phone: p };
+    if (pass) patch.passHash = hashPass(pass);
+    updateAccount(patch);
+    show(t('Perubahan akun tersimpan.'));
+    onClose();
+  }
+  return React.createElement(Modal, { open: open, onClose: onClose },
+    React.createElement('div', { className:'max-h-[80vh] overflow-y-auto p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Ubah Akun')),
+      React.createElement('p', { className:'mb-3 mt-0.5 text-xs text-slate-500' }, t('Nama usaha & alamat diambil dari info usaha saat akun dibuat.')),
+      err ? React.createElement('div', { className:'mb-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600' }, err) : null,
+      React.createElement('div', { className:'space-y-2.5' },
+        React.createElement('div', null, React.createElement(Label, null, t('Nama')),
+          React.createElement(Input, { value: name, onChange: function(e) { setName(e.target.value); }, placeholder: t('Nama Lengkap') })),
+        React.createElement('div', null, React.createElement(Label, null, t('No. Handphone')),
+          React.createElement(Input, { value: phone, onChange: function(e) { setPhone(e.target.value); }, placeholder: t('contoh: 628987654321'), inputMode:'numeric' })),
+        React.createElement('div', null, React.createElement(Label, null, t('Kata Sandi Baru')),
+          React.createElement(AccountPassInput, { value: pass, onChange: function(e) { setPass(e.target.value); }, hint: t('Kosongkan kata sandi jika tidak ingin mengubah.') })),
+        React.createElement('div', null, React.createElement(Label, null, t('Konfirmasi Kata Sandi Baru')),
+          React.createElement(AccountPassInput, { value: pass2, onChange: function(e) { setPass2(e.target.value); } })),
+        React.createElement(Button, { className:'mt-1 w-full', onClick: save },
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
+      )
+    )
+  );
+}
+
+function AccountQRModal({ open, onClose, acc }) {
+  const { state } = useAppStore();
+  const { show } = useToast();
+  const data = React.useMemo(function() {
+    if (!open || !acc || typeof window.qrcode !== 'function') return null;
+    var full = buildAccountCode(acc, state, true);
+    var fits = full.length <= 1400;
+    return { full: full, code: fits ? full : buildAccountCode(acc, state, false), fits: fits };
+  }, [open, acc, state]);
+  if (!acc) return null;
+  function copy(text) {
+    var done = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text); done = true; } } catch (e) {}
+    if (!done) {
+      try { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); done = true; } catch (e2) {}
+    }
+    show(done ? t('Kode disalin.') : t('Gagal menyalin — salin manual dari kotak di bawah.'));
+  }
+  var qrSvg = '';
+  if (data) {
+    try { var qr = window.qrcode(0, 'M'); qr.addData(data.code, 'Byte'); qr.make(); qrSvg = qr.createSvgTag({ cellSize: 4, margin: 1 }); } catch (e) {}
+  }
+  return React.createElement(Modal, { open: open, onClose: onClose },
+    React.createElement('div', { className:'max-h-[85vh] overflow-y-auto p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('QR Akun')),
+      React.createElement('p', { className:'mt-0.5 text-xs text-slate-500' }, t('Pindai QR ini di HP lain untuk masuk dengan akun yang sama.')),
+      React.createElement('div', { className:'mx-auto mt-3 w-full max-w-[240px] rounded-2xl border border-slate-200 bg-white p-3 [&_svg]:h-auto [&_svg]:w-full', dangerouslySetInnerHTML: { __html: qrSvg } }),
+      React.createElement('div', { className:'mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold leading-relaxed text-amber-700' },
+        t('QR ini berisi akses masuk akun Anda — jangan dibagikan ke orang lain.')),
+      data && !data.fits ? React.createElement('div', { className:'mt-3' },
+        React.createElement('p', { className:'text-[11px] font-bold text-slate-700' }, t('Data usaha belum muat di QR (terlalu besar).')),
+        React.createElement('p', { className:'mt-0.5 text-[11px] text-slate-500' }, t('Salin kode lengkap di bawah, kirim lewat WhatsApp ke HP lain, lalu tempel di menu Pindai QR Akun.')),
+        React.createElement('textarea', { readOnly: true, value: data.full, onClick: function(e) { try { e.target.select(); } catch (er) {} }, className:'mt-1.5 h-20 w-full break-all rounded-xl border border-slate-200 bg-slate-50 p-2 font-mono text-[9px]' }),
+        React.createElement(Button, { variant:'outline', size:'sm', className:'mt-1.5 w-full gap-1.5', onClick: function() { copy(data.full); } },
+          React.createElement(Icon, { name:'copy', className:'w-3.5 h-3.5' }), t('Salin Kode Data Lengkap'))
+      ) : React.createElement('p', { className:'mt-2 text-center text-[11px] font-semibold text-emerald-700' },
+          t('QR ini membawa seluruh data usaha: menu, pesanan, omzet, stok & laporan.')),
+      React.createElement(Button, { variant:'outline', className:'mt-3 w-full', onClick: onClose }, t('Tutup'))
+    )
+  );
+}
+
+function AccountScanModal({ open, onClose, onDetected }) {
+  const videoRef = React.useRef(null);
+  const rafRef = React.useRef(0);
+  const streamRef = React.useRef(null);
+  const aliveRef = React.useRef(false);
+  const lastRef = React.useRef({ code: '', at: 0 });
+  const [supported, setSupported] = React.useState(true);
+  const [camErr, setCamErr] = React.useState('');
+  const [pasteText, setPasteText] = React.useState('');
+  const [err, setErr] = React.useState('');
+  function stopCam() {
+    aliveRef.current = false;
+    try { if (rafRef.current) cancelAnimationFrame(rafRef.current); } catch (e) {}
+    try { if (streamRef.current) streamRef.current.getTracks().forEach(function(tk) { tk.stop(); }); } catch (e) {}
+    streamRef.current = null;
+  }
+  function handleCode(raw) {
+    var text = String(raw || '').trim();
+    if (!text) return;
+    var now = Date.now();
+    if (text === lastRef.current.code && now - lastRef.current.at < 2500) return;
+    lastRef.current = { code: text, at: now };
+    try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+    var payload = parseAccountCode(text);
+    if (!payload) { setErr(t('Kode tidak dikenali — pastikan ini QR/kode akun Miapos.')); return; }
+    setErr('');
+    onDetected(payload);
+  }
+  React.useEffect(function() {
+    if (!open) { stopCam(); return function() {}; }
+    setPasteText(''); setErr(''); setCamErr('');
+    var Detector = window.BarcodeDetector;
+    if (!Detector || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { setSupported(false); return function() {}; }
+    setSupported(true);
+    var det = null;
+    try { det = new Detector({ formats: ['qr_code'] }); } catch (e) { try { det = new Detector(); } catch (e2) { setSupported(false); return function() {}; } }
+    aliveRef.current = true;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
+      if (!aliveRef.current) { stream.getTracks().forEach(function(tk) { tk.stop(); }); return; }
+      streamRef.current = stream;
+      var v = videoRef.current;
+      if (v) { try { v.srcObject = stream; v.setAttribute('playsinline', 'true'); v.muted = true; v.play().catch(function() {}); } catch (e) {} }
+      var last = 0;
+      function tick() {
+        if (!aliveRef.current) return;
+        rafRef.current = requestAnimationFrame(tick);
+        var vv = videoRef.current;
+        if (!vv || vv.readyState < 2) return;
+        var now = Date.now();
+        if (now - last < 400) return; last = now;
+        det.detect(vv).then(function(codes) {
+          if (codes && codes.length) handleCode(String(codes[0].rawValue || '').trim());
+        }).catch(function() {});
+      }
+      tick();
+    }).catch(function() { setCamErr(t('Kamera tidak dapat dibuka — beri izin kamera, atau tempel kode akun secara manual di bawah.')); });
+    return function() { stopCam(); };
+  }, [open]);
+  return React.createElement(Modal, { open: open, onClose: onClose },
+    React.createElement('div', { className:'max-h-[85vh] overflow-y-auto p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Pindai QR Akun')),
+      React.createElement('p', { className:'mt-0.5 text-xs text-slate-500' }, t('Arahkan kamera ke QR akun di HP lain.')),
+      supported ? React.createElement('div', { className:'relative mt-3 aspect-[4/3] overflow-hidden rounded-2xl border border-slate-200 bg-black' },
+        React.createElement('video', { ref: videoRef, className:'h-full w-full object-cover', muted: true, playsInline: true }),
+        camErr ? React.createElement('div', { className:'absolute inset-0 grid place-items-center bg-slate-900/80 p-4 text-center text-xs text-white' }, camErr) : null
+      ) : React.createElement('div', { className:'mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500' },
+          React.createElement(Icon, { name:'camera', className:'mx-auto mb-1 h-6 w-6 text-slate-400' }),
+          t('Perangkat ini tidak mendukung pemindaian kamera — tempel kode akun di bawah.')),
+      err ? React.createElement('div', { className:'mt-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600' }, err) : null,
+      React.createElement('div', { className:'mt-3' },
+        React.createElement(Label, null, t('Tempel Kode Akun')),
+        React.createElement('textarea', { value: pasteText, onChange: function(e) { setPasteText(e.target.value); }, placeholder: t('Tempel kode akun di sini (dari QR/kode teks).'), className:'mt-1 h-20 w-full break-all rounded-xl border border-slate-200 p-2 font-mono text-xs focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30' }),
+        React.createElement(Button, { className:'mt-2 w-full', onClick: function() { handleCode(pasteText); } },
+          React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Gunakan Kode'))
+      )
+    )
+  );
+}
+
+function AccountInfoModal({ payload, onClose, onEnter }) {
+  if (!payload || !payload.acc) return null;
+  var a = payload.acc;
+  function row(icon, label, val) {
+    return React.createElement('div', { className:'flex items-start gap-2 text-xs' },
+      React.createElement(Icon, { name: icon, className:'mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400' }),
+      React.createElement('div', { className:'min-w-0' },
+        React.createElement('p', { className:'text-[10px] font-bold uppercase tracking-wide text-slate-400' }, label),
+        React.createElement('p', { className:'break-words text-slate-700' }, val)));
+  }
+  return React.createElement(Modal, { open: !!payload, onClose: onClose },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Informasi Akun')),
+      React.createElement('p', { className:'mt-0.5 text-xs text-slate-500' }, t('Periksa akunnya sebelum masuk — pastikan akun tersebut benar.')),
+      React.createElement('div', { className:'mt-3 flex items-center gap-3' },
+        React.createElement(AccountAvatar, { name: a.name || a.phone }),
+        React.createElement('div', { className:'min-w-0' },
+          React.createElement('p', { className:'truncate text-sm font-bold text-slate-900' }, a.name || t('(Tanpa nama)')),
+          React.createElement('p', { className:'text-xs text-slate-500' }, a.phone)
+        ),
+        React.createElement('span', { className:'ml-auto inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700' },
+          React.createElement(Icon, { name:'shield-check', className:'w-3 h-3' }), t(a.role || 'Pemilik'))
+      ),
+      React.createElement('div', { className:'mt-3 space-y-2 rounded-2xl border border-slate-200 p-3' },
+        a.business ? row('building-2', t('Nama Usaha'), a.business) : null,
+        a.address ? row('map-pin', t('Alamat'), a.address) : null,
+        row('history', t('Terdaftar'), a.createdAt ? formatDateTime(a.createdAt) : '-')
+      ),
+      payload.store ? React.createElement('div', { className:'mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold text-emerald-700' },
+        t('Kode ini membawa seluruh data usaha: menu, pesanan, omzet, stok & laporan.')) : null,
+      React.createElement('div', { className:'mt-3 grid grid-cols-2 gap-2' },
+        React.createElement(Button, { variant:'outline', onClick: onClose }, t('Batal')),
+        React.createElement(Button, { onClick: function() { onEnter(payload); } },
+          React.createElement(Icon, { name:'log-in', className:'w-4 h-4' }), t('Masuk dengan Akun Ini'))
+      )
+    )
+  );
+}
+
+function AccountChoiceModal({ acc, onClose }) {
+  if (!acc) return null;
+  return React.createElement(Modal, { open: !!acc, onClose: onClose },
+    React.createElement('div', { className:'p-4' },
+      React.createElement('h2', { className:'text-lg font-bold' }, t('Pilih Data untuk Akun Ini')),
+      React.createElement('p', { className:'mt-1 text-xs leading-relaxed text-slate-500' },
+        t('Perangkat ini belum memiliki data untuk akun ini. Pilih sumber data yang ingin dipakai:')),
+      React.createElement('div', { className:'mt-3 space-y-2' },
+        React.createElement(Button, { variant:'outline', className:'w-full justify-start gap-2', onClick: function() { switchToAccount(acc, 'ADOPT'); } },
+          React.createElement(Icon, { name:'smartphone', className:'w-4 h-4' }),
+          React.createElement('span', { className:'text-left' },
+            React.createElement('span', { className:'block text-sm font-bold' }, t('Pakai Data di Perangkat Ini')),
+            React.createElement('span', { className:'block text-[10px] font-normal text-slate-500' }, t('Data yang sekarang ada di HP ini menjadi milik akun.')))),
+        React.createElement(Button, { variant:'outline', className:'w-full justify-start gap-2', onClick: function() { switchToAccount(acc, 'CLEAN'); } },
+          React.createElement(Icon, { name:'refresh-cw', className:'w-4 h-4' }),
+          React.createElement('span', { className:'text-left' },
+            React.createElement('span', { className:'block text-sm font-bold' }, t('Mulai Kosong')),
+            React.createElement('span', { className:'block text-[10px] font-normal text-slate-500' }, t('Data akun dimulai dari nol di perangkat ini.')))),
+        React.createElement(Button, { variant:'ghost', className:'w-full', onClick: onClose }, t('Batal'))
+      )
+    )
+  );
+}
+
 function SettingsView({ onBack }) {
   const { state, toggleOnline, resetDemo, setTheme, setLang } = useAppStore();
   const { settings, orders, products, materials } = state;
@@ -5080,6 +5697,27 @@ function SettingsView({ onBack }) {
   const [temaOpen, setTemaOpen] = React.useState(false);
   const [bahasaOpen, setBahasaOpen] = React.useState(false); // v2.13: pilih bahasa Indonesia/English
   const [resetAsk, setResetAsk] = React.useState(false); // v2.12: konfirmasi reset + jeda 5 detik (dulu gak ada, bahaya ke pencet)
+  // v2.13 AKUN: modal akun (masuk/daftar, ubah, QR, pindai, info & pilihan data)
+  const [accAuthOpen, setAccAuthOpen] = React.useState(false);
+  const [accEditOpen, setAccEditOpen] = React.useState(false);
+  const [accQROpen, setAccQROpen] = React.useState(false);
+  const [accScanOpen, setAccScanOpen] = React.useState(false);
+  const [accInfo, setAccInfo] = React.useState(null);
+  const [accChoice, setAccChoice] = React.useState(null);
+  const acc = state.account;
+  function enterWithPayload(payload) {
+    var a2 = payload && payload.acc;
+    if (!a2 || !a2.phone) return;
+    accRegistrySave(a2);
+    if (payload.store) { setAccInfo(null); switchToAccount(a2, payload); return; }
+    if (loadAccSnapshot(a2.phone)) { setAccInfo(null); switchToAccount(a2, null); return; }
+    setAccInfo(null); setAccChoice(a2);
+  }
+  function doLogout() {
+    if (!acc) return;
+    var msg = t('Keluar dari akun') + ' "' + (acc.name || acc.phone) + '"?\n\n' + t('Data usaha akun ini tetap tersimpan aman di perangkat ini dan bisa dimuat kembali saat Anda masuk lagi.');
+    if (window.confirm(msg)) logoutToGuest();
+  }
 
   function clearLocal() {
     if (confirm(t('Hapus semua data lokal dan mulai bersih dari awal?'))) {
@@ -5122,6 +5760,18 @@ function SettingsView({ onBack }) {
   return React.createElement('div', { className:'flex flex-col min-h-full' },
     React.createElement(Topbar, { title: t('Pengaturan'), subtitle: t('Ketuk fitur untuk membuka layarnya') }),
     React.createElement('main', { className:'flex-1 overflow-y-auto p-2 md:p-4 pb-40 md:pb-6 max-w-full space-y-5 min-h-0' },
+      // v2.13 AKUN: kartu akun & sinkron antar perangkat - selalu paling atas
+      React.createElement('div', { key:'akun-sek' },
+        React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 mb-1.5' }, t('Akun')),
+        React.createElement(AccountCard, {
+          acc: acc,
+          onAuth: function() { setAccAuthOpen(true); },
+          onShowQR: function() { if (acc) setAccQROpen(true); else setAccAuthOpen(true); },
+          onScan: function() { setAccScanOpen(true); },
+          onEdit: function() { setAccEditOpen(true); },
+          onLogout: doLogout
+        })
+      ),
       groups.map(function(g) {
         return React.createElement('div', { key: g.title },
           React.createElement('p', { className:'text-[11px] font-bold tracking-wider text-slate-400 uppercase px-1 mb-1.5' }, g.title),
@@ -5186,6 +5836,13 @@ function SettingsView({ onBack }) {
       React.createElement(ThemePickerModal, { open: temaOpen, onClose: function() { setTemaOpen(false); }, current: settings.theme || 'emerald', onPick: function(k) { setTheme(k); show(t('Tema: ') + (MD_THEMES[k] || MD_THEMES.emerald).name); } }),
       // v2.13: pilih bahasa aplikasi — Indonesia / English
       React.createElement(BahasaPickerModal, { open: bahasaOpen, onClose: function() { setBahasaOpen(false); }, current: settings.lang || 'id', onPick: function(l) { setLang(l); setBahasaOpen(false); show(t('Bahasa: ') + (l === 'en' ? 'English' : 'Indonesia')); } }),
+      // v2.13 AKUN: modal masuk/daftar, ubah akun, QR, pindai, info & pilihan data
+      React.createElement(AccountAuthModal, { open: accAuthOpen, onClose: function() { setAccAuthOpen(false); }, show: show }),
+      React.createElement(AccountEditModal, { open: accEditOpen, onClose: function() { setAccEditOpen(false); }, acc: acc, show: show }),
+      React.createElement(AccountQRModal, { open: accQROpen, onClose: function() { setAccQROpen(false); }, acc: acc }),
+      React.createElement(AccountScanModal, { open: accScanOpen, onClose: function() { setAccScanOpen(false); }, onDetected: function(payload) { setAccScanOpen(false); setAccInfo(payload); } }),
+      React.createElement(AccountInfoModal, { payload: accInfo, onClose: function() { setAccInfo(null); }, onEnter: enterWithPayload }),
+      React.createElement(AccountChoiceModal, { acc: accChoice, onClose: function() { setAccChoice(null); } }),
       // v2.12: konfirmasi reset data — tombol oke terkunci 5 detik dulu
       React.createElement(ConfirmResetModal, { open: resetAsk, onClose: function() { setResetAsk(false); }, onConfirm: function() { setResetAsk(false); resetDemo(); show(t('Data direset ke awal')); } })
     )

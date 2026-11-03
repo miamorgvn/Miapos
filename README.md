@@ -29,6 +29,13 @@ Yang bikin beda:
 
 ## ✨ Fitur
 
+### 👤 Akun & Sinkron Antar HP (baru di v2.13!)
+- **Satu akun untuk semua HP** — daftar sekali (nama, no. HP, usaha, alamat, kata sandi), data usaha tersimpan per akun
+- 📷 **QR Akun** — HP lain tinggal **Pindai QR Akun** → muncul popup info akun (nama, usaha, alamat lengkap) → konfirmasi → semua data (menu, pesanan, omzet, stok, laporan) langsung ke-load
+- Kalau data sudah kebesaran buat QR, otomatis ada **Kode Data Lengkap** — salin → kirim lewat WhatsApp ke HP lain → tempel → beres
+- Ada **Ubah Akun** (ganti nama/nomor/kata sandi) & **Keluar** (log out — data akun tetap aman & bisa dimuat lagi)
+- 100% offline, tanpa server — sinkron lewat QR/kode, sekali pindah datanya utuh semua
+
 ### 🧾 Kasir & Pembayaran
 - Buat pesanan cepat, keranjang, promo & diskon
 - Metode bayar **Tunai / QRIS / Transfer** — QRIS resto bisa upload gambar sendiri 📱

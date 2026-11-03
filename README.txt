@@ -1,11 +1,12 @@
 ================================================
-  MIAPOS v2.13 — CATATAN PER MENU · 2 BAHASA · 4 TEMA
+  MIAPOS v2.13 — AKUN ANTAR HP · CATATAN PER MENU
+     · 2 BAHASA · 4 TEMA
      (di atas: reset anti ke pencet + README GitHub
      + fix tulisan bawah + scan barcode + laporan
      menu + QRIS + owner zone + cuaca + backup cloud)
 ================================================
 
-APA YANG BARU DI v2.13 (catatan item, nota rapi, bahasa, tema)
+APA YANG BARU DI v2.13 (akun antar HP, catatan item, nota rapi, 2 bahasa, 4 tema)
 ------------------------------------------------------------
 1. CATATAN BUAT DAPUR BISA DIISI PER MENU:
    • Dulu catatan dapur cuma 1 buat seluruh pesanan
@@ -53,7 +54,40 @@ APA YANG BARU DI v2.13 (catatan item, nota rapi, bahasa, tema)
      latar terang.
    • Total jadi 4 tema: Emerald & Slate, Royal &
      Orange, Pink & Putih, Charcoal Dark.
-6. VERSI NAIK:
+6. AKUN & SINKRON ANTAR HP (FITUR BARU!):
+   • Sekarang ada AKUN: Pengaturan → bagian AKUN
+     (paling atas). Daftar dulu: nama lengkap, no.
+     handphone, nama usaha, alamat, kata sandi —
+     bentuk form-nya kaya layar "Ubah Akun" yang
+     kamu tunjukin di pict.
+   • TIAP HP YANG MASUK AKUN YANG SAMA, SEMUA DATA
+     IKUT: menu, pesanan, omzet, stok, laporan.
+     Caranya ada 2 tombol di header kartu akun:
+     - TAMPILKAN QR AKUN → muncul QR berisi akun
+       (+ data usaha kalau muat). Di HP lain tinggal
+       PINDAI QR AKUN → muncul popup info akun
+       (nama, no HP, nama usaha, alamat lengkap) →
+       "Masuk dengan Akun Ini" → semua data langsung
+       ke-load di HP itu. Sekali scan, beres.
+     - Kalau datanya kebesaran buat QR (pesanan
+       sudah banyak), QR tetap jalan buat akunnya,
+       dan muncul "Kode Data Lengkap" — salin kodenya,
+       kirim lewat WhatsApp ke HP lain, tempel di
+       menu Pindai QR Akun → masuk, data ikut semua.
+   • Belum ada akun di HP itu? Tinggal daftar di
+     situ (tab Daftar), atau pakai QR dari HP utama.
+   • Salah akun? Ada tombol KELUAR (log out) — data
+     akun tetap tersimpan aman, masuk lagi langsung
+     ke-load lagi. Bisa juga UBAH AKUN (ganti nama,
+     nomor, kata sandi).
+   • Data disimpan PER AKUN di tiap HP + snapshot
+     otomatis, jadi aman walau ganti-ganti akun.
+   • Catatan jujur: sinkronnya lewat QR/kode (100%
+     offline, tanpa server). Bukan real-time antar
+     HP — tapi sekali pindah, datanya utuh semua.
+     Kalau nanti mau real-time via cloud, tinggal
+     bilang, butuh server sendiri.
+7. VERSI NAIK:
    • Versi app jadi v2.13 (sidebar + kartu bawah
      Pengaturan). Cache sw.js jadi miapos-v2.13-r1.
    • Ingat aturannya: tiap update versi SELALU naik.
