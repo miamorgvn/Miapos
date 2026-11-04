@@ -1,10 +1,39 @@
 ================================================
-  MIAPOS v2.17 — JUDUL DAPUR SEBESAR NO. ANTRIAN
-     (di atas: nota cukup 1 garis '=' + popup hasil
-     cetak + angka laporan gak kepotong + sinkron
-     otomatis antar HP + laporan pembayaran
-     + kalender + catatan per menu + 2 bahasa
-     + 4 tema + backup cloud)
+  MIAPOS v2.18 — NO. ANTRIAN KASIH JEDA 1 BARIS
+     (di atas: judul DAPUR sebesar No. Antrian
+     + nota cukup 1 garis '=' + popup hasil cetak
+     + angka laporan gak kepotong + sinkron otomatis
+     antar HP + laporan pembayaran + kalender
+     + catatan per menu + 2 bahasa + 4 tema
+     + backup cloud)
+================================================
+
+APA YANG BARU DI v2.18 (No. Antrian gak nempel lagi)
+------------------------------------------------------------
+1. JEDA SATU BARIS SEBELUM NO. ANTRIAN:
+   • Dulu "No. Antrian: 24" nempel persis di bawah
+     daftar menu/catatan item — keliatan sesak.
+   • Sekarang dikasih SATU baris kosong dulu,
+     jadi daftar menu ... (jeda) ... No. Antrian.
+     Lebih lega dan matanya langsung ke angka.
+   • Berlaku untuk nota dapur & nota dapur
+     tambahan. Nota kasir tidak berubah.
+2. SISANYA SAMA DENGAN v2.17: judul DAPUR tetap
+   tinggi dobel (lonjong) sama kaya No. Antrian,
+   garis pembatas cukup satu di bawah header.
+3. BAHASA BAKU:
+   • Sesuai aturan owner, semua teks baru tetap
+     menggunakan bahasa Indonesia baku.
+4. VERSI NAIK:
+   • App v2.18 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.18-r1 ·
+     server api/sync.js & main.py v2.18.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.17 (rilis sebelumnya) — JUDUL DAPUR
+     SEBESAR NO. ANTRIAN
 ================================================
 
 APA YANG BARU DI v2.17 (judul DAPUR sebesar No. Antrian)

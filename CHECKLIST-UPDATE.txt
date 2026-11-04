@@ -1,11 +1,35 @@
 ================================================
-  MIAPOS v2.17 — CHECKLIST
+  MIAPOS v2.18 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.17 — JUDUL DAPUR SEBESAR NO. ANTRIAN
+0. REVISI v2.18 — NO. ANTRIAN KASIH JEDA 1 BARIS
+=====================================================
+[x] 1. JEDA SATU BARIS SEBELUM NO. ANTRIAN:
+       • Nota dapur: daftar menu dulu, lalu satu
+         baris kosong, baru "No. Antrian" — tidak
+         nempel lagi (permintaan owner).
+       • Berlaku juga untuk nota DAPUR - TAMBAHAN.
+       • Nota kasir tidak berubah.
+[x] 2. JUDUL DAPUR TETAP TINGGI DOBEL — sama kaya
+       No. Antrian (bawaan v2.17, tidak berubah).
+[x] 3. BAHASA BAKU: teks baru tetap bahasa
+       Indonesia baku (aturan owner).
+[x] 4. VERSI v2.18 + cache sw.js miapos-v2.18-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 5. COBA SENDIRI (1 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.18) — cek tulisan versi di app.
+       • Cetak nota dapur → No. Antrian ada jeda
+         satu baris dari daftar menu.
+
+=====================================================
+CATATAN v2.17 (rilis sebelumnya) — JUDUL DAPUR
+     SEBESAR NO. ANTRIAN
 =====================================================
 [x] 1. JUDUL "DAPUR" TINGGI DOBEL (LONJONG):
        • Tulisan DAPUR di kepala nota dapur kini
@@ -24,8 +48,8 @@ yang harus Anda lakukan sendiri (tinggal diklik/ketik).
        Indonesia baku (aturan owner).
 [x] 4. VERSI v2.17 + cache sw.js miapos-v2.17-r1
        (aturan tetap: tiap update versi terus naik).
-[ ] 5. COBA SENDIRI (1 menit):
-       • Timpa SEMUA file repo dengan isi zip ini →
+[x] 5. COBA SENDIRI (selesai di v2.17):
+       • Timpa SEMUA file repo dengan isi zip →
          push → tunggu deploy beres.
        • Buka app sampai penuh (biar cache keganti
          v2.17) — cek tulisan versi di app.

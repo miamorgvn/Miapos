@@ -1978,7 +1978,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.17')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.18')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -3276,6 +3276,10 @@ function formatReceiptESCPOS(receipt, type) {
   // ke bawah (tinggi dobel, lebar normal) — sama dengan judul DAPUR di header.
   // Setelah baris antrian, reset font ke normal (ESC ! 0x00 / byte 0x1B 0x21 0x00).
   if (type === 'dapur' || type === 'dapur-tambahan') {
+    // v2.18: kasih SATU baris kosong sebelum No. Antrian — biar gak nempel
+    // sama daftar menu (permintaan owner: "agak dispasi dikit, 1 spasi kek,
+    // pokoknya jgn nempel gitu").
+    lines.push('');
     const queueStr = 'No. Antrian: ' + (receipt.queueNumber || 1);
     const queuePad = Math.max(0, Math.floor((W - queueStr.length) / 2));
     lines.push(TALL + ' '.repeat(queuePad) + queueStr + NORMAL);
@@ -6587,7 +6591,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.17 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.18 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

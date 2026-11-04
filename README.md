@@ -133,9 +133,9 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama pakai file baru di repo
 2. Pengguna buka app (saat online) → otomatis ambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti tiap rilis
-   (mis. `miapos-v2.17-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
+   (mis. `miapos-v2.18-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
 
-> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.15 → 2.16 → 2.17 → ...).
+> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.16 → 2.17 → 2.18 → ...).
 
 ---
 
@@ -186,6 +186,7 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.18** | 🚀 No. Antrian di nota dapur dikasih **jeda satu baris** dari daftar menu — gak nempel lagi, lebih lega dibaca |
 | **v2.17** | 📏 judul **DAPUR** di nota dapur dicetak tinggi dobel (lonjong) — sama besar kaya No. Antrian, headernya gampang dicari di tumpukan nota |
 | **v2.16** | ✂️ garis `====` di nota cukup satu (kasir & dapur, hemat kertas) · 🖨️ popup hasil cetak: berhasil/gagal selalu tertera, gak perlu ngecek printer bolak-balik · 📐 angka laporan otomatis menyesuaikan lebar kartu (fix "Rp4.081.00…" kepotong) · ✍️ seluruh teks app dibikin bahasa baku |
 | **v2.15** | 🔑 Sinkron cukup pakai kata sandi akun (tanpa setel password backup) · 🩺 status sinkron jujur + tombol sync yang gak gagal diam · 🛠️ fix: menu gak ikut ke HP lain karena auth kegagalan diam-diam |
