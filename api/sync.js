@@ -1,5 +1,5 @@
 /* ============================================================
-   MIAPOS v2.14 — API SINKRON OTOMATIS ANTAR HP (Vercel + GitHub)
+   MIAPOS v2.15 — API SINKRON OTOMATIS ANTAR HP (Vercel + GitHub)
    ------------------------------------------------------------
    MASALAH YANG DISELESAIKAN (permintaan owner):
    Dulu pindah data ke HP lain harus SCAN QR / tempel kode —
@@ -27,12 +27,16 @@
    - PUT  /api/sync?acc=NOHP            → simpan  {ok, sha, updatedAt}
    - PUT  /api/sync?acc=NOHP&base=SHA   → simpan dengan deteksi
             konflik; kalau base sudah basi → {ok:false,error:'CONFLICT',sha}
+   - DELETE /api/sync?acc=NOHP          → hapus akun dari cloud
 
-   KEAMANAN:
-   - Header x-backup-key WAJIB (sama dengan BACKUP_KEY di Vercel,
-     key yang sama dipakai fitur Backup Cloud — tidak perlu setup baru).
-   - passHash akun disimpan & diverifikasi client (HP baru harus
-     tahu kata sandi akun untuk bisa memuat datanya).
+   KEAMANAN (v2.15 — BARU):
+   Lolos kalau SALAH SATU benar:
+   1. Header x-backup-key = BACKUP_KEY env (jalur lama).
+   2. Header x-miapos-acc-pass = passHash akun yang cocok dengan
+      passHash tersimpan di file akun itu (BARU). Efeknya: cukup
+      LOGIN akun yang sama di tiap HP — TANPA perlu isi password
+      backup di app. File yang belum ada boleh dibuat (kirim
+      pertama menang); file yang sudah ada wajib pass yang cocok.
 
    ENV: sama dengan api/backup.js (GITHUB_TOKEN, BACKUP_KEY,
    GITHUB_BRANCH opsional; OWNER/REPO otomatis dari Vercel).
@@ -58,6 +62,21 @@ function keyOk(req) {
   const want = Buffer.from(KEY);
   return got.length === want.length && crypto.timingSafeEqual(got, want);
 }
+
+// v2.15: header pass akun (passHash) yang dikirim app saat login/terlogin
+function accPassHeader(req) {
+  return String(req.headers['x-miapos-acc-pass'] || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 40);
+}
+// passHash akun cocok dengan yang tersimpan di file cloud? (data = isi file)
+function accPassOk(req, data) {
+  const got = accPassHeader(req);
+  if (!got || !data || !data.acc || !data.acc.passHash) return false;
+  const want = String(data.acc.passHash);
+  if (got.length !== want.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(want));
+}
+// Lolos kalau key backup benar ATAU pass akun benar (v2.15)
+function authOk(req, data) { return keyOk(req) || accPassOk(req, data); }
 
 function accFile(accRaw) {
   const digits = String(accRaw || '').replace(/[^0-9]/g, '').slice(0, 20);
@@ -104,11 +123,10 @@ module.exports = async (req, res) => {
   const file = accFile(url.searchParams.get('acc'));
   if (!file) return json(res, 400, { ok: false, error: 'ACC_TIDAK_VALID' });
 
-  // --- proteksi env + key (semua operasi data) ---
-  if (!TOKEN || !KEY || !OWNER || !REPO) {
+  // --- proteksi env (key dipakai sbg jalur auth alternatif) ---
+  if (!TOKEN || !OWNER || !REPO || !KEY) {
     return json(res, 500, { ok: false, error: 'SERVER_BELUM_DISET (env GITHUB_TOKEN / BACKUP_KEY)' });
   }
-  if (!keyOk(req)) return json(res, 401, { ok: false, error: 'KEY_SALAH' });
 
   const base = '/repos/' + OWNER + '/' + REPO + '/contents/' + DIR + '/' + file;
 
@@ -116,16 +134,25 @@ module.exports = async (req, res) => {
     // ============ TARIK (GET) ============
     if (req.method === 'GET') {
       const rev = (url.searchParams.get('rev') || '').replace(/[^a-f0-9"]/gi, '');
-      const g = await gh(base + '?ref=' + encodeURIComponent(BRANCH), rev ? { ifNoneMatch: '"' + rev.replace(/"/g, '') + '"' } : {});
-      if (g.status === 304 || (g.status === 200 && rev && g.etag && g.etag.indexOf(rev) !== -1)) {
-        return json(res, 200, { ok: true, unchanged: true, sha: rev });
+      // Jalan pintas etag (unchanged) HANYA untuk key backup yang sah —
+      // jalur pass akun harus tetap memverifikasi isi file.
+      if (rev && keyOk(req)) {
+        const g0 = await gh(base + '?ref=' + encodeURIComponent(BRANCH), { ifNoneMatch: '"' + rev.replace(/"/g, '') + '"' });
+        if (g0.status === 304 || (g0.status === 200 && g0.etag && g0.etag.indexOf(rev) !== -1)) {
+          return json(res, 200, { ok: true, unchanged: true, sha: rev });
+        }
       }
+      const g = await gh(base + '?ref=' + encodeURIComponent(BRANCH));
       if (g.status === 404) return json(res, 404, { ok: false, error: 'AKUN_BELUM_ADA_DI_CLOUD' });
       if (!g.ok) return json(res, 502, { ok: false, error: 'GITHUB_ERROR' });
       const sha = (g.body && g.body.sha) || '';
       let data;
       try { data = JSON.parse(Buffer.from((g.body && g.body.content) || '', 'base64').toString('utf8')); }
       catch (e) { return json(res, 500, { ok: false, error: 'FILE_RUSAK' }); }
+      // v2.15: autentikasi — key backup ATAU pass akun
+      if (!authOk(req, data)) {
+        return json(res, 401, { ok: false, error: accPassHeader(req) ? 'ACC_PASS_SALAH' : 'PERLU_KEY' });
+      }
       return json(res, 200, { ok: true, data: data, sha: sha, updatedAt: (data && data.updatedAt) || '' });
     }
 
@@ -147,11 +174,21 @@ module.exports = async (req, res) => {
       };
       const content = Buffer.from(JSON.stringify(payload)).toString('base64');
 
-      // sha file sekarang (dari param base biar hemat panggilan, atau cek dulu)
+      // sha file sekarang (dari param base biar hemat panggilan, atau cek dulu).
+      // v2.15: jalur pass akun SELALU ambil isi file juga (buat verifikasi pass).
       let sha = (url.searchParams.get('base') || '').replace(/[^a-f0-9]/g, '');
-      if (!sha) {
+      let existing = null;
+      if (!sha || !keyOk(req)) {
         const ex = await gh(base + '?ref=' + encodeURIComponent(BRANCH));
-        if (ex.ok && ex.body && ex.body.sha) sha = ex.body.sha;
+        if (ex.ok && ex.body && ex.body.sha) {
+          if (!sha) sha = ex.body.sha;
+          try { existing = JSON.parse(Buffer.from((ex.body && ex.body.content) || '', 'base64').toString('utf8')); } catch (e) { existing = null; }
+        }
+      }
+      // v2.15: autentikasi — key backup ATAU pass akun (file lama).
+      // File yang BELUM ada boleh dibuat tanpa pass (kirim pertama menang).
+      if (existing && !authOk(req, existing)) {
+        return json(res, 401, { ok: false, error: accPassHeader(req) ? 'ACC_PASS_SALAH' : 'PERLU_KEY' });
       }
 
       const p = await gh(base, {
@@ -180,6 +217,11 @@ module.exports = async (req, res) => {
       const ex = await gh(base + '?ref=' + encodeURIComponent(BRANCH));
       if (ex.status === 404) return json(res, 200, { ok: true, deleted: true });
       if (!ex.ok) return json(res, 502, { ok: false, error: 'GITHUB_ERROR' });
+      let existing = null;
+      try { existing = JSON.parse(Buffer.from((ex.body && ex.body.content) || '', 'base64').toString('utf8')); } catch (e) { existing = null; }
+      if (!authOk(req, existing)) {
+        return json(res, 401, { ok: false, error: accPassHeader(req) ? 'ACC_PASS_SALAH' : 'PERLU_KEY' });
+      }
       const d = await gh(base, {
         method: 'DELETE',
         body: JSON.stringify({ message: 'hapus sinkron akun', branch: BRANCH, sha: ex.body && ex.body.sha })

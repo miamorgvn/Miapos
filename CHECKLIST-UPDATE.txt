@@ -1,12 +1,101 @@
 ================================================
-  MIAPOS v2.14 — CHECKLIST
+  MIAPOS v2.17 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
-yang harus lu lakuin sendiri (tinggal diklik/ketik).
+yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.14 — SINKRON OTOMATIS ANTAR HP VIA AKUN
-     · LAPORAN PEMBAYARAN + KALENDER
+0. REVISI v2.17 — JUDUL DAPUR SEBESAR NO. ANTRIAN
+=====================================================
+[x] 1. JUDUL "DAPUR" TINGGI DOBEL (LONJONG):
+       • Tulisan DAPUR di kepala nota dapur kini
+         dicetak mode Double-Height (ESC ! 0x10) —
+         sama persis kaya No. Antrian: tinggi
+         dobel, lonjong, lebar normal.
+       • Berlaku juga untuk nota "DAPUR - TAMBAHAN".
+       • Nota kasir tetap font normal.
+[x] 2. GARIS PEMBATAS BAWAH (SEBELUM NO. ANTRIAN)
+       TETAP SUDAH DIHAPUS — sejak v2.16, daftar
+       menu langsung ketemu No. Antrian. Kalau di
+       nota cetakan masih ada dua garis, app di HP
+       belum ter-update (buka app penuh saat
+       online, cek versi di Pengaturan).
+[x] 3. BAHASA BAKU: teks baru tetap bahasa
+       Indonesia baku (aturan owner).
+[x] 4. VERSI v2.17 + cache sw.js miapos-v2.17-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 5. COBA SENDIRI (1 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.17) — cek tulisan versi di app.
+       • Cetak nota dapur → judul DAPUR besar/
+         lonjong kaya No. Antrian, daftar menu
+         langsung ketemu No. Antrian (tanpa garis
+         tambahan).
+
+=====================================================
+CATATAN v2.16 (rilis sebelumnya) — NOTA RAPIH ·
+     POPUP CETAK · ANGKA LAPORAN MUAT · BAHASA BAKU
+=====================================================
+[x] 1. GARIS '====' DI NOTA CUKUP SATU:
+       • Nota kasir & nota dapur dulu punya 2 garis
+         '=' — sekarang cukup 1 di bawah header
+         (kertas lebih hemat, gak keliatan dobel).
+       • Pratinjau Nota di Pengaturan ikut baru.
+[x] 2. POPUP HASIL CETAK:
+       • Berhasil → popup hijau + nama printer.
+       • Gagal → popup merah + alasan + tombol
+         "Salin Teks Nota" buat cetak manual.
+       • Gak perlu lagi bolak-balik ngecek printer.
+[x] 3. ANGKA LAPORAN OTOMATIS MENYESUAIKAN LEBAR:
+       • Fix "Rp4.081.00…" kepotong di Laporan Menu;
+         berlaku juga di Laporan Pembayaran &
+         kartu statistik dashboard.
+[x] 4. BAHASA BAKU: sapaan dashboard, tips, pesan
+       scan QR, Owner Zone — semua dirapikan.
+[x] 5. VERSI v2.16 + cache sw.js miapos-v2.16-r1
+       (aturan tetap: tiap update versi terus naik).
+[x] 6. COBA SENDIRI (selesai di v2.16):
+       • Timpa SEMUA file repo dengan isi zip →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.16) — cek tulisan versi di app.
+       • Pratinjau Nota di Pengaturan → garis '='
+         cuma 1.
+       • Cetak nota → popup hijau/merah muncul.
+
+=====================================================
+CATATAN v2.15 (rilis sebelumnya) — FIX SINKRON:
+     CUKUP KATA SANDI AKUN · STATUS SINKRON JUJUR
+=====================================================
+SEBAB menu gak masuk ke HP lain (udah dibenerin):
+       • Dulu sinkron wajib password Backup Cloud di
+         tiap HP — kalau belum diisi, kirim/tarik
+         DIBATALIN DALAM SENYAP. Menu lu gak pernah
+         naik ke cloud → HP kedua gak dapat apa-apa.
+[x] 1. SINKRON CUKUP KATA SANDI AKUN:
+       • Server (api/sync.js & main.py) menerima kata
+         sandi akun yang diketik waktu login — HP lain
+         cukup masuk akun sama, data langsung ngalir.
+         Gak perlu setel password Backup Cloud buat
+         sinkron (jalur lama tetap jalan).
+       • Login salah password sekarang MUNCUL PESAN,
+         bukan gagal diam.
+[x] 2. STATUS SINKRON JUJUR (kartu akun):
+       • Hijau: aktif + kunci apa + jam kirim/tarik
+         terakhir. Kuning: sebab + solusi. Merah:
+         password salah.
+       • Tombol SINKRON SEKARANG selalu bisa nyoba
+         ulang (dulu gagal diam).
+[x] 3. AUTO-UP: isi password backup → data akun
+       langsung dinaikkan ke cloud otomatis.
+[x] 4. VERSI v2.15 + cache sw.js miapos-v2.15-r1
+       (aturan tetap: tiap update versi terus naik).
+
+=====================================================
+CATATAN v2.14 (rilis sebelumnya) — SINKRON OTOMATIS
+     ANTAR HP VIA AKUN · LAPORAN PEMBAYARAN + KALENDER
 =====================================================
 [x] 1. SINKRON OTOMATIS ANTAR HP (fitur baru):
        • HP lain login ke akun yang SAMA → semua data

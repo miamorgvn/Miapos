@@ -237,7 +237,7 @@ def save_sync(acc, payload):
 class MiaposHandler(SimpleHTTPRequestHandler):
     """Handler HTTP: file statis + API lokal (backup & analytics)."""
 
-    server_version = "MiaposServer/2.14"
+    server_version = "MiaposServer/2.17"
 
     # ---------- helper JSON ----------
     def _json(self, obj, code=200):
@@ -256,6 +256,16 @@ class MiaposHandler(SimpleHTTPRequestHandler):
         raw = self.rfile.read(length)
         return json.loads(raw.decode("utf-8"))
 
+    def _acc_pass_ok(self, data):
+        """v2.15: verifikasi header x-miapos-acc-pass terhadap passHash akun.
+        Header kosong → True (LAN lokal tetap dipercaya, jalur lama);
+        header terisi tapi tidak cocok → False (tolak 401)."""
+        got = str(self.headers.get("x-miapos-acc-pass") or "")
+        if not got:
+            return True
+        want = str(((data or {}).get("acc") or {}).get("passHash") or "")
+        return bool(want) and got == want
+
     # ---------- v2.14: sinkron antar HP (GET = tarik) ----------
     def _query(self):
         from urllib.parse import parse_qs
@@ -271,6 +281,9 @@ class MiaposHandler(SimpleHTTPRequestHandler):
         if data is None:
             self._json({"ok": False, "error": "AKUN_BELUM_ADA_DI_CLOUD"}, 404)
             return
+        if not self._acc_pass_ok(data):
+            self._json({"ok": False, "error": "ACC_PASS_SALAH"}, 401)
+            return
         if q.get("rev") and q["rev"] == sha:
             self._json({"ok": True, "unchanged": True, "sha": sha})
             return
@@ -282,6 +295,11 @@ class MiaposHandler(SimpleHTTPRequestHandler):
         body = self._read_json()
         if not isinstance(body, dict) or not body.get("store") or not isinstance(body.get("acc"), dict):
             self._json({"ok": False, "error": "DATA_TIDAK_VALID"}, 400)
+            return
+        # v2.15: file yang sudah ada wajib pass akun yang cocok
+        existing, _ = load_sync(q.get("acc", ""))
+        if existing is not None and not self._acc_pass_ok(existing):
+            self._json({"ok": False, "error": "ACC_PASS_SALAH"}, 401)
             return
         import time as _t
         payload = {
@@ -308,7 +326,7 @@ class MiaposHandler(SimpleHTTPRequestHandler):
             cpp = cpp_engine_available()
             self._json({
                 "ok": True, "app": "miapos", "server": "python",
-                "version": "2.14", "cppEngine": cpp, "sync": True,
+                "version": "2.17", "cppEngine": cpp, "sync": True,
                 "time": datetime.now().strftime("%H:%M:%S"),
             })
             return

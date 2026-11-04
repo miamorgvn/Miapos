@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     app: 'miapos',
     server: 'vercel',
     engine: 'cloud',
-    version: '2.14',
+    version: '2.15',
     sync: true,
     time: new Date().toISOString()
   });

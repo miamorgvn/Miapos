@@ -1,10 +1,160 @@
 ================================================
-  MIAPOS v2.14 — SINKRON OTOMATIS ANTAR HP VIA AKUN
-     · LAPORAN PEMBAYARAN + KALENDER
-     (di atas: akun antar HP + catatan per menu
-     + 2 bahasa + 4 tema + reset anti ke pencet
-     + scan barcode + laporan menu + QRIS + cuaca
-     + backup cloud)
+  MIAPOS v2.17 — JUDUL DAPUR SEBESAR NO. ANTRIAN
+     (di atas: nota cukup 1 garis '=' + popup hasil
+     cetak + angka laporan gak kepotong + sinkron
+     otomatis antar HP + laporan pembayaran
+     + kalender + catatan per menu + 2 bahasa
+     + 4 tema + backup cloud)
+================================================
+
+APA YANG BARU DI v2.17 (judul DAPUR sebesar No. Antrian)
+------------------------------------------------------------
+1. JUDUL "DAPUR" DICETAK TINGGI DOBEL (LONJONG):
+   • Dulu tulisan DAPUR di kepala nota dapur
+     ukurannya sama kaya tulisan biasa — cuma
+     No. Antrian yang besar/lonjong.
+   • Sekarang DAPUR dicetak dengan mode
+     Double-Height (ESC ! 0x10) — tinggi dobel,
+     lonjong ke bawah, SAMA PERSIS kaya No.
+     Antrian di bawahnya. Nota dapur langsung
+     kelihatan headernya dari jauh.
+   • Berlaku juga untuk nota "DAPUR - TAMBAHAN".
+   • Nota kasir tidak berubah (tetap font normal).
+2. INFO: GARIS BAWAH SEBELUM NO. ANTRIAN SUDAH
+   DIHAPUS SEJAK v2.16:
+   • Permintaan owner: garis pembatas di bawah
+     daftar menu cukup diilangin, jadi daftar
+     menu langsung ketemu No. Antrian.
+   • Kalau di nota cetakan masih muncul dua
+     garis ('=' di bawah daftar menu), artinya
+     app di HP masih versi lama — buka app
+     sampai penuh saat online supaya service
+     worker mengambil versi terbaru, lalu cek
+     tulisan versi di Pengaturan (harus v2.17).
+3. BAHASA BAKU:
+   • Sesuai aturan owner, semua teks baru tetap
+     menggunakan bahasa Indonesia baku.
+4. VERSI NAIK:
+   • App v2.17 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.17-r1 ·
+     server api/sync.js & main.py v2.17.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.16 (rilis sebelumnya) — NOTA CUKUP 1
+     GARIS '=' · POPUP HASIL CETAK · ANGKA LAPORAN
+================================================
+
+APA YANG BARU DI v2.16 (nota rapih + popup cetak + angka muat)
+------------------------------------------------------------
+1. GARIS '====' DI NOTA CUKUP SATU (HEMAT KERTAS):
+   • Dulu nota kasir & nota dapur masing-masing
+     punya DUA garis '=' (bawah header + sebelum
+     footer) — keliatan dobel & makan tempat.
+   • Sekarang cukup SATU garis di bawah header;
+     bagian bawah langsung No. Antrian (dapur) /
+     ucapan terima kasih (kasir).
+   • Berlaku untuk semua nota: kasir, dapur, dan
+     nota tambahan. Pratinjau Nota di Pengaturan
+     ikut menampilkan bentuk barunya.
+2. POPUP HASIL CETAK — BERHASIL/GAGAL SELALU TERTERA:
+   • Dulu cetak sukses itu SENYAP — kasir harus
+     bolak-balik ngecek printer sendiri.
+   • Sekarang setiap cetak muncul POPUP:
+     - HIJAU "Nota Berhasil Dicetak" + nama
+       printernya.
+     - MERAH "Nota Gagal Dicetak" + alasannya,
+       plus tombol "Salin Teks Nota" buat dicetak
+       manual.
+   • Jalan untuk SEMUA tombol cetak: Cetak Dapur,
+     Cetak Struk, dan tombol cetak di layar
+     Pembayaran Berhasil.
+3. ANGKA LAPORAN OTOMATIS MENYESUAIKAN LEBAR KARTU:
+   • Dulu omzet yang panjang kepotong jadi
+     "Rp4.081.00…" di kartu Laporan Menu.
+   • Sekarang angka otomatis mengecil sampai muat
+     penuh — berlaku di Laporan Menu, Laporan
+     Pembayaran, dan kartu statistik dashboard.
+4. BAHASA MAKIN BAKU:
+   • Seluruh teks aplikasi dirapikan ke bahasa
+     Indonesia baku: sapaan dashboard, tips
+     laporan, pesan scan QR, Owner Zone, dan
+     pesan-pesan lainnya. Sesuai aturan owner:
+     setiap update, bahasa wajib baku.
+5. VERSI NAIK:
+   • App v2.16 (footer sidebar + kartu Pengaturan)
+     · cache sw.js miapos-v2.16-r1 · server
+     api/sync.js & main.py v2.16.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.15 (rilis sebelumnya) — FIX SINKRON:
+     CUKUP KATA SANDI AKUN · STATUS SINKRON JUJUR
+================================================
+
+APA YANG BARU DI v2.15 (fix: menu gak masuk ke HP lain)
+------------------------------------------------------------
+KEJADIAN: menu yang diinput di HP pertama (ikon + di
+  tengah → Tambah Menu) gak muncul di HP kedua walau
+  akunnya sama.
+SEBABNYA (ketemu & dibenerin):
+  1) SINKRON DULU WAJIB PASSWORD BACKUP CLOUD — dan
+     kalau di salah satu HP password itu belum diisi,
+     kirim/tarik data DIBATALIN DALAM SENYAP (gak ada
+     pesan apa-apa). Jadi menu lu gak pernah naik ke
+     cloud → HP kedua gak dapat apa-apa.
+  2) Kalau app dibuka dari GitHub Pages / hosting
+     statis (bukan Vercel / Termux), sinkron memang
+     gak bisa jalan — juga dulu gak ada pemberitahuan
+     yang jelas.
+1. SINKRON SEKARANG CUKUP KATA SANDI AKUN (TANPA SETUP):
+   • Server (api/sync.js & main.py) sekarang menerima
+     KATA SANDI AKUN yang lu ketik waktu login — jadi
+     HP lain tinggal MASUK dengan akun yang sama,
+     data langsung ngalir. GAK PERLU setel password
+     Backup Cloud dulu buat sinkron (jalur password
+     backup lama tetap jalan buat yang mau pakai).
+   • Login di HP kedua juga sekarang bawa password
+     akunnya — kalau password salah, MUNCUL PESAN
+     "Kata sandi salah", bukan diam-diam gagal.
+2. STATUS SINKRON YANG JUJUR (kartu akun, Pengaturan):
+   • Hijau = AKTIF + kunci pakai apa (kata sandi akun
+     / password backup) + jam kirim & tarik terakhir.
+   • Kuning = sebabnya ditulis + solusinya (belum
+     login, server belum ada / belum diupdate).
+   • Merah = password salah → disuruh login ulang.
+   • Tombol SINKRON SEKARANG sekarang selalu bisa
+     nyoba ulang (dulu gagal diam kalau server belum
+     terdeteksi).
+3. AUTO-UP: begitu password backup diisi di Pengaturan,
+   data akun langsung dinaikkan ke cloud otomatis
+   (dulu nunggu perubahan data berikutnya).
+4. CARA PASTIKAN MENU LU MASUK (urutan cek):
+   ① UPDATE DEPLOYMENT: timpa semua file repo dengan
+     isi zip ini (index.html + sw.js + api/ + main.py
+     + semuanya) → push → tunggu deploy beres.
+   ② DI KEDUA HP: buka app-nya sampe kebuka penuh
+     (biar service worker ambil v2.15) — cek footer
+     bawah / kartu Pengaturan harus tulis v2.15.
+   ③ HP 1: Pengaturan → Akun → masuk akun lu →
+     tunggu status sinkron HIJAU (kunci: kata sandi
+     akun) + ada jam "kirim terakhir".
+   ④ HP 2: keluar dulu (kalau udah keburu masuk
+     pakai cara lama), terus MASUK LAGI dengan nomor
+     HP + kata sandi akun yang sama → data menu
+     langsung keunduh.
+   ⑤ Kalau status kuning tulis "butuh server" → app
+     lu bukan dari Vercel/Termux. Pindah ke alamat
+     Vercel (atau jalanin python main.py).
+5. VERSI NAIK:
+   • App v2.15 · cache sw.js miapos-v2.15-r1 ·
+     server api/sync.js & main.py v2.15.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.14 (rilis sebelumnya) — SINKRON OTOMATIS
+     ANTAR HP VIA AKUN · LAPORAN PEMBAYARAN + KALENDER
 ================================================
 
 APA YANG BARU DI v2.14 (sinkron otomatis akun + laporan pembayaran)
@@ -683,4 +833,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.14
+SELAMAT PAKAI! — Miapos v2.15

@@ -5,7 +5,7 @@
 **Aplikasi kasir (POS) yang jalan 100% offline di HP.**
 Buat warung, kafe, kedai, sampai resto — kasir, dapur, stok, laporan, semua ada. 🚀
 
-![versi](https://img.shields.io/badge/versi-2.14-10b981?style=flat-square&labelColor=0f172a)
+![versi](https://img.shields.io/badge/versi-2.16-10b981?style=flat-square&labelColor=0f172a)
 ![PWA](https://img.shields.io/badge/PWA-offline%20ready-5A0FC8?style=flat-square&labelColor=0f172a)
 ![teknologi](https://img.shields.io/badge/React%20%2B%20Tailwind-single%20file%20HTML-orange?style=flat-square&labelColor=0f172a)
 ![mesin](https://img.shields.io/badge/Python%20%2B%20C%2B%2B-engine-blue?style=flat-square&labelColor=0f172a)
@@ -29,14 +29,17 @@ Yang bikin beda:
 
 ## ✨ Fitur
 
-### 👤 Akun & Sinkron Antar HP (baru di v2.14!)
+### 👤 Akun & Sinkron Antar HP (baru di v2.14, dibenerin di v2.15!)
 - **Satu akun untuk semua HP** — daftar sekali (nama, no. HP, usaha, alamat, kata sandi), data usaha tersimpan per akun
-- 🔄 **Sinkron OTOMATIS (v2.14)** — HP lain login ke akun yang sama → menu, pesanan, omzet, stok, laporan **langsung masuk sendiri**. Gak perlu input ulang, gak perlu scan QR di tiap HP 🎉
-- ⚡ **Real-time dua arah** — HP A nambah menu → HP B otomatis ke-update (polling tiap beberapa detik saat online; offline tetap jalan, begitu online ketrimbalan sendiri)
+- 🔄 **Sinkron OTOMATIS** — HP lain login ke akun yang sama → menu, pesanan, omzet, stok, laporan **langsung masuk sendiri**. Gak perlu input ulang, gak perlu scan QR di tiap HP 🎉
+- 🔑 **v2.15: cukup kata sandi akun** — gak perlu setel password Backup Cloud lagi buat sinkron!
+  Server menerima kata sandi akun yang lu ketik waktu login (jalur password backup lama tetap jalan).
+- ⚡ **Real-time dua arah** — HP A nambah menu → HP B otomatis ke-update (polling tiap ±45 detik saat online; offline tetap jalan, begitu online ketrimbalan sendiri)
 - 🛡️ **Anti tabrakan data** — penghapusan juga ikut tersinkron (tombstone), edit barengan tetap aman
+- 🩺 **Status sinkron yang jujur (v2.15)** — kartu akun nunjukin kenapa sync gak jalan (belum login, server belum ada, password salah) + tombol **Sinkron sekarang** selalu bisa dicoba
 - 📷 **QR Akun** tetap ada buat kondisi offline — pindai → konfirmasi → data utuh ke-load tanpa internet
 - Ada **Ubah Akun** (ganti nama/nomor/kata sandi) & **Keluar** (log out — data akun tetap aman & bisa dimuat lagi)
-- Butuh deployment Vercel/Termux (server Python `main.py` / API `api/sync.js`) — kuncinya tetap kata sandi Backup Cloud, gak ada yang bisa nyolong data
+- Butuh deployment Vercel/Termux (server Python `main.py` / API `api/sync.js`) — GitHub Pages gak bisa sinkron otomatis
 
 ### 🧾 Kasir & Pembayaran
 - Buat pesanan cepat, keranjang, promo & diskon
@@ -45,6 +48,9 @@ Yang bikin beda:
   (contoh: "pedas, tanpa es" buat Mie Ayam-nya aja) — walau pesanannya udah masuk
 - Nota otomatis: cetak struk kasir, nota dapur, dan nota **tambahan** (item yang ditambah belakangan)
 - Nama menu di nota dicetak **huruf normal** (bukan KAPITAL semua) — hemat kertas 👍
+- ✂️ **Garis `====` cukup satu (baru di v2.16!)** — dulu nota kasir & nota dapur masing-masing punya 2 garis `====`, sekarang cukup 1 garis di bawah header — kertas lebih hemat, gak keliatan dobel
+- 📏 **Judul DAPUR sebesar No. Antrian (baru di v2.17!)** — tulisan DAPUR di kepala nota dapur dicetak tinggi dobel (lonjong), sama persis kaya No. Antrian di bawahnya — headernya jelas keliatan dari jauh 🍳
+- 🖨️ **Popup hasil cetak (baru di v2.16!)** — habis cetak, popup langsung bilang **berhasil dikirim ke printer apa** atau **gagal + alasannya** (plus tombol salin teks nota buat cetak manual) — gak perlu bolak-balik ngecek printer
 - Habis bayar langsung muncul 2 tombol: **Cetak Dapur** (dapur langsung masak) & **Struk Kasir** 🖨️
 - Label "Tambahan" cuma tampil di app — nota cetakan tetap bersih ✨
 
@@ -64,6 +70,7 @@ Yang bikin beda:
 - 📅 Bisa lihat **hari-hari sebelumnya** — tinggal ketuk tanggal di atas (kalender),
   sama persis kaya laporan menu: panah mundur/maju + tombol cepat Hari Ini / Kemarin
 - Bisa intip tanggal kemarin, mundur sampai belakang — pesanan lama yang terarsip tetap kehitung
+- 📐 **Angka otomatis menyesuaikan lebar kartu (baru di v2.16!)** — omzet sepanjang apapun tampil utuh, gak ada lagi "Rp4.081.00…" kepotong di kartu laporan menu & laporan pembayaran
 
 ### 📦 Stok & Bahan Baku
 - Kelola bahan baku, stok masuk/keluar, peringatan stok menipis
@@ -89,6 +96,7 @@ Yang bikin beda:
 
 ### 🌏 2 Bahasa — Indonesia / English
 - Pengaturan → **Bahasa** → pilih Indonesia atau English — tersimpan otomatis 💬
+- ✍️ **Bahasa makin baku (v2.16)** — seluruh teks aplikasi dirapikan jadi bahasa Indonesia baku (sapaan dashboard, tips, pesan error, semua) — gak ada lagi kata gaul
 
 ### 🎨 Puluhan Sentuhan Kecil
 - **4 tema warna**: Emerald & Slate · Royal & Orange (beneran oranye! 🍊) ·
@@ -125,9 +133,9 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama pakai file baru di repo
 2. Pengguna buka app (saat online) → otomatis ambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti tiap rilis
-   (mis. `miapos-v2.14-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
+   (mis. `miapos-v2.17-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
 
-> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.12 → 2.13 → 2.14 → ...).
+> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.15 → 2.16 → 2.17 → ...).
 
 ---
 
@@ -178,6 +186,9 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.17** | 📏 judul **DAPUR** di nota dapur dicetak tinggi dobel (lonjong) — sama besar kaya No. Antrian, headernya gampang dicari di tumpukan nota |
+| **v2.16** | ✂️ garis `====` di nota cukup satu (kasir & dapur, hemat kertas) · 🖨️ popup hasil cetak: berhasil/gagal selalu tertera, gak perlu ngecek printer bolak-balik · 📐 angka laporan otomatis menyesuaikan lebar kartu (fix "Rp4.081.00…" kepotong) · ✍️ seluruh teks app dibikin bahasa baku |
+| **v2.15** | 🔑 Sinkron cukup pakai kata sandi akun (tanpa setel password backup) · 🩺 status sinkron jujur + tombol sync yang gak gagal diam · 🛠️ fix: menu gak ikut ke HP lain karena auth kegagalan diam-diam |
 | **v2.14** | 🔄 Sinkron otomatis antar HP via akun (menu/pesanan/omzet langsung masuk di HP lain, dua arah, anti tabrakan) · 💳 Laporan Pembayaran di Pengaturan (per metode bayar) · 📅 navigasi kalender kaya laporan menu |
 | **v2.13** | 📝 Catatan per menu (ikut ke nota dapur) · 🔤 2 bahasa ID/EN + bahasa baku · 🍊 tema Royal Orange dibenerin + Pink & Putih · 🖨️ tombol cetak dapur & kasir di layar sukses · nota gak kapital semua |
 | **v2.12** | 🔒 Reset data wajib konfirmasi + tombol terkunci 5 detik (anti ke pencet) · README GitHub baru |
