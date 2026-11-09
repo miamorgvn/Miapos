@@ -50,6 +50,9 @@ Yang bikin beda:
 - Nama menu di nota dicetak **huruf normal** (bukan KAPITAL semua) — hemat kertas 👍
 - ✂️ **Garis `====` cukup satu (baru di v2.16!)** — dulu nota kasir & nota dapur masing-masing punya 2 garis `====`, sekarang cukup 1 garis di bawah header — kertas lebih hemat, gak keliatan dobel
 - 💰 **Biaya Tambahan (v2.19)** — di detail pesanan ada tombol **Tambah Biaya Tambahan**: isi Nama Biaya + Jumlah Biaya → Simpan. Biaya di luar menu (ongkos kirim, packing, dll) ikut ke total tagihan, tercetak di struk kasir, dan bisa dihapus lagi sebelum bayar
+- 🛒 **Tombol + Menu & Biaya Tambahan DI KERANJANG (baru di v2.21!)** — persis di bawah pilihan Dine In / Bawa Pulang: tombol **+ Tambah Menu** di tengah (nambah menu tanpa nutup keranjang — jumlah yang sudah ada tampil di bawah tombol +) dan tombol **Tambah Biaya Tambahan** (form sama kaya di detail, biaya langsung masuk Total & ikut ke struk kasir)
+- 📝 **Catatan Nota di detail pesanan (baru di v2.21!)** — tombol di bawah daftar item: tulis "Bungkus" / "Bawa Pulang" → masuk ke **header nota dapur** pas dicetak
+- 🏷️ **Menu sama yang ditambah lagi = gabung + ditandain (baru di v2.21!)** — qty tetap digabung, tapi sekarang ada badge **"Tambahan +N"** di baris itu; tombol + di detail pesanan juga dihitung tambahan; **Cetak Tambahan** mencetak cuma porsi yang ditambahin (yang udah pernah kecetak gak diulang); kartu pesanan tampil "Ada Tambahan"
 - 🎨 **Tombol biaya ikut tema (baru di v2.20!)** — dulu selalu merah, sekarang warnanya ikut tema yang dipilih (Emerald/Royal/Pink/Charcoal) — konsisten sama tombol lain
 - 🖨️ **Pratinjau Nota kini 3 tab (baru di v2.19!)** — Nota Kasir, Nota Dapur, dan **Nota Dapur-Tambahan** — bentuk nota tambahan bisa dilihat dulu di Pengaturan
 - 📏 **Judul DAPUR sebesar No. Antrian (baru di v2.17!)** — tulisan DAPUR di kepala nota dapur dicetak tinggi dobel (lonjong), sama persis kaya No. Antrian di bawahnya — headernya jelas keliatan dari jauh 🍳
@@ -136,9 +139,9 @@ App ini pakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama pakai file baru di repo
 2. Pengguna buka app (saat online) → otomatis ambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti tiap rilis
-   (mis. `miapos-v2.20-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
+   (mis. `miapos-v2.21-r1`), jadi jangan lupa ganti kalau ikut ngerilis 🔁
 
-> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.18 → 2.19 → 2.20 → ...).
+> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.19 → 2.20 → 2.21 → ...).
 
 ---
 
@@ -189,6 +192,7 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.21** | 🛒 **keranjang**: tombol **+ Tambah Menu** (di tengah) & **Tambah Biaya Tambahan** ditaro PERSIS di bawah pilihan Dine In / Bawa Pulang — nambah menu/biaya tanpa nutup keranjang · 📝 **Catatan Nota** di detail pesanan (tulis "Bungkus"/"Bawa Pulang" → masuk header nota dapur) · 🏷️ menu sama yang ditambah lagi: qty **tetap gabung** tapi sekarang ada badge **"Tambahan +N"** — tombol + di detail juga dihitung tambahan, **Cetak Tambahan** mencetak cuma porsi yang ditambahin (yang udah kecetak gak diulang), kartu pesanan tampil "Ada Tambahan" |
 | **v2.20** | 🎨 tombol **Tambah Biaya Tambahan** ikut warna tema (bukan merah tetap) · 💬 teks random kartu cuaca **ditulis ulang** — kaya teman ngobrol santai, gak baku/gak kaku · ⏱️ teksnya **dikunci 5 menit** — gak ganti tiap pindah layar, ganti sendiri tiap 5 menit · 🔢 **Laporan Pembayaran diurut No. Antrian** kecil → besar · 🌙 **No. Antrian auto-reset ganti hari** (jam 12 malam waktu HP → besok mulai 1 lagi) · 🧹 file notif tersisa (PANDUAN-NOTIF.txt, api/push-*) **dihapus permanen** dari repo |
 | **v2.19** | 💰 **Biaya Tambahan** di detail pesanan (nama + jumlah, ikut total & struk kasir) · 🔁 menu yang sama di sheet tambah item **digabung** (qty nambah, gak bikin baris baru) · ✏️ tombol & sheet "Tambah Menu" di detail pesanan jadi **"Tambah Pesanan"** + tampil jumlah item di bawah tombol + · 🖨️ pratinjau nota kini ada tab **Nota Dapur-Tambahan** · 📱 **tombol back navigasi HP jalan di dalam app**: detail pesanan → daftar pesanan → Dashboard (back kedua di Dashboard keluar app, ada pengingat dulu) |
 | **v2.18** | 🚀 No. Antrian di nota dapur dikasih **jeda satu baris** dari daftar menu — gak nempel lagi, lebih lega dibaca |

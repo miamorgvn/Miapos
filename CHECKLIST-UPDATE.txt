@@ -1,12 +1,68 @@
 ================================================
-  MIAPOS v2.20 — CHECKLIST
+  MIAPOS v2.21 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.20 — TEMA · TEKS CUACA · LAPORAN ·
-     ANTRIAN AUTO-RESET
+0. REVISI v2.21 — KERANJANG (+ MENU & BIAYA DI BAWAH
+     DINE IN) · CATATAN NOTA · TAMBAHAN DITANDAIN
+=====================================================
+[x] 1. KERANJANG — TOMBOL "+ TAMBAH MENU" DITARO DI
+       BAWAH PILIHAN DINE IN / BAWA PULANG (di tengah):
+       • Ketuk → daftar menu muncul (tampilan sama
+         kaya layar Tambah Pesanan) → ketuk menu →
+         langsung masuk keranjang, gak perlu nutup
+         keranjang dulu.
+       • Jumlah yang udah ada di keranjang tampil di
+         bawah tombol +.
+[x] 2. KERANJANG — TOMBOL "TAMBAH BIAYA TAMBAHAN":
+       • Persis di bawah tombol + Menu. Form sama
+         kaya di detail pesanan: Nama Biaya + Jumlah
+         Biaya → Simpan.
+       • Daftar biaya tampil di atas Subtotal, bisa
+         dihapus lagi, langsung masuk Total, dan ikut
+         ke pesanan + tercetak di struk kasir.
+[x] 3. DETAIL PESANAN — TOMBOL "CATATAN NOTA" (di
+       bawah daftar item):
+       • Buat pesanan tambahan yang maunya dibungkus:
+         ketuk → tulis "Bungkus" / "Bawa Pulang" →
+         Simpan.
+       • Catatan masuk ke HEADER nota dapur pas
+         dicetak + langsung tampil di info pesanan.
+[x] 4. MENU SAMA DITAMBAH LAGI = GABUNG + DITANDAIN:
+       • Qty tetap digabung ke baris yang sama, TAPI
+         sekarang dicatat: badge "Tambahan +N" (N =
+         porsi tambahan) tampil terus di baris itu.
+       • Tombol + di detail pesanan juga dihitung
+         tambahan (tombol − ngurangin lagi).
+       • Cetak Tambahan mencetak CUMA porsi yang
+         ditambahin — yang sudah pernah kecetak gak
+         diulang.
+       • Kartu pesanan di Daftar Pesanan tampil
+         "🏷️ Ada Tambahan".
+[x] 5. VERSI v2.21 + cache sw.js miapos-v2.21-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 6. COBA SENDIRI (3 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.21) — cek tulisan versi di app.
+       • Tambah Pesanan → masukin 2 menu → buka
+         keranjang: tombol "+ Tambah Menu" (tengah) &
+         "Tambah Biaya Tambahan" ada PERSIS di bawah
+         pilihan Dine In / Bawa Pulang.
+       • Bayar Nanti → buka detail pesanan → tombol +
+         di menu yang sama 2× → badge "Tambahan +2"
+         muncul → Cetak Tambahan mencetak cuma 2
+         porsi itu, bukan satu baris penuh.
+       • Detail pesanan → Catatan Nota → tulis
+         "Bungkus" → Simpan → Cetak Dapur → catatan
+         nongol di header nota.
+
+=====================================================
+0. REVISI v2.20 (rilis sebelumnya) — TEMA · TEKS CUACA ·
+     LAPORAN · ANTRIAN AUTO-RESET
 =====================================================
 [x] 1. TOMBOL BIAYA TAMBAHAN IKUT TEMA: bukan merah
        tetap lagi — warnanya ikut tema aktif

@@ -472,6 +472,21 @@ function itemAddedAt(order, it) {
   return t > base;
 }
 
+// ===== v2.21: PELACAK TAMBAHAN PER BARIS MENU =====
+// Menu yang SAMA ditambahin belakangan gak bikin baris baru — qty-nya gabung
+// ke baris yang udah ada (v2.19). Akibatnya tanggal buat itemAddedAt gak
+// berubah, jadi tambahannya gak ke-detect. Sekarang tiap penambahan dicatat:
+//   addedQty        = total porsi yang ditambahin belakangan (gabung baris
+//                     sama ATAU pencet tombol + di detail pesanan)
+//   printedAddedQty = seberapa banyak dari tambahan itu yang SUDAH tercetak
+//                     ke nota dapur — biar "Cetak Tambahan" gak ngulang
+//                     cetak tambahan lama.
+// Badge "Tambahan +N" nggak hilang setelah dicetak — jadi catatan di aplikasi
+// bahwa baris itu pernah ditambahin (permintaan owner).
+function itemAddedQty(it) { return Math.max(0, Number(it && it.addedQty) || 0); }
+function itemPendingAddedQty(it) { return Math.max(0, itemAddedQty(it) - (Number(it && it.printedAddedQty) || 0)); }
+function itemHasTambahan(order, it) { return itemAddedQty(it) > 0 || itemAddedAt(order, it); }
+
 // ===== v2.6 THEME ENGINE — v2.13: 4 tema aplikasi (royal kini benar-benar oranye) =====
 const MD_THEMES = {
   emerald:  { key:'emerald',  name:'Emerald & Slate', desc:'Fokus & kesuksesan transaksi',   main:'#10B981', cta:'#059669', bg:'#F8FAFC', surface:'#FFFFFF', text:'#0F172A', bar:'#f8fafc' },
@@ -599,6 +614,14 @@ var I18N_EN = {
     'Nota Dapur-Tambahan':'Kitchen Add-on Receipt',
     'Biaya di luar menu yang ikut ke total tagihan (contoh: ongkos kirim, packing).':'Charges outside the menu that are added to the bill total (e.g. delivery fee, packing).',
     'contoh: Ongkos Kirim, Packing':'e.g. Delivery Fee, Packing',
+    // v2.21: keranjang — tombol + menu & biaya tambahan, catatan nota, badge tambahan
+    'Ketuk menu untuk menambah ke pesanan':'Tap a menu to add it to the order',
+    'Tambah Menu Lagi':'Add More Menu',
+    'Catatan Nota':'Receipt Note', 'Ubah Catatan Nota':'Edit Receipt Note',
+    'Catatan ini tampil di header nota dapur — contoh: Bungkus / Bawa Pulang':'This note is printed on the kitchen ticket header — e.g. Takeaway / To Go',
+    'contoh: bungkus / bawa pulang':'e.g. takeaway / to go',
+    'Catatan nota disimpan':'Receipt note saved',
+    'Ada Tambahan':'Has Additions',
     'Tekan sekali lagi untuk keluar aplikasi':'Press back once more to exit the app',
     'Tambah, edit & hapus menu':'Add, edit & delete menus', 'Tambahan':'Addition',
     'Tampilan Kotak':'Grid view', 'Tampilan List':'List view',
@@ -1488,15 +1511,18 @@ function AppProvider({ children }) {
     setCartTable: (id) => setCartTableId(id),
     setCartOrderType: (t) => setCartOrderType(t),
     clearCart: () => { setCart([]); setCartTableId(undefined); setCartOrderType('DINE_IN'); },
-    checkout: ({ method, paid, discount=0, customerName='', notes='', tempat='' }) => {
+    checkout: ({ method, paid, discount=0, customerName='', notes='', tempat='', extraCharges=null }) => {
       if (cart.length === 0) return null;
       discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
+      // v2.21: biaya tambahan dari KERANJANG (ongkir, packing, dll) ikut ke order
+      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0) }));
+      const extrasSum = extras.reduce((acc, c) => acc + c.amount, 0);
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
       const subtotal = cart.reduce((s,c) => s+c.subtotal, 0);
 
-      const total = Math.max(0, subtotal - discount);
+      const total = Math.max(0, subtotal - discount + extrasSum);
       const change = Math.max(0, paid - total);
       const number = 2000 + state.orders.filter(o => o.outletId === outletId).length + 1;
       const queueNumber = getNextQueueNumber();
@@ -1504,6 +1530,7 @@ function AppProvider({ children }) {
       const order = {
         id:uid(), number, type:cartOrderType, status:'PENDING', paymentStatus:'PAID', paymentMethod:method,
         subtotal, discount, tax:0, serviceCharge:0, total, paid, change,
+        extraCharges: extras, // v2.21
         tableId:table?.id, tableNumber:(tempat || table?.number), cashierId:cashier?.id, cashierName:cashier?.name, outletId,
         customerName: customerName || '', notes: notes || '', queueNumber,
         items: cart.map(c => ({ id:uid()+'-'+Math.random().toString(36).slice(2,5), productId:c.productId, productName:c.productName, variantId:c.variantId, variantName:c.variantName, quantity:c.quantity, price:c.unitPrice, notes:c.notes||'', status:'PENDING', createdAt:nowIso })),
@@ -1528,21 +1555,25 @@ function AppProvider({ children }) {
       if (bcRef.current) bcRef.current.postMessage({ type:'ORDER_NEW', outletId:order.outletId, payload:order });
       return order;
     },
-    saveUnpaidOrder: ({ discount=0, customerName='', notes='', tempat='' }) => {
+    saveUnpaidOrder: ({ discount=0, customerName='', notes='', tempat='', extraCharges=null }) => {
       if (cart.length === 0) return null;
       discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
+      // v2.21: biaya tambahan dari KERANJANG ikut ke pesanan yang disimpan
+      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0) }));
+      const extrasSum = extras.reduce((acc, c) => acc + c.amount, 0);
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
       const subtotal = cart.reduce((s,c) => s+c.subtotal, 0);
 
-      const total = Math.max(0, subtotal - discount);
+      const total = Math.max(0, subtotal - discount + extrasSum);
       const number = 2000 + state.orders.filter(o => o.outletId === outletId).length + 1;
       const queueNumber = getNextQueueNumber();
       const nowIso = new Date().toISOString();
       const order = {
         id:uid(), number, type:cartOrderType, status:'PENDING', paymentStatus:'UNPAID',
         subtotal, discount, tax:0, serviceCharge:0, total, paid:0, change:0,
+        extraCharges: extras, // v2.21
         tableId:table?.id, tableNumber:(tempat || table?.number), cashierId:cashier?.id, cashierName:cashier?.name, outletId,
         customerName: customerName || '', notes: notes || '', queueNumber,
         items: cart.map(c => ({ id:uid()+'-'+Math.random().toString(36).slice(2,5), productId:c.productId, productName:c.productName, variantId:c.variantId, variantName:c.variantName, quantity:c.quantity, price:c.unitPrice, notes:c.notes||'', status:'PENDING', createdAt:nowIso })),
@@ -1593,9 +1624,14 @@ function AppProvider({ children }) {
         const existing = o.items.find(sameLine);
         let items;
         if (existing) {
-          items = o.items.map(it => sameLine(it) ? { ...it, quantity: it.quantity + 1 } : it);
+          // v2.21: qty gabung ke baris yang sama, TAPI catat sebagai TAMBAHAN —
+          // badge "Tambahan +N" muncul di aplikasi & nota dapur-tambahan mencetak
+          // cuma porsi yang ditambahin (permintaan owner: "emg gabung cmn lu kasi
+          // catatan di aplikasinya bahwa ada tambahan")
+          items = o.items.map(it => sameLine(it) ? { ...it, quantity: it.quantity + 1, addedQty: itemAddedQty(it) + 1, printedAddedQty: Number(it.printedAddedQty) || 0 } : it);
         } else {
-          const newItem = { id: uid(), productId: product.id, productName: product.name, variantId: variant?.id, variantName: variant?.name, quantity: 1, price: unit, notes: '', status: 'PENDING', createdAt: new Date().toISOString() };
+          // v2.21: baris baru lewat sheet detail = 1 porsi tambahan sejak awal
+          const newItem = { id: uid(), productId: product.id, productName: product.name, variantId: variant?.id, variantName: variant?.name, quantity: 1, price: unit, notes: '', status: 'PENDING', createdAt: new Date().toISOString(), addedQty: 1, printedAddedQty: 0 };
           items = [...o.items, newItem];
         }
         const subtotal = items.reduce((sum, it) => sum + it.quantity * it.price, 0);
@@ -1607,13 +1643,34 @@ function AppProvider({ children }) {
     updateOrderItemQty: (orderId, itemId, qty) => setState(s => {
       const orders = s.orders.map(o => {
         if (o.id !== orderId) return o;
-        const items = qty > 0 ? o.items.map(it => it.id === itemId ? { ...it, quantity: qty } : it) : o.items.filter(it => it.id !== itemId);
+        // v2.21: tombol + di detail pesanan = nambah porsi TAMBAHAN (gak perlu buka
+        // sheet Tambah Pesanan buat menu yang sama) — dicatatan di aplikasi lewat
+        // badge "Tambahan +N" & ikut ke nota dapur-tambahan. Tombol − = koreksi:
+        // penghitungan tambahan ikut turun biar gak salah cetak.
+        const items = qty > 0 ? o.items.map(it => {
+          if (it.id !== itemId) return it;
+          const oldQ = Number(it.quantity) || 0;
+          if (qty > oldQ) return { ...it, quantity: qty, addedQty: itemAddedQty(it) + (qty - oldQ), printedAddedQty: Number(it.printedAddedQty) || 0 };
+          if (qty < oldQ) {
+            const added = Math.max(0, itemAddedQty(it) - (oldQ - qty));
+            return { ...it, quantity: qty, addedQty: added, printedAddedQty: Math.min(Number(it.printedAddedQty) || 0, added) };
+          }
+          return it;
+        }) : o.items.filter(it => it.id !== itemId);
         const subtotal = items.reduce((sum, it) => sum + it.quantity * it.price, 0);
         const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum(o));
         return { ...o, items, subtotal, total, updatedAt: new Date().toISOString() };
       });
       return { ...s, orders };
     }),
+    // v2.21: ubah CATATAN NOTA (catatan di header nota dapur — contoh: Bungkus /
+    // Bawa Pulang) langsung dari detail pesanan — permintaan owner: "tombol
+    // catatan dibawah, buat pesanan tambahan yang maunya dibungkus"
+    updateOrderNotes: (orderId, notes) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => o.id === orderId ? { ...o, notes: notes || '', updatedAt: new Date().toISOString() } : o),
+      archivedOrders: (s.archivedOrders || []).map(o => o.id === orderId ? { ...o, notes: notes || '', updatedAt: new Date().toISOString() } : o),
+    })),
     // v2.19: BIAYA TAMBAHAN — tambah/hapus biaya di luar menu (nama + jumlah).
     // Ikut menghitung ulang total = subtotal - diskon + biaya tambahan.
     addExtraCharge: (orderId, name, amount) => setState(s => ({
@@ -1644,7 +1701,12 @@ function AppProvider({ children }) {
     // dan daftar item buat Cetak Tambahan (cuma menu yang belum kecetak)
     markKitchenPrinted: (orderId) => setState(s => ({
       ...s,
-      orders: s.orders.map(o => o.id === orderId ? { ...o, kitchenPrintedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : o)
+      orders: s.orders.map(o => o.id === orderId ? { ...o,
+        kitchenPrintedAt: new Date().toISOString(),
+        // v2.21: tandai SEMUA tambahan yang baru dicetak sebagai "sudah tercetak"
+        // — Cetak Tambahan berikutnya cuma mencetak tambahan baru yang belakangan
+        items: o.items.map(it => ({ ...it, printedAddedQty: Math.max(Number(it.printedAddedQty) || 0, itemAddedQty(it)) })),
+        updatedAt: new Date().toISOString() } : o)
     })),
     // v2.10: hapus kategori custom — menu di dalamnya pindah ke Makanan biar gak hilang
     deleteCategory: (key) => setState(s => {
@@ -2025,7 +2087,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.20')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.21')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -2618,6 +2680,11 @@ function POSView({ onBack }) {
   const [notes, setNotes] = React.useState('');
   const [tempat, setTempat] = React.useState('');
   const [itemNotesPicker, setItemNotesPicker] = React.useState(null); // cart item id
+  // v2.21: KERANJANG — tombol + menu & biaya tambahan di bawah pilihan Dine In
+  const [pickOpen, setPickOpen] = React.useState(false); // sheet pilih menu dari keranjang
+  const [cartExtras, setCartExtras] = React.useState([]); // biaya tambahan sebelum pesanan dibuat
+  const [extraForm, setExtraForm] = React.useState(null); // { name }
+  const [extraAmount, setExtraAmount] = React.useState('');
   const { show } = useToast();
 
   const filtered = outletProducts.filter(p => {
@@ -2627,16 +2694,58 @@ function POSView({ onBack }) {
   });
   const cartCount = cart.reduce((s,c) => s+c.quantity, 0);
   const subtotal = cart.reduce((s,c) => s+c.subtotal, 0);
+  // v2.21: total keranjang = menu + biaya tambahan (ongkir, packing, dll)
+  const extrasSum = cartExtras.reduce((s,c) => s + (Number(c.amount) || 0), 0);
 
-  const total = subtotal;
+  const total = subtotal + extrasSum;
   const selectedTable = tables.find(t => t.id === cartTableId);
+  const cartQtyOfProduct = (productId) => cart.reduce((s,c) => s + (c.productId === productId ? c.quantity : 0), 0);
+
+  // v2.21: simpan Biaya Tambahan dari form keranjang (sama kaya di detail pesanan)
+  function saveCartExtra() {
+    var nm = (extraForm && extraForm.name ? String(extraForm.name) : '').trim();
+    var amt = Math.round(Number(extraAmount) || 0);
+    if (!nm) { show(t('Isi nama biaya terlebih dahulu'), 'error'); return; }
+    if (amt <= 0) { show(t('Jumlah biaya harus lebih dari nol'), 'error'); return; }
+    setCartExtras(function(arr) { return [...arr, { id: uid(), name: nm, amount: amt }]; });
+    setExtraForm(null); setExtraAmount('');
+    show(t('Biaya tambahan ditambahkan'));
+  }
+
+  // v2.21: tombol yang tampil PERSIS di bawah pilihan Dine In / Bawa Pulang:
+  // [+ Tambah Menu di tengah] + [Tambah Biaya Tambahan]
+  const cartExtrasActions = React.createElement('div', { className:'space-y-2' },
+    React.createElement('div', { className:'flex justify-center' },
+      React.createElement('button', { onClick: () => setPickOpen(true), title: t('Tambah Menu Lagi'), className:'inline-flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 px-4 text-sm font-semibold text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-95' },
+        React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), t('Tambah Menu'))
+    ),
+    React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
+      React.createElement(Icon, { name:'plus-circle', className:'w-4 h-4' }), t('Tambah Biaya Tambahan'))
+  );
+  // v2.21: daftar biaya yang udah diisi (tampil di atas Subtotal, bisa dihapus)
+  const cartExtrasList = cartExtras.length > 0 ? React.createElement('div', { className:'rounded-lg border border-slate-200 p-2' },
+    cartExtras.map(function(c) {
+      return React.createElement('div', { key: c.id, className:'flex items-center justify-between text-sm py-0.5' },
+        React.createElement('span', { className:'text-slate-700 truncate min-w-0' }, c.name),
+        React.createElement('span', { className:'flex items-center gap-1.5 shrink-0' },
+          React.createElement('span', { className:'font-medium' }, formatRupiah(c.amount)),
+          React.createElement('button', { onClick: () => { setCartExtras(function(arr) { return arr.filter(x => x.id !== c.id); }); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'grid h-5 w-5 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600' },
+            React.createElement(Icon, { name:'x', className:'w-3 h-3' }))
+        )
+      );
+    })
+  ) : null;
+  // keranjang HP: tombol + daftar sekaligus (desktop: tombolnya di header panel,
+  // di bawah Subtotal cukup daftar biayanya aja — biar gak dobel)
+  const cartExtrasBlock = React.createElement('div', { className:'space-y-2' }, cartExtrasActions, cartExtrasList);
 
   function handleClick(productId) {
     const p = outletProducts.find(x => x.id === productId); if (!p) return;
     addToCart(productId, p.variants[0]?.id);
   }
   function handleCheckout(method, paid, discount) {
-    const order = checkout({ method, paid, discount, customerName, notes, tempat });
+    const extrasNow = cartExtras; // v2.21: ambil sebelum keranjang dibersihin
+    const order = checkout({ method, paid, discount, customerName, notes, tempat, extraCharges: extrasNow });
     if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setPaymentDialog(false); setCartOpen(false);
     setReceipt({
@@ -2644,30 +2753,34 @@ function POSView({ onBack }) {
       items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber, createdAt: order.createdAt,
       serviceCharge: order.serviceCharge, discount: order.discount, cashierName: order.cashierName,
+      extraCharges: extrasNow, // v2.21: biaya tambahan ikut ke struk kasir
     });
-    setCustomerName(''); setNotes(''); setTempat('');
+    setCustomerName(''); setNotes(''); setTempat(''); setCartExtras([]);
     show(t('Pesanan #') + order.number + t(' (Antrian: ') + order.queueNumber + t(') terkirim ke dapur'));
   }
 
   function handleSaveOrder(discount) {
-    const order = saveUnpaidOrder({ discount, customerName, notes, tempat });
+    const extrasNow = cartExtras; // v2.21
+    const order = saveUnpaidOrder({ discount, customerName, notes, tempat, extraCharges: extrasNow });
     if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setPaymentDialog(false); setCartOpen(false);
-    setCustomerName(''); setNotes(''); setTempat('');
+    setCustomerName(''); setNotes(''); setTempat(''); setCartExtras([]);
     show(t('Pesanan #') + order.number + t(' disimpan. Bayar nanti di menu Pesanan'));
   }
 
   // Bikin order UNPAID + langsung cetak struk kasir
   function handleCetakStruk() {
-    const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat });
+    const extrasNow = cartExtras; // v2.21
+    const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat, extraCharges: extrasNow });
     if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setCartOpen(false);
-    setCustomerName(''); setNotes(''); setTempat('');
+    setCustomerName(''); setNotes(''); setTempat(''); setCartExtras([]);
     const receipt = {
       id:order.id, number:order.number, total:order.total, paid:0, change:0, method:'UNPAID',
       items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber,
       createdAt: order.createdAt, serviceCharge: order.serviceCharge, discount: order.discount || 0, cashierName: order.cashierName,
+      extraCharges: extrasNow, // v2.21
     };
     show(t('Pesanan #') + order.number + t(' dibuat. Mencetak struk kasir...'));
     setTimeout(() => printReceipt(receipt, 'kasir'), 300);
@@ -2675,15 +2788,17 @@ function POSView({ onBack }) {
 
   // Bikin order UNPAID + langsung cetak nota dapur
   function handleCetakDapur() {
-    const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat });
+    const extrasNow = cartExtras; // v2.21
+    const order = saveUnpaidOrder({ discount: 0, customerName, notes, tempat, extraCharges: extrasNow });
     if (!order) { show(t('Keranjang kosong'), 'error'); return; }
     setCartOpen(false);
-    setCustomerName(''); setNotes(''); setTempat('');
+    setCustomerName(''); setNotes(''); setTempat(''); setCartExtras([]);
     const receipt = {
       id:order.id, number:order.number, total:order.total, paid:0, change:0, method:'UNPAID',
       items: order.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes || '' })),
       customerName, notes, tempat, orderType: order.type, queueNumber: order.queueNumber,
       createdAt: order.createdAt, serviceCharge: order.serviceCharge, discount: order.discount || 0, cashierName: order.cashierName,
+      extraCharges: extrasNow, // v2.21
     };
     markKitchenPrinted(order.id); // v2.10: nota dapur pertama = baseline item tambahan
     show(t('Pesanan #') + order.number + t(' dibuat. Mencetak nota dapur...'));
@@ -2782,7 +2897,7 @@ function POSView({ onBack }) {
       ),
       // Desktop cart panel
       React.createElement(Card, { className:'hidden lg:flex flex-col min-h-0' },
-        React.createElement(CartPanel, { cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty: updateCartQty, onRemove: removeFromCart, onClear: clearCart, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), onPay: () => setPaymentDialog(true), customerName, setCustomerName, notes, setNotes, tempat, setTempat, onSaveLater: handleSaveOrder, onCetakStruk: handleCetakStruk, onCetakDapur: handleCetakDapur, onEditItemNotes: (itemId) => setItemNotesPicker(itemId), onUpdateItemNotes: updateCartItemNotes })
+        React.createElement(CartPanel, { cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty: updateCartQty, onRemove: removeFromCart, onClear: clearCart, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), onPay: () => setPaymentDialog(true), customerName, setCustomerName, notes, setNotes, tempat, setTempat, onSaveLater: handleSaveOrder, onCetakStruk: handleCetakStruk, onCetakDapur: handleCetakDapur, onEditItemNotes: (itemId) => setItemNotesPicker(itemId), onUpdateItemNotes: updateCartItemNotes, onPickMenu: () => setPickOpen(true), onAddExtra: () => { setExtraForm({ name: '' }); setExtraAmount(''); }, aboveExtras: cartExtrasList })
       )
     ),
     // Mobile cart bar (gelap ala aplikasi kasir)
@@ -2834,7 +2949,7 @@ function POSView({ onBack }) {
           ))
         ),
         cart.length > 0 && React.createElement('div', { className:'space-y-2 border-t pt-3 mt-3' },
-          React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), mobile: true }),
+          React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), mobile: true, above: cartExtrasBlock }),
           React.createElement('div', null,
             React.createElement(Label, null, t('Nama Pelanggan (opsional)')),
             React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:t('contoh: Pak Budi / Nunung'), className:'h-9' })
@@ -2873,6 +2988,25 @@ function POSView({ onBack }) {
     // Variant picker dihapus — semua menu langsung klik tanpa pilih varian
     // Payment dialog
     React.createElement(PaymentDialog, { open: paymentDialog, onClose: () => setPaymentDialog(false), total, onConfirm: handleCheckout, onSaveOrder: handleSaveOrder }),
+    // v2.21: sheet pilih menu dari keranjang — tambah menu TANPA nutup keranjang
+    pickOpen && React.createElement(AddItemsSheet, { products: outletProducts, onClose: () => setPickOpen(false), onAdd: function(p) { handleClick(p.id); }, qtyOf: cartQtyOfProduct, title: t('Tambah Menu'), subtitle: t('Ketuk menu untuk menambah ke pesanan') }),
+    // v2.21: form Biaya Tambahan dari keranjang (Nama Biaya + Jumlah Biaya + Simpan)
+    extraForm && React.createElement(Modal, { open: true, onClose: () => setExtraForm(null), className:'sm:max-w-sm' },
+      React.createElement('div', { className:'p-4' },
+        React.createElement('h2', { className:'text-base font-bold mb-1' }, t('Biaya Tambahan')),
+        React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Biaya di luar menu yang ikut ke total tagihan (contoh: ongkos kirim, packing).')),
+        React.createElement(Label, null, t('Nama Biaya')),
+        React.createElement(Input, { value: extraForm.name || '', onChange: function(e) { setExtraForm(function(f) { return { name: e.target.value }; }); }, placeholder: t('contoh: Ongkos Kirim, Packing'), autoFocus: true }),
+        React.createElement(Label, null, t('Jumlah Biaya')),
+        React.createElement(Input, { type:'number', min:'0', value: extraAmount, onChange: function(e) { setExtraAmount(e.target.value.replace(/[^0-9]/g, '')); }, placeholder: '0', className:'mt-1' }),
+        extraAmount && React.createElement('p', { className:'text-xs font-semibold text-slate-600 mt-1.5' }, t('Jumlah: ') + formatRupiah(Number(extraAmount) || 0)),
+        React.createElement('div', { className:'flex gap-2 mt-4' },
+          React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setExtraForm(null) }, t('Batal')),
+          React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: saveCartExtra },
+            React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
+        )
+      )
+    ),
     // Receipt
     React.createElement(Modal, { open: !!receipt, onClose: () => setReceipt(null) },
       receipt && React.createElement('div', { className:'p-4' },
@@ -3538,7 +3672,7 @@ function ReceiptPreview({ ver }) {
   );
 }
 
-const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes, onUpdateItemNotes }) => {
+const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes, onUpdateItemNotes, onPickMenu=()=>{}, onAddExtra=()=>{}, aboveExtras=null }) => {
   return React.createElement(React.Fragment, null,
     React.createElement('div', { className:'p-4 pb-3 border-b' },
       React.createElement('div', { className:'flex items-center justify-between' },
@@ -3548,7 +3682,15 @@ const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTa
       React.createElement('div', { className:'flex gap-1 mt-2' },
         ['DINE_IN','TAKEAWAY'].map(ot => React.createElement(Button, { key: ot, size:'sm', variant: cartOrderType === ot ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(ot); if (ot !== 'DINE_IN') onClearTable(); } }, ot === 'DINE_IN' ? t('Dine In') : t('Bawa Pulang')))
       ),
-      cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih'))
+      cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih')),
+      // v2.21: tombol + Menu (di tengah, bulat kaya tombol + lainnya) & Biaya
+      // Tambahan — persis di bawah pilihan Dine In / Bawa Pulang (permintaan owner)
+      React.createElement('div', { className:'flex items-center gap-2 mt-2' },
+        React.createElement('button', { onClick: onPickMenu, title: t('Tambah Menu Lagi'), className:'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 px-3.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-95' },
+          React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Menu')),
+        React.createElement(Button, { variant:'outline', className:'h-9 flex-1 gap-1.5 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: onAddExtra },
+          React.createElement(Icon, { name:'plus-circle', className:'w-3.5 h-3.5' }), t('Tambah Biaya Tambahan'))
+      )
     ),
     React.createElement('div', { className:'flex-1 overflow-y-auto p-2' },
       React.createElement('div', { className:'space-y-2' },
@@ -3581,7 +3723,7 @@ const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTa
       )
     ),
     cart.length > 0 && React.createElement('div', { className:'space-y-2 border-t p-4 pt-3' },
-      React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable }),
+      React.createElement(CartSummary, { subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable, above: aboveExtras }),
       React.createElement('div', null,
         React.createElement(Label, null, t('Nama Pelanggan (opsional)')),
         React.createElement(Input, { value: customerName, onChange: e => setCustomerName(e.target.value), placeholder:t('contoh: Pak Budi / Nunung'), className:'h-9' })
@@ -3623,12 +3765,16 @@ const CartActions = ({ total, onPay, onSaveLater, onCetakStruk, onCetakDapur }) 
   );
 };
 
-const CartSummary = ({ subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable, mobile }) => {
+// v2.21: slot `above` — blok tombol + Menu & Biaya Tambahan yang tampil PERSIS
+// di bawah baris Dine In / Bawa Pulang (permintaan owner: "taro dibawahnya
+// dine in/makan ditempat"), sebelum baris Subtotal/Total.
+const CartSummary = ({ subtotal, total, cartOrderType, selectedTable, onSetOrderType, onClearTable, mobile, above }) => {
   return React.createElement('div', { className:'space-y-2' },
     mobile && React.createElement('div', { className:'flex gap-1' },
       ['DINE_IN','TAKEAWAY'].map(ot => React.createElement(Button, { key: ot, size:'sm', variant: cartOrderType === ot ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(ot); if (ot !== 'DINE_IN') onClearTable(); } }, ot === 'DINE_IN' ? t('Dine In') : t('Bawa Pulang')))
     ),
     mobile && cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih')),
+    above,
     React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Subtotal')), React.createElement('span', null, formatRupiah(subtotal))),
     React.createElement(Separator, null),
     React.createElement('div', { className:'flex justify-between font-bold' }, React.createElement('span', null, t('Total')), React.createElement('span', { className:'text-slate-900 text-lg' }, formatRupiah(total)))
@@ -3870,6 +4016,8 @@ function OrdersView({ onNavigate, onBack }) {
             // Show item count
             React.createElement('div', { className:'mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500' },
               o.items.length + ' item · ' + o.items.reduce((s, it) => s + it.quantity, 0) + ' porsi',
+              // v2.21: tanda pesanan pernah ditambahin menu (gabung baris sama / tombol +)
+              o.items.some(it => itemAddedQty(it) > 0) && ' · 🏷️ ' + t('Ada Tambahan'),
               o.tableNumber && ' · Meja ' + o.tableNumber,
               o.notes && ' · 📝 ' + o.notes.slice(0, 30)
             )
@@ -3913,7 +4061,9 @@ function OrdersView({ onNavigate, onBack }) {
 // ===== v2.10: SHEET "TAMBAH MENU" DI DETAIL PESANAN =====
 // Tampilannya persis kaya layar Tambah Pesanan biasa (search + chip kategori +
 // daftar menu + tombol + hijau), tapi muncul di dalam kotak drag-handle.
-function AddItemsSheet({ order, products, onClose, onAdd }) {
+// v2.21: sekarang juga dipakai di KERANJANG (tombol + di bawah pilihan Dine In)
+// lewat props qtyOf/title/subtitle — biar tampilannya konsisten.
+function AddItemsSheet({ order, products, onClose, onAdd, qtyOf, title, subtitle }) {
   const { state } = useAppStore();
   const settings = state.settings;
   const [q, setQ] = React.useState('');
@@ -3930,8 +4080,8 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
       ),
       React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
         React.createElement('div', null,
-          React.createElement('h2', { className:'text-base font-bold' }, t('Tambah Pesanan')),
-          React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, 'Pesanan #' + order.number + ' — ketuk menu untuk menambah item')),
+          React.createElement('h2', { className:'text-base font-bold' }, title || t('Tambah Pesanan')),
+          React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, subtitle || ('Pesanan #' + order.number + ' — ketuk menu untuk menambah item'))),
         React.createElement('button', { onClick: onClose, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
           React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
       ),
@@ -3952,11 +4102,13 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
         list.map(function(p) {
           // v2.19: jumlah menu ini yang sudah ada di pesanan — tampil di bawah
           // tombol + (kaya layar Tambah Pesanan biasa, permintaan owner)
+          // v2.21: di keranjang, hitung dari keranjang (prop qtyOf)
           var vid = (p.variants && p.variants[0] && p.variants[0].id) || null;
           var qtyInOrder = 0;
-          (order.items || []).forEach(function(it) {
+          if (qtyOf) { qtyInOrder = qtyOf(p); }
+          else { (order.items || []).forEach(function(it) {
             if (it.productId === p.id && (it.variantId || null) === vid) qtyInOrder += (Number(it.quantity) || 0);
-          });
+          }); }
           return React.createElement('div', { key: p.id, className:'flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2' },
             React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 text-xl' },
               React.createElement('span', { className:'select-none' }, catMeta(settings, p.category).emoji)),
@@ -3980,7 +4132,7 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
 
 // ===== ORDER DETAIL MODAL =====
 function OrderDetailModal({ order, onClose, onPay, onCancel }) {
-  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, markKitchenPrinted, addExtraCharge, removeExtraCharge } = useAppStore();
+  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, updateOrderNotes, markKitchenPrinted, addExtraCharge, removeExtraCharge } = useAppStore();
   const { products, settings } = state;
   // v2.10: sheet tambah menu + menu cetak (dapur/tambahan) yang buka ke atas
   const [sheetOpen, setSheetOpen] = React.useState(false);
@@ -3989,6 +4141,9 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
   // v2.19: form Biaya Tambahan (pict 2 — Nama Biaya + Jumlah Biaya + Simpan)
   const [extraForm, setExtraForm] = React.useState(null); // { name, amount }
   const [extraAmount, setExtraAmount] = React.useState('');
+  // v2.21: form Catatan Nota (catatan di header nota dapur — contoh: Bungkus)
+  const [noteEdit, setNoteEdit] = React.useState(false);
+  const [noteDraft, setNoteDraft] = React.useState('');
   // v2.19: tombol back navigasi HP = tutup detail pesanan (kembali ke daftar)
   const backCloseRef = useBackCloseModal();
   backCloseRef.current = onClose;
@@ -4018,14 +4173,24 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
     setExtraForm(null); setExtraAmount('');
     show(t('Biaya tambahan ditambahkan'));
   }
+  // v2.21: simpan Catatan Nota dari detail pesanan (masuk ke header nota dapur)
+  function saveOrderNote() {
+    updateOrderNotes(currentOrder.id, noteDraft.trim());
+    setNoteEdit(false);
+    show(t('Catatan nota disimpan'));
+  }
   // v2.10: Cetak Dapur = semua item | Cetak Tambahan = cuma item yang belum kecetak
   function doPrintDapur(kind) {
     setPrintMenuOpen(false);
-    const extra = currentOrder.items.filter(it => itemAddedAt(currentOrder, it));
+    // v2.21: nota tambahan mencetak CUMA porsi tambahan yang belum tercetak —
+    // menu yang digabung ke baris yang sama (qty nambah) ikut tercetak, sebanyak
+    // porsi yang ditambahin — bukan seluruh barisnya (biar dapur gak keliru hitung)
+    const extra = currentOrder.items.filter(it => itemPendingAddedQty(it) > 0 || itemAddedAt(currentOrder, it));
     if (kind === 'add') {
       if (extra.length === 0) { show(t('Belum ada menu tambahan — semua item sudah tercetak'), 'info'); return; }
+      const pending = extra.map(it => ({ ...it, quantity: itemPendingAddedQty(it) > 0 ? itemPendingAddedQty(it) : it.quantity }));
       show(t('Nota tambahan: ') + extra.length + t(' item tercetak'));
-      setTimeout(() => printReceipt(buildReceipt(extra), 'dapur-tambahan'), 100);
+      setTimeout(() => printReceipt(buildReceipt(pending), 'dapur-tambahan'), 100);
     } else {
       setTimeout(() => printReceipt(buildReceipt(currentOrder.items), 'dapur'), 100);
     }
@@ -4073,7 +4238,9 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
               React.createElement('span', { className:'text-sm' }, it.productName),
               it.variantName && React.createElement('span', { className:'text-xs text-slate-500' }, ' (' + it.variantName + ')'),
               // v2.10: label TAMBAHAN — cuma tampil di aplikasi, nota cetakan tetap bersih
-              itemAddedAt(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, t('Tambahan'))
+              // v2.21: kini juga nangkep tambahan yang DIGABUNG ke baris yang sama /
+              // lewat tombol + di detail — tampil "Tambahan +N" (N = porsi tambahan)
+              itemHasTambahan(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, itemAddedQty(it) > 0 ? (t('Tambahan') + ' +' + itemAddedQty(it)) : t('Tambahan'))
             ),
             React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
               React.createElement('button', { onClick: () => setEditItemNotes(it.id), className: cn('p-1 rounded', it.notes ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'), title:'Catatan item' }, React.createElement(Icon, { name:'pencil', className:'w-3 h-3' })),
@@ -4086,6 +4253,12 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           // v2.13: kolom catatan per item — bisa diisi walau pesanan sudah masuk
           React.createElement(Input, { value: it.notes || '', onChange: e => updateOrderItemNote(currentOrder.id, it.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' })
         ))
+      ),
+      // v2.21: tombol CATATAN NOTA — catatan di HEADER nota (kaya kolom "Catatan
+      // untuk Dapur" waktu bikin pesanan). Buat pesanan tambahan yang maunya
+      // dibungkus: ketuk di sini, tulis "Bungkus" / "Bawa Pulang" → ikut ke nota
+      React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 mb-3', onClick: () => { setNoteDraft(currentOrder.notes || ''); setNoteEdit(true); } },
+        React.createElement(Icon, { name:'pencil', className:'w-4 h-4' }), t('Catatan Nota')
       ),
       // Total
       React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
@@ -4190,6 +4363,20 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement('div', { className:'flex gap-2 mt-4' },
             React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setExtraForm(null) }, t('Batal')),
             React.createElement(Button, { className:'flex-1 bg-red-600 hover:bg-red-700', onClick: saveExtraCharge },
+              React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
+          )
+        )
+      ),
+      // v2.21: FORM CATATAN NOTA — tulis "Bungkus" / "Bawa Pulang" dsb, catatan
+      // ini ikut ke header nota dapur pas dicetak
+      noteEdit && React.createElement(Modal, { open: true, onClose: () => setNoteEdit(false), className:'sm:max-w-sm' },
+        React.createElement('div', { className:'p-4' },
+          React.createElement('h2', { className:'text-base font-bold mb-1' }, t('Ubah Catatan Nota')),
+          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Catatan ini tampil di header nota dapur — contoh: Bungkus / Bawa Pulang')),
+          React.createElement(Input, { value: noteDraft, onChange: function(e) { setNoteDraft(e.target.value); }, placeholder: t('contoh: bungkus / bawa pulang'), autoFocus: true }),
+          React.createElement('div', { className:'flex gap-2 mt-4' },
+            React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setNoteEdit(false) }, t('Batal')),
+            React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: saveOrderNote },
               React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
           )
         )
@@ -6798,7 +6985,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.20 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.21 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

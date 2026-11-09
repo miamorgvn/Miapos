@@ -1,12 +1,82 @@
 ================================================
-  MIAPOS v2.20 — TOMBOL BIAYA IKUT TEMA · TEKS
-     CUACA SANTAI (GANTI 5 MENIT) · LAPORAN
-     URUT NO. ANTRIAN · ANTRIAN AUTO-RESET
-     (di atas: biaya tambahan + fix menu dobel
-     + back navigasi HP + jeda antrian + judul
-     DAPUR sebesar antrian + sinkron antar HP
-     + laporan pembayaran + 2 bahasa + 4 tema
-     + backup cloud)
+  MIAPOS v2.21 — TOMBOL + MENU & BIAYA DI
+     KERANJANG · CATATAN NOTA DI DETAIL ·
+     TAMBAHAN DIGABUNG TETAP DITANDAIN
+     (di atas: tombol biaya ikut tema + teks
+     cuaca santai + laporan urut antrian +
+     antrian auto-reset + biaya tambahan +
+     fix menu dobel + back navigasi HP +
+     sinkron antar HP + laporan pembayaran +
+     2 bahasa + 4 tema + backup cloud)
+================================================
+
+APA YANG BARU DI v2.21 (keranjang · catatan nota · pelacakan tambahan)
+------------------------------------------------------------
+1. KERANJANG: TOMBOL "+ TAMBAH MENU" DITARO
+   DI BAWAH PILIHAN DINE IN / BAWA PULANG:
+   • Dulu buat nambah menu, keranjang harus
+     ditutup dulu baru balik ke daftar menu.
+   • Sekarang di keranjang, PERSIS di bawah
+     pilihan Dine In / Bawa Pulang, ada tombol
+     "+ Tambah Menu" di tengah. Ketuk → muncul
+     daftar menu (tampilannya sama kaya layar
+     Tambah Pesanan) → ketuk menunya → langsung
+     masuk keranjang tanpa nutup apa-apa.
+     Jumlah yang udah ada di keranjang tampil
+     di bawah tombol +.
+2. KERANJANG: TOMBOL "TAMBAH BIAYA TAMBAHAN":
+   • Dulu biaya tambahan (ongkir, packing,
+     dll) cuma bisa diisi dari detail pesanan
+     — setelah pesanan jadi.
+   • Sekarang tombolnya ada juga DI KERANJANG,
+     persis di bawah tombol + Tambah Menu.
+     Formnya sama: Nama Biaya + Jumlah Biaya →
+     Simpan. Daftar biayanya tampil di atas
+     Subtotal, bisa dihapus lagi, dan langsung
+     masuk Total. Begitu pesanan dibayar/
+     disimpan/dicetak, biayanya ikut ke
+     pesanan & tercetak di struk kasir.
+3. DETAIL PESANAN: TOMBOL "CATATAN NOTA":
+   • Dulu catatan di header nota cuma bisa
+     diisi waktu bikin pesanan baru.
+   • Sekarang di detail pesanan ada tombol
+     "Catatan Nota" (di bawah daftar item).
+     Ketuk → tulis "Bungkus" / "Bawa Pulang"
+     dsb → Simpan. Catatannya masuk ke HEADER
+     nota dapur pas dicetak, dan langsung
+     tampil di info pesanan.
+4. MENU SAMA YANG DITAMBAH LAGI: GABUNG,
+   TAPI DITANDAIN "TAMBAHAN +N":
+   • Dulu menu yang sama yang ditambahin
+     lewat sheet Tambah Pesanan digabung ke
+     baris yang sama, tapi tanda Tambahan-nya
+     hilang — jadi gak ikut kecetak di nota
+     tambahan.
+   • Sekarang qty tetap gabung, TAPI
+     tambahannya dicatat di aplikasi:
+     - Badge "Tambahan +N" tampil di baris
+       itu (N = porsi yang ditambahin).
+     - Tombol + di detail pesanan juga dihitung
+       tambahan (tombol − ngurangin lagi).
+     - "Cetak Tambahan" mencetak CUMA porsi
+       yang ditambahin (bukan satu baris
+       penuh) — dan tambahan yang sudah pernah
+       kecetak gak diulang lagi.
+   • Daftar Pesanan ikut nandain: kartu
+     pesanan yang pernah ditambahin menu
+     tampil catatan "🏷️ Ada Tambahan".
+5. VERSI NAIK:
+   • App v2.21 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.21-r1 ·
+     server main.py v2.21 · package.json
+     2.21.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.20 (rilis sebelumnya) — TOMBOL
+     BIAYA IKUT TEMA · TEKS CUACA SANTAI ·
+     LAPORAN URUT ANTRIAN · ANTRIAN AUTO-RESET
 ================================================
 
 APA YANG BARU DI v2.20 (tema · teks cuaca · laporan · antrian)
