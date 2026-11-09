@@ -2087,7 +2087,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.21')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.22')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -2680,8 +2680,8 @@ function POSView({ onBack }) {
   const [notes, setNotes] = React.useState('');
   const [tempat, setTempat] = React.useState('');
   const [itemNotesPicker, setItemNotesPicker] = React.useState(null); // cart item id
-  // v2.21: KERANJANG — tombol + menu & biaya tambahan di bawah pilihan Dine In
-  const [pickOpen, setPickOpen] = React.useState(false); // sheet pilih menu dari keranjang
+  // v2.22: KERANJANG — tombol Tambah Biaya Tambahan di bawah pilihan Dine In.
+  // Sheet pilih menu dari keranjang dihapus — nambah menu lewat daftar menu.
   const [cartExtras, setCartExtras] = React.useState([]); // biaya tambahan sebelum pesanan dibuat
   const [extraForm, setExtraForm] = React.useState(null); // { name }
   const [extraAmount, setExtraAmount] = React.useState('');
@@ -2699,8 +2699,6 @@ function POSView({ onBack }) {
 
   const total = subtotal + extrasSum;
   const selectedTable = tables.find(t => t.id === cartTableId);
-  const cartQtyOfProduct = (productId) => cart.reduce((s,c) => s + (c.productId === productId ? c.quantity : 0), 0);
-
   // v2.21: simpan Biaya Tambahan dari form keranjang (sama kaya di detail pesanan)
   function saveCartExtra() {
     var nm = (extraForm && extraForm.name ? String(extraForm.name) : '').trim();
@@ -2712,13 +2710,11 @@ function POSView({ onBack }) {
     show(t('Biaya tambahan ditambahkan'));
   }
 
-  // v2.21: tombol yang tampil PERSIS di bawah pilihan Dine In / Bawa Pulang:
-  // [+ Tambah Menu di tengah] + [Tambah Biaya Tambahan]
+  // v2.22: tombol di bawah pilihan Dine In / Bawa Pulang CUMA [Tambah Biaya
+  // Tambahan] — tombol "+ Tambah Menu" DIHAPUS (permintaan owner: nyempil doang).
+  // Nambah menu cukup lewat daftar menu di layar Tambah Pesanan — tinggal tutup
+  // keranjang, ketuk menunya, qty otomatis gabung ke keranjang.
   const cartExtrasActions = React.createElement('div', { className:'space-y-2' },
-    React.createElement('div', { className:'flex justify-center' },
-      React.createElement('button', { onClick: () => setPickOpen(true), title: t('Tambah Menu Lagi'), className:'inline-flex h-10 items-center gap-1.5 rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 px-4 text-sm font-semibold text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-95' },
-        React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), t('Tambah Menu'))
-    ),
     React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
       React.createElement(Icon, { name:'plus-circle', className:'w-4 h-4' }), t('Tambah Biaya Tambahan'))
   );
@@ -2897,7 +2893,7 @@ function POSView({ onBack }) {
       ),
       // Desktop cart panel
       React.createElement(Card, { className:'hidden lg:flex flex-col min-h-0' },
-        React.createElement(CartPanel, { cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty: updateCartQty, onRemove: removeFromCart, onClear: clearCart, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), onPay: () => setPaymentDialog(true), customerName, setCustomerName, notes, setNotes, tempat, setTempat, onSaveLater: handleSaveOrder, onCetakStruk: handleCetakStruk, onCetakDapur: handleCetakDapur, onEditItemNotes: (itemId) => setItemNotesPicker(itemId), onUpdateItemNotes: updateCartItemNotes, onPickMenu: () => setPickOpen(true), onAddExtra: () => { setExtraForm({ name: '' }); setExtraAmount(''); }, aboveExtras: cartExtrasList })
+        React.createElement(CartPanel, { cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty: updateCartQty, onRemove: removeFromCart, onClear: clearCart, onSetOrderType: setCartOrderType, onClearTable: () => setCartTable(undefined), onPay: () => setPaymentDialog(true), customerName, setCustomerName, notes, setNotes, tempat, setTempat, onSaveLater: handleSaveOrder, onCetakStruk: handleCetakStruk, onCetakDapur: handleCetakDapur, onEditItemNotes: (itemId) => setItemNotesPicker(itemId), onUpdateItemNotes: updateCartItemNotes, onAddExtra: () => { setExtraForm({ name: '' }); setExtraAmount(''); }, aboveExtras: cartExtrasList })
       )
     ),
     // Mobile cart bar (gelap ala aplikasi kasir)
@@ -2988,8 +2984,6 @@ function POSView({ onBack }) {
     // Variant picker dihapus — semua menu langsung klik tanpa pilih varian
     // Payment dialog
     React.createElement(PaymentDialog, { open: paymentDialog, onClose: () => setPaymentDialog(false), total, onConfirm: handleCheckout, onSaveOrder: handleSaveOrder }),
-    // v2.21: sheet pilih menu dari keranjang — tambah menu TANPA nutup keranjang
-    pickOpen && React.createElement(AddItemsSheet, { products: outletProducts, onClose: () => setPickOpen(false), onAdd: function(p) { handleClick(p.id); }, qtyOf: cartQtyOfProduct, title: t('Tambah Menu'), subtitle: t('Ketuk menu untuk menambah ke pesanan') }),
     // v2.21: form Biaya Tambahan dari keranjang (Nama Biaya + Jumlah Biaya + Simpan)
     extraForm && React.createElement(Modal, { open: true, onClose: () => setExtraForm(null), className:'sm:max-w-sm' },
       React.createElement('div', { className:'p-4' },
@@ -3672,7 +3666,7 @@ function ReceiptPreview({ ver }) {
   );
 }
 
-const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes, onUpdateItemNotes, onPickMenu=()=>{}, onAddExtra=()=>{}, aboveExtras=null }) => {
+const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTable, onUpdateQty, onRemove, onClear, onSetOrderType, onClearTable, onPay, customerName='', setCustomerName=()=>{}, notes='', setNotes=()=>{}, tempat='', setTempat=()=>{}, onSaveLater, onCetakStruk, onCetakDapur, onEditItemNotes, onUpdateItemNotes, onAddExtra=()=>{}, aboveExtras=null }) => {
   return React.createElement(React.Fragment, null,
     React.createElement('div', { className:'p-4 pb-3 border-b' },
       React.createElement('div', { className:'flex items-center justify-between' },
@@ -3683,12 +3677,11 @@ const CartPanel = ({ cart, cartCount, subtotal, total, cartOrderType, selectedTa
         ['DINE_IN','TAKEAWAY'].map(ot => React.createElement(Button, { key: ot, size:'sm', variant: cartOrderType === ot ? 'default' : 'outline', className:'flex-1 h-8 text-xs', onClick: () => { onSetOrderType(ot); if (ot !== 'DINE_IN') onClearTable(); } }, ot === 'DINE_IN' ? t('Dine In') : t('Bawa Pulang')))
       ),
       cartOrderType === 'DINE_IN' && React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, selectedTable ? t('Meja: ') + selectedTable.number : t('Meja belum dipilih')),
-      // v2.21: tombol + Menu (di tengah, bulat kaya tombol + lainnya) & Biaya
-      // Tambahan — persis di bawah pilihan Dine In / Bawa Pulang (permintaan owner)
-      React.createElement('div', { className:'flex items-center gap-2 mt-2' },
-        React.createElement('button', { onClick: onPickMenu, title: t('Tambah Menu Lagi'), className:'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 px-3.5 text-xs font-semibold text-white shadow-md shadow-emerald-600/30 transition-transform active:scale-95' },
-          React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Menu')),
-        React.createElement(Button, { variant:'outline', className:'h-9 flex-1 gap-1.5 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: onAddExtra },
+      // v2.22: di bawah pilihan Dine In / Bawa Pulang CUMA [Tambah Biaya Tambahan]
+      // full-width — tombol "+ Tambah Menu" dihapus (nyempil, permintaan owner).
+      // Nambah menu cukup lewat daftar menu di layar Tambah Pesanan.
+      React.createElement('div', { className:'mt-2' },
+        React.createElement(Button, { variant:'outline', className:'h-9 w-full gap-1.5 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: onAddExtra },
           React.createElement(Icon, { name:'plus-circle', className:'w-3.5 h-3.5' }), t('Tambah Biaya Tambahan'))
       )
     ),
@@ -6985,7 +6978,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.21 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.22 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

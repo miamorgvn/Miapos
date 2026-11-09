@@ -1,19 +1,55 @@
 ================================================
-  MIAPOS v2.21 — TOMBOL + MENU & BIAYA DI
-     KERANJANG · CATATAN NOTA DI DETAIL ·
-     TAMBAHAN DIGABUNG TETAP DITANDAIN
-     (di atas: tombol biaya ikut tema + teks
-     cuaca santai + laporan urut antrian +
-     antrian auto-reset + biaya tambahan +
-     fix menu dobel + back navigasi HP +
-     sinkron antar HP + laporan pembayaran +
+  MIAPOS v2.22 — TOMBOL "+ TAMBAH MENU" DI
+     KERANJANG DIHAPUS (NYEMPIL) · BIAYA
+     TAMBAHAN TETAP DI BAWAH DINE IN
+     (di atas: catatan nota di detail +
+     tambahan digabung tetap ditandain +
+     tombol biaya ikut tema + teks cuaca
+     santai + laporan urut antrian +
+     antrian auto-reset + fix menu dobel +
+     back navigasi HP + sinkron antar HP +
      2 bahasa + 4 tema + backup cloud)
+================================================
+
+APA YANG BARU DI v2.22 (keranjang dirapikan)
+------------------------------------------------------------
+1. TOMBOL "+ TAMBAH MENU" DI KERANJANG DIHAPUS:
+   • Di v2.21 tombol "+ Tambah Menu" nyempil di
+     keranjang, persis di bawah pilihan Dine In /
+     Bawa Pulang — malah bikin sesak.
+   • Sekarang DIHAPUS total, di HP (mobile) &
+     desktop sama-sama bersih.
+   • Nambah menu tetap gampang: tutup keranjang →
+     ketuk menunya di layar Tambah Pesanan → qty
+     otomatis gabung ke keranjang. Jadi gak perlu
+     tombol dobel.
+2. TOMBOL "TAMBAH BIAYA TAMBAHAN" TETAP DI SITU:
+   • Masih PERSIS di bawah pilihan Dine In / Bawa
+     Pulang, sekarang full-width (lebih rapi).
+   • Formnya tetap sama: Nama Biaya + Jumlah Biaya
+     → Simpan. Daftar biayanya tampil di atas
+     Subtotal, bisa dihapus lagi, langsung masuk
+     Total, dan ikut ke pesanan + struk kasir.
+3. VERSI NAIK:
+   • App v2.22 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.22-r1 ·
+     server main.py v2.22 · package.json
+     2.22.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.21 (rilis sebelumnya) — KERANJANG ·
+     CATATAN NOTA DI DETAIL · TAMBAHAN DIGABUNG
+     TETAP DITANDAIN
 ================================================
 
 APA YANG BARU DI v2.21 (keranjang · catatan nota · pelacakan tambahan)
 ------------------------------------------------------------
 1. KERANJANG: TOMBOL "+ TAMBAH MENU" DITARO
    DI BAWAH PILIHAN DINE IN / BAWA PULANG:
+   (v2.22: tombol ini DIHAPUS lagi — nyempil.
+     Lihat APA YANG BARU DI v2.22 di atas.)
    • Dulu buat nambah menu, keranjang harus
      ditutup dulu baru balik ke daftar menu.
    • Sekarang di keranjang, PERSIS di bawah
@@ -29,8 +65,10 @@ APA YANG BARU DI v2.21 (keranjang · catatan nota · pelacakan tambahan)
      dll) cuma bisa diisi dari detail pesanan
      — setelah pesanan jadi.
    • Sekarang tombolnya ada juga DI KERANJANG,
-     persis di bawah tombol + Tambah Menu.
-     Formnya sama: Nama Biaya + Jumlah Biaya →
+     persis di bawah pilihan Dine In / Bawa Pulang
+     (v2.22: tombol + Tambah Menu dihapus, tombol
+     biaya jadi full-width). Formnya sama: Nama
+     Biaya + Jumlah Biaya →
      Simpan. Daftar biayanya tampil di atas
      Subtotal, bisa dihapus lagi, dan langsung
      masuk Total. Begitu pesanan dibayar/

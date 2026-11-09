@@ -1,12 +1,47 @@
 ================================================
-  MIAPOS v2.21 — CHECKLIST
+  MIAPOS v2.22 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.21 — KERANJANG (+ MENU & BIAYA DI BAWAH
-     DINE IN) · CATATAN NOTA · TAMBAHAN DITANDAIN
+0. REVISI v2.22 — TOMBOL "+ TAMBAH MENU" DI KERANJANG
+     DIHAPUS (NYEMPIL) · BIAYA TAMBAHAN TETAP DI SITU
+=====================================================
+[x] 1. KERANJANG — TOMBOL "+ TAMBAH MENU" DIHAPUS:
+       • Dulu (v2.21) tombolnya nyempil di keranjang,
+         persis di bawah pilihan Dine In / Bawa Pulang
+         — malah bikin sesak.
+       • Sekarang dihapus total, di HP (mobile) &
+         desktop sama-sama bersih.
+       • Nambah menu tetap gampang: tutup keranjang →
+         ketuk menunya di layar Tambah Pesanan → qty
+         otomatis gabung ke keranjang. Gak perlu
+         tombol dobel.
+[x] 2. TOMBOL "TAMBAH BIAYA TAMBAHAN" TETAP DI SITU:
+       • Masih PERSIS di bawah pilihan Dine In / Bawa
+         Pulang, sekarang full-width (lebih rapi).
+       • Formnya sama kaya di detail pesanan: Nama
+         Biaya + Jumlah Biaya → Simpan — ikut Total
+         & struk kasir.
+[x] 3. VERSI v2.22 + cache sw.js miapos-v2.22-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 4. COBA SENDIRI (2 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.22) — cek tulisan versi di app.
+       • Tambah Pesanan → masukin menu → buka
+         keranjang: di bawah pilihan Dine In / Bawa
+         Pulang CUMA ada "Tambah Biaya Tambahan" —
+         gak ada lagi tombol "+ Tambah Menu" nyempil.
+       • Tutup keranjang → ketuk menu yang sama →
+         qty di keranjang gabung otomatis.
+
+=====================================================
+0. REVISI v2.21 (rilis sebelumnya) — KERANJANG (+ MENU &
+     BIAYA DI BAWAH DINE IN) · CATATAN NOTA · TAMBAHAN
+     DITANDAIN
 =====================================================
 [x] 1. KERANJANG — TOMBOL "+ TAMBAH MENU" DITARO DI
        BAWAH PILIHAN DINE IN / BAWA PULANG (di tengah):
@@ -52,6 +87,9 @@ yang harus Anda lakukan sendiri (tinggal diklik/ketik).
          keranjang: tombol "+ Tambah Menu" (tengah) &
          "Tambah Biaya Tambahan" ada PERSIS di bawah
          pilihan Dine In / Bawa Pulang.
+         (v2.22: tombol "+ Tambah Menu" DIHAPUS —
+         cukup cek tombol "Tambah Biaya Tambahan"
+         full-width di bawah Dine In / Bawa Pulang.)
        • Bayar Nanti → buka detail pesanan → tombol +
          di menu yang sama 2× → badge "Tambahan +2"
          muncul → Cetak Tambahan mencetak cuma 2
