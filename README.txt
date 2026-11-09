@@ -1,11 +1,132 @@
 ================================================
-  MIAPOS v2.18 — NO. ANTRIAN KASIH JEDA 1 BARIS
-     (di atas: judul DAPUR sebesar No. Antrian
-     + nota cukup 1 garis '=' + popup hasil cetak
-     + angka laporan gak kepotong + sinkron otomatis
-     antar HP + laporan pembayaran + kalender
-     + catatan per menu + 2 bahasa + 4 tema
+  MIAPOS v2.20 — TOMBOL BIAYA IKUT TEMA · TEKS
+     CUACA SANTAI (GANTI 5 MENIT) · LAPORAN
+     URUT NO. ANTRIAN · ANTRIAN AUTO-RESET
+     (di atas: biaya tambahan + fix menu dobel
+     + back navigasi HP + jeda antrian + judul
+     DAPUR sebesar antrian + sinkron antar HP
+     + laporan pembayaran + 2 bahasa + 4 tema
      + backup cloud)
+================================================
+
+APA YANG BARU DI v2.20 (tema · teks cuaca · laporan · antrian)
+------------------------------------------------------------
+1. TOMBOL BIAYA TAMBAHAN IKUT WARNA TEMA:
+   • Dulu tombol "Tambah Biaya Tambahan" selalu
+     merah di tema apa pun.
+   • Sekarang warnanya ikut tema yang dipilih
+     (Emerald = hijau, Royal = oranye, Pink =
+     pink, Charcoal = neon) — sama kaya tombol
+     lain, konsisten.
+2. TEKS RANDOM KARTU CUACA DITULIS ULANG:
+   • Dulu kaya poster motivasi ("Hari ini sudah
+     hebat, saatnya rehat") — terlalu baku,
+     kaku, dan cringe.
+   • Sekarang kaya teman ngobrol santai di
+     kasir: "Udah makan belum? Kasir juga butuh
+     makan", "Antriannya panjang? Berarti
+     masakannya emang enak", dll. Tetap tanpa
+     istilah teknis/data/server.
+3. TEKS CUACA GANTI TIAP 5 MENIT:
+   • Dulu teksnya bisa ganti setiap pindah
+     layar.
+   • Sekarang teksnya DIKUNCI 5 MENIT — pindah
+     layar, tutup-buka app, ganti tab: tetap
+     sama. Setelah 5 menit ganti sendiri, dan
+     gak ngulang kalimat yang sama berturut-
+     turut. Pas periode berganti (pagi→siang→
+     sore→malam) teksnya ikut pindah pool.
+4. LAPORAN PEMBAYARAN URUT NO. ANTRIAN:
+   • Daftar transaksi lunas dulu diurut dari
+     waktu bayar (terbaru di atas); sekarang
+     diurut dari NO. ANTRIAN kecil → besar
+     (1, 2, 3, ...) biar enak dicek. Kalau
+     nomornya sama/kosong, baru pakai waktu
+     bayar. Kartu tanggal tetap berfungsi.
+5. NO. ANTRIAN AUTO-RESET GANTI HARI:
+   • Dulu counter antrian cuma reset manual
+     (Pengaturan → Reset Antrian) — kalau
+     lupa, besoknya lanjut nomor kemarin.
+   • Sekarang begitu tanggal berganti (jam 12
+     malam waktu HP), pesanan pertama otomatis
+     dapat No. 1 lagi. Reset manual tetap ada.
+   • Tampilan "No. Antrian Berikutnya" di
+     Pengaturan juga sadar-tanggal: pas hari
+     baru yang belum ada pesanan, tampil 1
+     (dengan keterangan "Ganti hari otomatis
+     mulai dari 1").
+6. FILE NOTIF YANG TERSISA DIHAPUS PERMANEN:
+   • Sejak v2.10 fitur notifikasi dicabut, tapi
+     file panduan & API-nya masih tertinggal di
+     repo (PANDUAN-NOTIF.txt, api/push-*.js,
+     api/_pushlib.js) — padahal gak kepakai
+     lagi.
+   • v2.20: semuanya DIHAPUS dari repo. App
+     memang gak bisa push notif (fiturnya sudah
+     diangkat sejak v2.10), jadi tinggalan-nya
+     dibuang biar repo bersih.
+7. VERSI NAIK:
+   • App v2.20 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.20-r1 ·
+     server main.py v2.20 · package.json
+     2.20.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.19 (rilis sebelumnya) — BIAYA
+     TAMBAHAN · FIX MENU DOBEL · BACK NAVIGASI HP
+================================================
+
+APA YANG BARU DI v2.19 (biaya tambahan + fix menu dobel + back HP)
+------------------------------------------------------------
+1. TOMBOL TAMBAH BIAYA TAMBAHAN (detail pesanan):
+   • Di detail pesanan (layar yang menampilkan menu-menu
+     pesanan pelanggan) sekarang ada tombol merah
+     "Tambah Biaya Tambahan" di bawah kartu Total.
+   • Dipencet → muncul form: Nama Biaya + Jumlah Biaya
+     → Simpan (sesuai contoh layout dari owner).
+   • Biaya ini di luar menu (contoh: ongkos kirim,
+     packing) — ikut menghitung Total tagihan,
+     tampil sebagai baris "Biaya: <nama>" di struk
+     kasir, dan bisa dihapus lagi selama pesanan
+     belum dibayar.
+   • Dialog bayar & laporan otomatis ikut total baru.
+2. FIX: MENU YANG SAMA GAK KEPISAH LAGI:
+   • Dulu di sheet tambah item, menu yang sama dipencet
+     2x malah bikin baris sendiri di bawahnya.
+   • Sekarang digabung: qty bertambah (2x, 3x, ...)
+     di baris yang sama.
+3. TOMBOL "TAMBAH MENU" JADI "TAMBAH PESANAN":
+   • Tombol di detail pesanan + judul sheet-nya ganti
+     jadi "Tambah Pesanan". (Yang di Kelola Menu tetap
+     "Tambah Menu" karena fungsinya bikin menu baru.)
+   • Di bawah tombol + sekarang tampil jumlah item
+     menu itu yang sudah ada di pesanan (contoh: 2x).
+4. PRATINJAU NOTA: TAB NOTA DAPUR-TAMBAHAN:
+   • Pengaturan → Pratinjau Nota kini punya 3 tab:
+     Nota Kasir · Nota Dapur · Nota Dapur-Tambahan.
+5. TOMBOL BACK NAVIGASI HP SEKARANG JALAN DI APP:
+   • Lagi di detail pesanan (menu-menu pesanan
+     pelanggan) → klik back → balik ke daftar pesanan
+     hari itu.
+   • Lagi di daftar pesanan → klik back → ke Dashboard.
+   • Di Dashboard: back pertama muncul pengingat
+     "Tekan sekali lagi untuk keluar aplikasi",
+     back kedua (dalam 2,5 detik) keluar aplikasi.
+   • Back saat dialog bayar terbuka = batalkan dialog.
+6. BAHASA BAKU:
+   • Sesuai aturan owner, semua teks baru tetap
+     menggunakan bahasa Indonesia baku.
+7. VERSI NAIK:
+   • App v2.19 (footer sidebar + kartu Pengaturan) ·
+     cache sw.js miapos-v2.19-r1 · server api/sync.js
+     & main.py v2.19.
+   • Ingat aturannya: tiap update versi SELALU naik.
+
+================================================
+  CATATAN v2.18 (rilis sebelumnya) — NO. ANTRIAN
+     KASIH JEDA 1 BARIS
 ================================================
 
 APA YANG BARU DI v2.18 (No. Antrian gak nempel lagi)

@@ -443,6 +443,11 @@ if (typeof window !== 'undefined') { window.__miaParseBulk = parseMenuListText; 
 // Kalau data total/subtotal/discount rusak (string '100.000', undefined, dll),
 // tampilan tetap keluar angka yang bener — bukan RpNaN.
 function orderItemsSum(o) { return (o && o.items ? o.items : []).reduce(function(s,it){ return s + (Number(it.quantity)||0)*(Number(it.price)||0); }, 0); }
+// ===== v2.19: BIAYA TAMBAHAN =====
+// Biaya di luar menu (contoh: ongkos kirim, packing, service) yang ikut
+// ke total tagihan & tercetak di struk kasir — permintaan owner (pict 1-2).
+function extraChargesOf(o) { return (o && o.extraCharges) ? o.extraCharges : []; }
+function extraChargesSum(o) { return extraChargesOf(o).reduce(function(s,c){ return s + (Number(c && c.amount) || 0); }, 0); }
 function orderSubtotalOf(o) {
   if (!o) return 0;
   var s = Number(o.subtotal);
@@ -451,7 +456,7 @@ function orderSubtotalOf(o) {
 function orderTotalOf(o) {
   if (!o) return 0;
   var t = Number(o.total);
-  if (!Number.isFinite(t)) t = orderSubtotalOf(o) - (Number(o.discount) || 0);
+  if (!Number.isFinite(t)) t = orderSubtotalOf(o) - (Number(o.discount) || 0) + extraChargesSum(o);
   if (!Number.isFinite(t)) t = orderItemsSum(o);
   return Math.max(0, Math.round(t));
 }
@@ -585,6 +590,16 @@ var I18N_EN = {
     'Struk Kasir':'Cashier Receipt', 'Subtotal':'Subtotal',
     'Sudah Bayar':'Paid', 'Tambah':'Add',
     'Tambah Menu':'Add Menu', 'Tambah Pesanan':'New Order',
+    // v2.19: biaya tambahan + tombol back navigasi HP (bahasa baku)
+    'Biaya Tambahan':'Additional Charge', 'Tambah Biaya Tambahan':'Add Additional Charge',
+    'Nama Biaya':'Charge Name', 'Jumlah Biaya':'Charge Amount',
+    'Biaya tambahan ditambahkan':'Additional charge added', 'Biaya tambahan dihapus':'Additional charge removed',
+    'Isi nama biaya terlebih dahulu':'Please fill in the charge name first', 'Jumlah biaya harus lebih dari nol':'Charge amount must be greater than zero',
+    'Hapus biaya ini':'Remove this charge', 'Jumlah: ':'Amount: ',
+    'Nota Dapur-Tambahan':'Kitchen Add-on Receipt',
+    'Biaya di luar menu yang ikut ke total tagihan (contoh: ongkos kirim, packing).':'Charges outside the menu that are added to the bill total (e.g. delivery fee, packing).',
+    'contoh: Ongkos Kirim, Packing':'e.g. Delivery Fee, Packing',
+    'Tekan sekali lagi untuk keluar aplikasi':'Press back once more to exit the app',
     'Tambah, edit & hapus menu':'Add, edit & delete menus', 'Tambahan':'Addition',
     'Tampilan Kotak':'Grid view', 'Tampilan List':'List view',
     'Tanpa meja (Bawa Pulang)':'No table (Takeaway)', 'Tanpa nama pelanggan':'No customer name',
@@ -1571,10 +1586,20 @@ function AppProvider({ children }) {
       const orders = s.orders.map(o => {
         if (o.id !== orderId) return o;
         const unit = product.price + (variant?.priceMod || 0);
-        const newItem = { id: uid(), productId: product.id, productName: product.name, variantId: variant?.id, variantName: variant?.name, quantity: 1, price: unit, notes: '', status: 'PENDING', createdAt: new Date().toISOString() };
-        const items = [...o.items, newItem];
+        // v2.19: menu yang SAMA (produk + varian sama) digabung ke baris yang sudah
+        // ada — qty bertambah 1, tidak lagi bikin baris sendiri (permintaan owner:
+        // "pencet 2x dia malah jadi dibawahnya, ngga bareng, buat baris sendiri").
+        const sameLine = (it) => it.productId === product.id && (it.variantId || null) === (variant?.id || null);
+        const existing = o.items.find(sameLine);
+        let items;
+        if (existing) {
+          items = o.items.map(it => sameLine(it) ? { ...it, quantity: it.quantity + 1 } : it);
+        } else {
+          const newItem = { id: uid(), productId: product.id, productName: product.name, variantId: variant?.id, variantName: variant?.name, quantity: 1, price: unit, notes: '', status: 'PENDING', createdAt: new Date().toISOString() };
+          items = [...o.items, newItem];
+        }
         const subtotal = items.reduce((sum, it) => sum + it.quantity * it.price, 0);
-        const total = Math.max(0, subtotal - (o.discount || 0));
+        const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum(o));
         return { ...o, items, subtotal, total, updatedAt: new Date().toISOString() };
       });
       return { ...s, orders };
@@ -1584,11 +1609,33 @@ function AppProvider({ children }) {
         if (o.id !== orderId) return o;
         const items = qty > 0 ? o.items.map(it => it.id === itemId ? { ...it, quantity: qty } : it) : o.items.filter(it => it.id !== itemId);
         const subtotal = items.reduce((sum, it) => sum + it.quantity * it.price, 0);
-        const total = Math.max(0, subtotal - (o.discount || 0));
+        const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum(o));
         return { ...o, items, subtotal, total, updatedAt: new Date().toISOString() };
       });
       return { ...s, orders };
     }),
+    // v2.19: BIAYA TAMBAHAN — tambah/hapus biaya di luar menu (nama + jumlah).
+    // Ikut menghitung ulang total = subtotal - diskon + biaya tambahan.
+    addExtraCharge: (orderId, name, amount) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => {
+        if (o.id !== orderId) return o;
+        const charges = [...extraChargesOf(o), { id: uid(), name: String(name || '').trim(), amount: Math.round(Number(amount) || 0) }];
+        const subtotal = orderItemsSum(o);
+        const total = Math.max(0, subtotal - (o.discount || 0) + charges.reduce((acc, c) => acc + (Number(c.amount) || 0), 0));
+        return { ...o, extraCharges: charges, subtotal, total, updatedAt: new Date().toISOString() };
+      })
+    })),
+    removeExtraCharge: (orderId, chargeId) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => {
+        if (o.id !== orderId) return o;
+        const charges = extraChargesOf(o).filter(c => c.id !== chargeId);
+        const subtotal = orderItemsSum(o);
+        const total = Math.max(0, subtotal - (o.discount || 0) + charges.reduce((acc, c) => acc + (Number(c.amount) || 0), 0));
+        return { ...o, extraCharges: charges, subtotal, total, updatedAt: new Date().toISOString() };
+      })
+    })),
     updateOrderItemNotes: (orderId, itemId, notes) => setState(s => ({
       ...s,
       orders: s.orders.map(o => o.id === orderId ? { ...o, items: o.items.map(it => it.id === itemId ? { ...it, notes } : it), updatedAt: new Date().toISOString() } : o)
@@ -1978,7 +2025,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.18')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.20')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -2098,57 +2145,58 @@ function greetParts(h) {
   return { label:'Selamat malam', emoji:'🌙' };
 }
 // ===== v2.10: TEKS KARTU CUACA RANDOM =====
-// Permintaan owner: teksnya jangan kaya "data aman semua" — kasir gak paham istilah teknis.
-// Sekarang teksnya ditentukan aplikasi sendiri: kumpulan kalimat santai kaya teman,
-// NOL kata data/backup/server, dan ganti sendiri (random) biar gak bosen dibaca tiap hari.
+// v2.20: pool ditulis ulang — permintaan owner: teksnya JANGAN yang baku kaya
+// poster motivasi ("Hari ini sudah hebat, saatnya rehat" 🤢), juga JANGAN kaku
+// kaya bahasa pemrograman. Sekarang kaya teman ngobrol santai di kasir —
+// gak ada kata "Anda", gak ada kalimat pamungkas, gak ada istilah teknis.
 var SALAM_POOL = {
   pagi: [
-    'Semangat! Hari ini pasti ramai! ✨',
-    'Sarapan dahulu agar kuat menjaga kasir 🍳',
-    'Hari baru, rezeki baru — ayo mulai! 🚀',
-    'Senyum dahulu, pelanggan pertama menunggu 😄',
-    'Kopi dahulu agar segar mengatur antrian ☕',
-    'Ayo buka usaha, semoga menu terlaris terjual habis! 💪',
-    'Pagi penuh berkah — jangan lupa senyum 😊',
-    'Periksa stok sebentar agar tidak ada menu yang habis 👀',
-    'Kejar pesanan pagi dengan tenang 😌',
-    'Bismillah, semoga hari ini lancar terus 🌤️'
+    'Pagi-pagi udah siaga di kasir, mantap 👍',
+    'Kopi dulu biar awet ngadepin pelanggan ☕',
+    'Semoga dari pesanan pertama aja udah lancar 🌤️',
+    'Sarapan dulu, jaga kasir gak boleh lemas 🍳',
+    'Cek stok sebentar, jangan sampai ada menu abis mendadak 👀',
+    'Pelanggan pertama biasanya dateng pas kita belum siap, siap-siap 😄',
+    'Rapikan meja, nyalain lampu — waktunya buka 🌞',
+    'Semoga antrian hari ini panjang tapi gercep ✨',
+    'Pelan-pelan aja dulu, satu-satu pasti beres ☀️',
+    'Semoga menu favoritnya laku keras hari ini 💪'
   ],
   siang: [
-    'Jangan lupa makan siang! 🍚',
-    'Siang ini ramai — semangat! 💪',
-    'Istirahat sebentar, Anda juga perlu rehat 😄',
-    'Hari yang panjang, tapi Anda pasti bisa! 🔥',
-    'Minum dahulu agar tidak haus mengatur restoran 🥤',
-    'Pelanggan tersenyum, Anda pun ikut senyum 😁',
-    'Pesanan terus lancar, hebat! 🌞',
-    'Menu favorit pasti ramai dicari siang ini 🍜',
-    'Tenang, semuanya pasti selesai 😎',
-    'Es teh dahulu agar segar kembali 🧊'
+    'Udah makan belum? Kasir juga butuh makan 🍚',
+    'Jam sibuk nih, pelan-pelan aja layaninya 🔥',
+    'Sempetin minum dulu, kan panas 🥤',
+    'Antriannya panjang? Berarti masakannya emang enak 😎',
+    'Ramai itu pertanda bagus, artinya laku 😌',
+    'Es teh dulu, urusan lain nanti 🧊',
+    'Pesanan numpuk itu sebentar, nanti juga beres 💪',
+    'Walau rame, senyum ke pelanggan tetap wajib 😁',
+    'Semoga sorenya makin rame 🌞',
+    'Yang numpuk dicicil aja, jangan ditumpuk lagi 😆'
   ],
   sore: [
-    'Sore yang tenang, pesanan tetap lancar 🌇',
-    'Langit sore hari ini sangat indah 🧡',
-    'Camilan dahulu agar suasana tetap baik 🍩',
-    'Semangat terakhir sebelum tutup! 🔥',
-    'Sore yang nyaman, cocoknya minum es teh 🧋',
-    'Anda sudah luar biasa hari ini ✨',
-    'Segera tutup, tetap teliti ya 😊',
-    'Tersisa sedikit, hampir selesai! 🎯',
-    'Senja indah, penjualan pun indah 🌆',
-    'Sore-sore begini enaknya minum kopi ☕'
+    'Sore-sore gini enaknya ngopi dulu ☕',
+    'Mulai sepi? Santai, nanti balik rame lagi 😌',
+    'Cek kas sebentar, biar malam gak bingung 🧮',
+    'Tinggal beberapa jam lagi, semangat terakhir 🌇',
+    'Stok yang mau habis dicatet dulu 👀',
+    'Senja plus es teh, cocok ini 🧋',
+    'Semoga total hari ini bikin senyum 🙏',
+    'Walau mulai capek, telitinya tetap jalan ✨',
+    'Pelan-pelan boleh mulai dirapihin 🧹',
+    'Sore tenang, pesanan lancar — pas banget 🌆'
   ],
   malam: [
-    'Hari ini sudah hebat, saatnya rehat! 🌙',
-    'Bersih-bersih dahulu, nanti pulang tepat waktu 🧹',
-    'Malam ini tenang, Anda pun tenang 😌',
-    'Sudah lelah? Sebentar lagi istirahat 🛋️',
-    'Tutup restoran dengan tenang, tidak perlu terburu-buru 🌜',
-    'Terima kasih telah menjaga restoran hari ini 💚',
-    'Simpan energi untuk pulang dengan senyum 😊',
-    'Hitung uang perlahan, teliti ya 🧮',
-    'Nanti tidur nyenyak, hari ini berkah 🌟',
-    'Malam makin sepi — saatnya beristirahat ⭐'
+    'Malem-malem gini, beres-beres biar besok gampang 🧹',
+    'Hitung kas pelan-pelan, teliti dulu 🧮',
+    'Udah jaga seharian, hebat 👏',
+    'Besok buka lagi, sekarang istirahat dulu 🌙',
+    'Tutupnya pelan-pelan aja, gak usah buru-buru 🌜',
+    'Hari yang panjang ya? Liat totalnya dulu, lumayan kan 😄',
+    'Terima kasih udah jaga hari ini 💚',
+    'Makin sepi artinya waktunya beres-beres ⭐',
+    'Semoga besok lebih rame dari hari ini 🌟',
+    'Udah cukup hari ini, sisanya besok lagi 😌'
   ]
 };
 // Periode salam ikut jam: pagi 04–10, siang 11–14, sore 15–17, malam 18–03
@@ -2159,9 +2207,25 @@ function salamPeriod(h) {
   if (h >= 15 && h <= 17) return 'sore';
   return 'malam';
 }
-function salamRandom(h) {
-  var arr = SALAM_POOL[salamPeriod(h)] || SALAM_POOL.pagi;
-  return arr[Math.floor(Math.random() * arr.length)];
+// v2.20: TEKS DIKUNCI 5 MENIT — permintaan owner: "berubah setiap 5 menit aja,
+// jgn setiap pindah layar jd berubah". Pilihan disimpan di localStorage, jadi
+// pindah layar / buka-tutup app GAK bikin teks ganti. Re-roll cuma kalau
+// (1) sudah lewat 5 menit sejak terakhir ganti, atau (2) periode berganti
+// (pagi→siang→sore→malam), atau (3) teks lama gak ada di pool baru (hasil update).
+var SALAM_KEY = 'miapos_salam_v1';
+var SALAM_MS = 5 * 60 * 1000;
+function salamPick(h) {
+  var per = salamPeriod(h);
+  var now = Date.now();
+  var prev = null;
+  try { prev = JSON.parse(localStorage.getItem(SALAM_KEY) || 'null'); } catch (e) {}
+  if (prev && prev.text && prev.per === per && (now - (prev.at || 0)) < SALAM_MS) return prev.text;
+  var arr = SALAM_POOL[per] || SALAM_POOL.pagi;
+  var sisa = arr.filter(function (x) { return x !== (prev && prev.text); });
+  var pool = sisa.length ? sisa : arr; // jangan ngulang teks yang sama berturut-turut
+  var text = pool[Math.floor(Math.random() * pool.length)];
+  try { localStorage.setItem(SALAM_KEY, JSON.stringify({ text: text, at: now, per: per })); } catch (e) {}
+  return text;
 }
 // ===== v2.10: JAM LIVE DI KARTU CUACA (permintaan owner: "widget jam kece") =====
 // Detak detik + tanggal + ikon siang/malem. Warnanya ikut ganti:
@@ -2235,23 +2299,20 @@ function WeatherCard() {
   var cw = wxMap(wx && wx.ok ? wx.code : -1, nowH);
   var g = greetParts(nowH);
   var nama = cashier ? cashier.name : '';
-  // v2.10: teks salam RANDOM — ganti tiap app dibuka + diacak ulang tiap 5 menit
-  // selama app jalan. Isinya kalimat santai, tanpa istilah teknis (aman buat kasir).
-  var [salamSub, setSalamSub] = React.useState(function() { return salamRandom(new Date().getHours()); });
-  var [salamPer, setSalamPer] = React.useState(function() { return salamPeriod(new Date().getHours()); });
+  // v2.20: teks salam DIKUNCI 5 MENIT lewat localStorage (salamPick) — pindah
+  // layar / buka-tutup app GAK bikin teks ganti (keluhan owner). Pengecekan
+  // jalan tiap 60 detik + tiap app dibuka lagi (visibility/focus); re-roll
+  // sendiri cuma kalau 5 menit sudah lewat atau periode pagi→siang→sore→malam
+  // berganti. Isinya kalimat santai kaya teman, tanpa istilah teknis.
+  var [salamSub, setSalamSub] = React.useState(function() { return salamPick(new Date().getHours()); });
   React.useEffect(function() {
-    var shuffle = setInterval(function() { setSalamSub(salamRandom(new Date().getHours())); }, 5 * 60 * 1000);
-    return function() { clearInterval(shuffle); };
+    var shuffle = function() { setSalamSub(salamPick(new Date().getHours())); };
+    var iv = setInterval(shuffle, 60 * 1000);
+    var bangun = function() { if (!document.hidden) shuffle(); };
+    document.addEventListener('visibilitychange', bangun);
+    window.addEventListener('focus', bangun);
+    return function() { clearInterval(iv); document.removeEventListener('visibilitychange', bangun); };
   }, []);
-  // v2.10: ganti periode (pagi→siang→sore→malam) → kalimatnya ikut ganti pool,
-  // jadi pas malem gak muncul kalimat kaya "jangan lupa makan siang" lagi.
-  React.useEffect(function() {
-    var p = salamPeriod(new Date().getHours());
-    if (p !== salamPer) {
-      setSalamPer(p);
-      setSalamSub(salamRandom(new Date().getHours()));
-    }
-  });
   var salamLine = g.label + (nama ? ', ' + nama : '') + '! ' + salamSub;
   var jam = wx && wx.at ? new Date(wx.at).toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) : '';
   var detail;
@@ -3146,6 +3207,7 @@ const DEFAULT_RESTO = {
   footerText: 'Terimakasih atas kunjungan Anda',
   promoText: 'Made by Miapos',
   queueNumber: 1,
+  queueDate: '', // v2.20: tanggal (YYYY-MM-DD lokal) saat counter antrian terakhir dipakai
 };
 function getRestoInfo() {
   try { const s = localStorage.getItem(RESTO_STORAGE_KEY); if (s) return { ...DEFAULT_RESTO, ...JSON.parse(s) }; } catch(e) {}
@@ -3157,10 +3219,27 @@ function setRestoInfo(patch) {
   localStorage.setItem(RESTO_STORAGE_KEY, JSON.stringify(next));
   return next;
 }
+// v2.20: tanggal LOKAL perangkat (bukan UTC) — ganti hari dihitung jam 12 malam
+// waktu HP, bukan jam server.
+function todayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// v2.20: nomor antrian berikutnya yang EFEKTIF — kalau tanggal sudah berganti
+// tapi belum ada pesanan, tampilkan 1 (bukan sisa counter kemarin).
+function nextQueueDisplay() {
+  var info = getRestoInfo();
+  return info.queueDate === todayStr() ? (info.queueNumber || 1) : 1;
+}
 function getNextQueueNumber() {
   const info = getRestoInfo();
-  const n = info.queueNumber || 1;
-  setRestoInfo({ queueNumber: n + 1 });
+  const today = todayStr();
+  // v2.20: AUTO-RESET ganti hari (permintaan owner: "udh otomatis reset kan klo
+  // udh jam 12 malem? soalnya klo stuck besok no antriannya jadi masih punya
+  // kemarin"). Sebelumnya counter cuma reset manual di Pengaturan — sekarang
+  // begitu tanggal berganti, pesanan pertama besok otomatis dapat No. 1 lagi.
+  const n = info.queueDate === today ? (info.queueNumber || 1) : 1;
+  setRestoInfo({ queueNumber: n + 1, queueDate: today });
   return n;
 }
 
@@ -3262,6 +3341,13 @@ function formatReceiptESCPOS(receipt, type) {
     const subtotalCalc = receipt.items.reduce((s, it) => s + it.qty * it.price, 0);
     lines.push(padLeft('Subtotal', formatRupiah(subtotalCalc).replace('Rp', '')));
     if (receipt.discount && receipt.discount > 0) lines.push(padLeft('Diskon', '-' + formatRupiah(receipt.discount).replace('Rp', '')));
+    // v2.19: BIAYA TAMBAHAN — biaya di luar menu (ongkos kirim, packing, dll)
+    // ikut tercetak supaya Total di struk selalu cocok dengan yang dibayarkan.
+    (receipt.extraCharges || []).forEach(function(c) {
+      var nm = 'Biaya: ' + (c.name || 'Tambahan');
+      if (nm.length > W - 7) nm = nm.slice(0, W - 7);
+      lines.push(padLeft(nm, formatRupiah(c.amount).replace('Rp', '')));
+    });
     lines.push(padLeft('Total', formatRupiah(receipt.total).replace('Rp', '')));
     lines.push('');
     lines.push(padLeft('Pembayaran', payMethodLabel(receipt.method)));
@@ -3411,7 +3497,7 @@ function ReceiptPreview({ ver }) {
       React.createElement('div', { className:'flex items-center justify-between mb-3 flex-wrap gap-2' },
         React.createElement('p', { className:'font-bold text-sm' }, 'Pratinjau Nota'),
         React.createElement('div', { className:'flex gap-1 flex-wrap' },
-          [{ k:'kasir', l: t('Nota Kasir') }, { k:'dapur', l: t('Nota Dapur') }].map(t =>
+          [{ k:'kasir', l: t('Nota Kasir') }, { k:'dapur', l: t('Nota Dapur') }, { k:'dapur-tambahan', l: t('Nota Dapur-Tambahan') }].map(t =>
             React.createElement('button', { key: t.k, onClick: function() { setTab(t.k); },
               className: cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                 tab === t.k ? 'bg-gradient-to-r from-emerald-500 via-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/25' : 'bg-slate-100 text-slate-600 hover:bg-slate-200') }, t.l)),
@@ -3443,9 +3529,11 @@ function ReceiptPreview({ ver }) {
       ),
       React.createElement('pre', { className:'font-mono text-[10px] leading-[1.5] whitespace-pre overflow-x-auto bg-slate-900 text-slate-100 rounded-lg p-3 border border-slate-700' }, text),
       React.createElement('p', { className:'text-[11px] text-slate-500 mt-2 leading-relaxed' },
-        tab === 'dapur'
-          ? 'Nota dapur: tanpa info restoran. Judul DAPUR & No. Antrian dicetak Double-Height (ESC ! 0x10) — tinggi dobel, lonjong, sama besar; diakhiri reset normal (ESC ! 0x00). Garis pembatas cukup satu di bawah judul.'
-          : 'Nota kasir: memakai header restoran + footer/promosi, TANPA nomor antrian. Promosi dapat diganti di "Header & Footer Nota" di bawah.')
+        tab === 'kasir'
+          ? 'Nota kasir: memakai header restoran + footer/promosi, TANPA nomor antrian. Promosi dapat diganti di "Header & Footer Nota" di bawah.'
+          : tab === 'dapur'
+            ? 'Nota dapur: tanpa info restoran. Judul DAPUR & No. Antrian dicetak Double-Height (ESC ! 0x10) — tinggi dobel, lonjong, sama besar; diakhiri reset normal (ESC ! 0x00). Garis pembatas cukup satu di bawah judul.'
+            : 'Nota dapur-tambahan: format kepala "DAPUR - TAMBAHAN" — dipakai saat mencetak menu yang ditambahkan belakangan (Cetak Tambahan). Ukuran font & No. Antrian sama dengan nota dapur.')
     )
   );
 }
@@ -3644,6 +3732,33 @@ console.log('Miapos: POS ready');
 
 <script type="text/babel" data-presets="react">
 // ===== ORDERS LIST VIEW (Daftar Pesanan) =====
+// ===== v2.19: TOMBOL BACK NAVIGASI HP (permintaan kasir) =====
+// Sekarang tombol back di navigasi HP bekerja DI DALAM aplikasi:
+//   detail pesanan → back → daftar pesanan hari ini → back → Dashboard.
+// Di Dashboard, back pertama menampilkan pengingat, back kedua keluar aplikasi
+// (kaya app referensi kasir: "Tekan sekali lagi untuk keluar aplikasi").
+// Dikerjakan dengan History API (pushState/popstate) — jalan di PWA Android.
+var MIA_NAV = { modalClose: null, ordersBack: null, suppress: 0 };
+function miaHistoryBack() { MIA_NAV.suppress++; try { history.back(); } catch (e) {} }
+function miaHistoryGo(n) { MIA_NAV.suppress++; try { history.go(n); } catch (e) {} }
+
+// Hook buat modal (detail pesanan, dialog bayar): back = tutup modal.
+// Tutup lewat tombol UI tetap mengkonsumsi entri riwayatnya sendiri.
+function useBackCloseModal() {
+  var closeRef = React.useRef(function() {});
+  var stateRef = React.useRef({ closedByPop: false });
+  React.useEffect(function() {
+    var st = stateRef.current;
+    try { history.pushState({ mia: 'modal' }, ''); } catch (e) {}
+    MIA_NAV.modalClose = function() { st.closedByPop = true; closeRef.current(); };
+    return function() {
+      if (MIA_NAV.modalClose) MIA_NAV.modalClose = null;
+      if (!st.closedByPop) miaHistoryBack(); // ditutup lewat UI → buang entri riwayatnya
+    };
+  }, []);
+  return closeRef;
+}
+
 function OrdersView({ onNavigate, onBack }) {
   const { state, updateOrderStatus, markOrderPaid } = useAppStore();
   const { settings, orders } = state;
@@ -3656,6 +3771,22 @@ function OrdersView({ onNavigate, onBack }) {
   const [selectedOrder, setSelectedOrder] = React.useState(null);
   const [payOrder, setPayOrder] = React.useState(null);
   const { show } = useToast();
+
+  // v2.19: layar ini mendorong satu entri riwayat — back HP dari daftar pesanan
+  // diarahkan ke Dashboard (lewat MIA_NAV.ordersBack yang dipasang di App).
+  var backDepthRef = React.useRef(0);
+  React.useEffect(function() {
+    try { history.pushState({ mia: 'orders' }, ''); } catch (e) {}
+    backDepthRef.current = 1;
+    MIA_NAV.ordersBack = function() { onNavigateRef.current('dashboard'); };
+    return function() {
+      if (MIA_NAV.ordersBack) MIA_NAV.ordersBack = null;
+      if (backDepthRef.current > 0) miaHistoryGo(-backDepthRef.current); // pindah tab via UI → buang entri
+      backDepthRef.current = 0;
+    };
+  }, []);
+  var onNavigateRef = React.useRef(onNavigate);
+  onNavigateRef.current = onNavigate;
 
   const filtered = outletOrders.filter(o => {
     if (filter === 'unpaid' && o.paymentStatus !== 'UNPAID') return false;
@@ -3764,6 +3895,7 @@ function OrdersView({ onNavigate, onBack }) {
           items: payOrder.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
           customerName: payOrder.customerName, notes: payOrder.notes, orderType: payOrder.type, queueNumber: payOrder.queueNumber,
           createdAt: payOrder.createdAt, serviceCharge: payOrder.serviceCharge, discount: payOrder.discount || 0, cashierName: payOrder.cashierName,
+          extraCharges: extraChargesOf(payOrder),
         };
         setPayOrder(null);
         show('Pesanan #' + payOrder.number + ' sudah dibayar');
@@ -3798,7 +3930,7 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
       ),
       React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
         React.createElement('div', null,
-          React.createElement('h2', { className:'text-base font-bold' }, t('Tambah Menu')),
+          React.createElement('h2', { className:'text-base font-bold' }, t('Tambah Pesanan')),
           React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, 'Pesanan #' + order.number + ' — ketuk menu untuk menambah item')),
         React.createElement('button', { onClick: onClose, className:'grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-100 text-slate-500 shrink-0' },
           React.createElement(Icon, { name:'x', className:'w-4 h-4' }))
@@ -3818,15 +3950,25 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
       React.createElement('div', { className:'max-h-[44vh] overflow-y-auto space-y-1.5 -mx-1 px-1' },
         list.length === 0 && React.createElement('p', { className:'text-sm text-slate-400 text-center py-6' }, 'Menu tidak ditemukan'),
         list.map(function(p) {
+          // v2.19: jumlah menu ini yang sudah ada di pesanan — tampil di bawah
+          // tombol + (kaya layar Tambah Pesanan biasa, permintaan owner)
+          var vid = (p.variants && p.variants[0] && p.variants[0].id) || null;
+          var qtyInOrder = 0;
+          (order.items || []).forEach(function(it) {
+            if (it.productId === p.id && (it.variantId || null) === vid) qtyInOrder += (Number(it.quantity) || 0);
+          });
           return React.createElement('div', { key: p.id, className:'flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2' },
             React.createElement('div', { className:'grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 text-xl' },
               React.createElement('span', { className:'select-none' }, catMeta(settings, p.category).emoji)),
             React.createElement('div', { className:'flex-1 min-w-0' },
               React.createElement('p', { className:'text-sm font-medium truncate' }, p.name),
               React.createElement('p', { className:'text-xs font-bold text-slate-900 mt-0.5' }, formatRupiah(p.price))),
-            React.createElement('button', { onClick: function() { onAdd(p); }, title:'Tambah ke pesanan',
-              className:'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-md shadow-emerald-500/30 active:scale-90 transition-transform' },
-              React.createElement(Icon, { name:'plus', className:'w-4 h-4' }))
+            React.createElement('div', { className:'flex flex-col items-center gap-1 shrink-0' },
+              React.createElement('button', { onClick: function() { onAdd(p); }, title:'Tambah ke pesanan',
+                className:'grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-600 text-white shadow-md shadow-emerald-500/30 active:scale-90 transition-transform' },
+                React.createElement(Icon, { name:'plus', className:'w-4 h-4' })),
+              qtyInOrder > 0 && React.createElement('span', { className:'min-w-[26px] text-center text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-1.5 py-0.5' }, qtyInOrder + '×')
+            )
           );
         })
       ),
@@ -3838,12 +3980,18 @@ function AddItemsSheet({ order, products, onClose, onAdd }) {
 
 // ===== ORDER DETAIL MODAL =====
 function OrderDetailModal({ order, onClose, onPay, onCancel }) {
-  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, markKitchenPrinted } = useAppStore();
+  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, markKitchenPrinted, addExtraCharge, removeExtraCharge } = useAppStore();
   const { products, settings } = state;
   // v2.10: sheet tambah menu + menu cetak (dapur/tambahan) yang buka ke atas
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const [printMenuOpen, setPrintMenuOpen] = React.useState(false);
   const [editItemNotes, setEditItemNotes] = React.useState(null);
+  // v2.19: form Biaya Tambahan (pict 2 — Nama Biaya + Jumlah Biaya + Simpan)
+  const [extraForm, setExtraForm] = React.useState(null); // { name, amount }
+  const [extraAmount, setExtraAmount] = React.useState('');
+  // v2.19: tombol back navigasi HP = tutup detail pesanan (kembali ke daftar)
+  const backCloseRef = useBackCloseModal();
+  backCloseRef.current = onClose;
   // Get fresh order from state (in case it was updated)
   const currentOrder = state.orders.find(o => o.id === order.id) || (state.archivedOrders || []).find(o => o.id === order.id) || order;
   const isUnpaid = currentOrder.paymentStatus === 'UNPAID';
@@ -3857,7 +4005,18 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       items: items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price, notes: it.notes })),
       customerName: currentOrder.customerName, notes: currentOrder.notes, tempat: currentOrder.tableNumber, orderType: currentOrder.type, queueNumber: currentOrder.queueNumber,
       createdAt: currentOrder.createdAt, serviceCharge: 0, discount: currentOrder.discount || 0, cashierName: currentOrder.cashierName,
+      extraCharges: extraChargesOf(currentOrder),
     };
+  }
+  // v2.19: simpan Biaya Tambahan dari form (validasi bahasa baku)
+  function saveExtraCharge() {
+    var nm = (extraForm && extraForm.name ? String(extraForm.name) : '').trim();
+    var amt = Math.round(Number(extraAmount) || 0);
+    if (!nm) { show(t('Isi nama biaya terlebih dahulu'), 'error'); return; }
+    if (amt <= 0) { show(t('Jumlah biaya harus lebih dari nol'), 'error'); return; }
+    addExtraCharge(currentOrder.id, nm, amt);
+    setExtraForm(null); setExtraAmount('');
+    show(t('Biaya tambahan ditambahkan'));
   }
   // v2.10: Cetak Dapur = semua item | Cetak Tambahan = cuma item yang belum kecetak
   function doPrintDapur(kind) {
@@ -3904,7 +4063,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
         React.createElement('div', { className:'flex items-center justify-between mb-2' },
           React.createElement('p', { className:'text-xs font-semibold text-slate-700' }, t('Item Pesanan')),
           React.createElement('button', { onClick: () => setSheetOpen(true), className:'text-xs text-emerald-600 font-medium hover:underline inline-flex items-center gap-1' },
-            React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Menu')
+            React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Pesanan')
           )
         ),
         currentOrder.items.map((it, i) => React.createElement('div', { key: i, className:'py-2' + (i > 0 ? ' border-t border-slate-100' : '') },
@@ -3938,10 +4097,29 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement('span', { className:'text-emerald-100' }, t('Diskon')),
           React.createElement('span', null, '-' + formatRupiah(currentOrder.discount))
         ),
+        // v2.19: baris Biaya Tambahan — tiap biaya tampil dengan tombol hapus
+        extraChargesOf(currentOrder).map(function(c) {
+          return React.createElement('div', { key: c.id, className:'flex justify-between text-sm mt-1' },
+            React.createElement('span', { className:'text-emerald-100 inline-flex items-center gap-1.5 min-w-0' },
+              React.createElement('span', { className:'truncate' }, c.name),
+              isUnpaid && React.createElement('button', { onClick: () => { removeExtraCharge(currentOrder.id, c.id); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'grid h-4 w-4 shrink-0 place-items-center rounded-full bg-white/20 hover:bg-white/40' },
+                React.createElement(Icon, { name:'x', className:'w-2.5 h-2.5' }))
+            ),
+            React.createElement('span', null, formatRupiah(c.amount))
+          );
+        }),
         React.createElement('div', { className:'flex justify-between font-bold text-lg mt-2 pt-2 border-t border-white/20' },
           React.createElement('span', null, t('Total')),
           React.createElement('span', null, formatRupiah(orderTotalOf(currentOrder)))
         )
+      ),
+      // v2.19: tombol Tambah Biaya Tambahan (pict 1) — biaya di luar menu yang
+      // tetap dihitung ke total & tercetak di struk kasir
+      // v2.20: warna ikut TEMA aktif (bukan merah tetap — permintaan owner:
+      // "jgn warna merah tetap, kan ada warna tema, semua tombol menyesuaikan").
+      // Kelas emerald-* diarahkan ke CSS var tema, jadi ganti tema = warna ikut.
+      isUnpaid && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 mb-3', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
+        React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), t('Tambah Biaya Tambahan')
       ),
       // Print buttons — v2.10: tombol Cetak Dapur sekarang punya menu yang BUKA KE ATAS
       // (kaya sketsa owner): Cetak Dapur = semua item kecetak, Cetak Tambahan = cuma
@@ -3998,6 +4176,23 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
             show('Catatan item disimpan');
           }
         })
+      ),
+      // v2.19: FORM BIAYA TAMBAHAN (pict 2) — Nama Biaya + Jumlah Biaya + Simpan
+      extraForm && React.createElement(Modal, { open: true, onClose: () => setExtraForm(null), className:'sm:max-w-sm' },
+        React.createElement('div', { className:'p-4' },
+          React.createElement('h2', { className:'text-base font-bold mb-1' }, t('Biaya Tambahan')),
+          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Biaya di luar menu yang ikut ke total tagihan (contoh: ongkos kirim, packing).')),
+          React.createElement(Label, null, t('Nama Biaya')),
+          React.createElement(Input, { value: extraForm.name || '', onChange: function(e) { setExtraForm(function(f) { return { name: e.target.value }; }); }, placeholder: t('contoh: Ongkos Kirim, Packing'), autoFocus: true }),
+          React.createElement(Label, null, t('Jumlah Biaya')),
+          React.createElement(Input, { type:'number', min:'0', value: extraAmount, onChange: function(e) { setExtraAmount(e.target.value.replace(/[^0-9]/g, '')); }, placeholder: '0', className:'mt-1' }),
+          extraAmount && React.createElement('p', { className:'text-xs font-semibold text-slate-600 mt-1.5' }, t('Jumlah: ') + formatRupiah(Number(extraAmount) || 0)),
+          React.createElement('div', { className:'flex gap-2 mt-4' },
+            React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setExtraForm(null) }, t('Batal')),
+            React.createElement(Button, { className:'flex-1 bg-red-600 hover:bg-red-700', onClick: saveExtraCharge },
+              React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
+          )
+        )
       )
     )
   );
@@ -4009,6 +4204,10 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
   const qrisImg = (state.settings && state.settings.qrisImage) || '';
   const [method, setMethod] = React.useState('CASH');
   const [paidInput, setPaidInput] = React.useState('');
+  // v2.19: tombol back navigasi HP = batalkan dialog bayar (kembali ke daftar)
+  const backCloseRef = useBackCloseModal();
+  var doClose = function() { reset(); onClose(); };
+  backCloseRef.current = doClose;
   const total = orderTotalOf(order); // v2.10: anti-NaN
   const paid = method === 'CASH' ? (parseFloat(paidInput) || 0) : total;
   const change = method === 'CASH' ? Math.max(0, paid - total) : 0;
@@ -4204,10 +4403,18 @@ function PaymentReportView({ onBack }) {
   }, [state.orders, state.archivedOrders, settings.outletId]);
   // Yang dihitung: WAKTU BAYAR-nya (paidAt), bukan waktu pesanan dibuat —
   // biar sama dengan arti "org pada bayar hari ini".
+  // v2.20: urutan DAFTAR PEMBAYARAN ikut NO. ANTRIAN kecil → besar (permintaan
+  // owner: "no antrian yg di laporan pembayaran lu sortir, biar urut enak diliat").
+  // Kalau nomor antrian sama/kosong, urutkan dari waktu bayar paling awal.
   const paidSel = React.useMemo(function() {
+    var qn = function(o) { var n = Number(o.queueNumber); return isFinite(n) && n > 0 ? n : (Number(o.number) || 0); };
     return allPaid
       .filter(o => ((o.paidAt || o.createdAt) || '').slice(0, 10) === selectedDate)
-      .sort((a, b) => String(b.paidAt || b.createdAt || '').localeCompare(String(a.paidAt || a.createdAt || '')));
+      .sort(function(a, b) {
+        var d = qn(a) - qn(b);
+        if (d !== 0) return d;
+        return String(a.paidAt || a.createdAt || '').localeCompare(String(b.paidAt || b.createdAt || ''));
+      });
   }, [allPaid, selectedDate]);
   // Rincian per metode bayar — metode apa pun (CASH/QRIS/TRANSFER/EWALET/ketikan)
   var methodMap = new Map();
@@ -6591,7 +6798,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.18 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.20 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),
@@ -6744,7 +6951,9 @@ function RestoInfoCard({ onSaved }) {
 
   function resetQueue() {
     if (confirm('Reset nomor antrian ke 1?')) {
-      const next = setRestoInfo({ queueNumber: 1 });
+      // v2.20: sekalian tandai tanggal hari ini — biar reset manual gak dianggap
+      // "sudah ganti hari" sama auto-reset besok pagi.
+      const next = setRestoInfo({ queueNumber: 1, queueDate: todayStr() });
       setInfo(next);
       setDraft(next);
       show('Nomor antrian direset ke 1');
@@ -6785,7 +6994,8 @@ function RestoInfoCard({ onSaved }) {
             React.createElement('div', { className:'flex items-center justify-between pt-2 border-t' },
               React.createElement('div', null,
                 React.createElement(Label, null, 'No. Antrian Berikutnya'),
-                React.createElement('p', { className:'font-bold text-lg' }, info.queueNumber || 1)
+                React.createElement('p', { className:'font-bold text-lg' }, nextQueueDisplay()),
+                React.createElement('p', { className:'text-[10px] text-slate-400' }, 'Ganti hari otomatis mulai dari 1'),
               ),
               React.createElement(Button, { size:'sm', variant:'ghost', className:'text-red-600', onClick: resetQueue }, 'Reset Antrian')
             )
@@ -7307,6 +7517,39 @@ function App() {
   const [mounted, setMounted] = React.useState(false);
   const [toast, setToast] = React.useState(null);
   var { state } = useAppStore();
+  // v2.19: TOMBOL BACK NAVIGASI HP — router popstate global (SATU listener saja).
+  // Urutan penanganan: entri riwayat buatan sendiri (suppress) → tutup modal
+  // teratas → kembali dari daftar pesanan ke Dashboard → guard keluar aplikasi.
+  var activeRef = React.useRef('dashboard');
+  activeRef.current = active;
+  var toastRef = React.useRef(null);
+  React.useEffect(function() {
+    try { history.replaceState({ mia: 'base' }, ''); } catch (e) {}
+    try { history.pushState({ mia: 'exit-guard' }, ''); } catch (e) {}
+    var lastBackAt = 0;
+    function onPop(e) {
+      if (MIA_NAV.suppress > 0) { MIA_NAV.suppress--; return; }
+      if (MIA_NAV.modalClose) { MIA_NAV.modalClose(); return; }   // back = tutup modal (detail pesanan, dialog bayar)
+      if (MIA_NAV.ordersBack) { MIA_NAV.ordersBack(); return; }   // back di daftar pesanan = ke Dashboard
+      var st = e.state || {};
+      if (st.mia === 'base') {
+        // Di Dashboard: back pertama = pengingat, back kedua (≤2,5 dtk) = keluar
+        var now = Date.now();
+        if (now - lastBackAt < 2500) { try { history.back(); } catch (err) {} return; }
+        lastBackAt = now;
+        if (toastRef.current) toastRef.current.show(t('Tekan sekali lagi untuk keluar aplikasi'), 'info');
+        setTimeout(function() { try { history.pushState({ mia: 'exit-guard' }, ''); } catch (err) {} }, 0);
+      }
+    }
+    window.addEventListener('popstate', onPop);
+    return function() { window.removeEventListener('popstate', onPop); };
+  }, []);
+  // v2.19: kembali ke Dashboard dari layar lain? pastikan ada entri guard di atas dasar
+  React.useEffect(function() {
+    if (active === 'dashboard') {
+      try { if (history.state && history.state.mia === 'base') history.pushState({ mia: 'exit-guard' }, ''); } catch (e) {}
+    }
+  }, [active]);
   React.useEffect(() => {
     Promise.resolve().then(() => setMounted(true));
   }, []);
@@ -7360,6 +7603,7 @@ function App() {
     meta.setAttribute('content', loading ? '#020617' : t.bar);
   }, [loading, themeKey]);
   var toastApi = React.useMemo(function() { return { show: function(msg, type) { setToast({ msg: msg, type: type || 'success', id: Date.now() }); } }; }, []);
+  toastRef.current = toastApi; // v2.19: dipakai router popstate (guard keluar aplikasi)
   if (loading || !mounted) return React.createElement(SplashScreen, { fadeOut: fadeOut });
   var goMore = function() { setActive('more'); };
   return React.createElement(ToastCtx.Provider, { value: toastApi },

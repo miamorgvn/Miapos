@@ -237,7 +237,7 @@ def save_sync(acc, payload):
 class MiaposHandler(SimpleHTTPRequestHandler):
     """Handler HTTP: file statis + API lokal (backup & analytics)."""
 
-    server_version = "MiaposServer/2.18"
+    server_version = "MiaposServer/2.20"
 
     # ---------- helper JSON ----------
     def _json(self, obj, code=200):
@@ -326,7 +326,7 @@ class MiaposHandler(SimpleHTTPRequestHandler):
             cpp = cpp_engine_available()
             self._json({
                 "ok": True, "app": "miapos", "server": "python",
-                "version": "2.18", "cppEngine": cpp, "sync": True,
+                "version": "2.20", "cppEngine": cpp, "sync": True,
                 "time": datetime.now().strftime("%H:%M:%S"),
             })
             return

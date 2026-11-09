@@ -1,11 +1,94 @@
 ================================================
-  MIAPOS v2.18 — CHECKLIST
+  MIAPOS v2.20 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.18 — NO. ANTRIAN KASIH JEDA 1 BARIS
+0. REVISI v2.20 — TEMA · TEKS CUACA · LAPORAN ·
+     ANTRIAN AUTO-RESET
+=====================================================
+[x] 1. TOMBOL BIAYA TAMBAHAN IKUT TEMA: bukan merah
+       tetap lagi — warnanya ikut tema aktif
+       (Emerald/Royal/Pink/Charcoal), konsisten sama
+       tombol lain.
+[x] 2. TEKS CUACA DITULIS ULANG + DIKUNCI 5 MENIT:
+       kalimatnya sekarang kaya teman ngobrol (gak
+       baku, gak kaku, gak cringe); ganti tiap 5
+       menit, GAK ganti tiap pindah layar; gak
+       ngulang kalimat sama berturut-turut.
+[x] 3. LAPORAN PEMBAYARAN URUT NO. ANTRIAN: daftar
+       transaksi lunas kecil → besar (1, 2, 3, ...).
+[x] 4. ANTRIAN AUTO-RESET: begitu ganti hari (jam 12
+       malam waktu HP), pesanan pertama otomatis No.
+       1 — gak bisa lagi nyandul nomor kemarin.
+       Reset manual tetap ada; "No. Antrian
+       Berikutnya" di Pengaturan sadar-tanggal.
+[x] 5. FILE NOTIF TERSISA DIHAPUS PERMANEN:
+       PANDUAN-NOTIF.txt, api/push-subscribe.js,
+       api/push-send.js, api/_pushlib.js — sudah gak
+       ada di repo (app memang gak bisa push notif
+       sejak v2.10).
+[x] 6. VERSI v2.20 + cache sw.js miapos-v2.20-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 7. COBA SENDIRI (2 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.20) — cek tulisan versi di app.
+       • Ganti tema (Pengaturan → Tema Warna) →
+         detail pesanan → tombol Tambah Biaya
+         Tambahan ikut warna tema, bukan merah.
+       • Laporan Pembayaran → daftar transaksi urut
+         nomor antrian.
+       • Pengaturan → Info Resto → keterangan "Ganti
+         hari otomatis mulai dari 1" tampil di
+         bawah No. Antrian Berikutnya.
+
+=====================================================
+0. REVISI v2.19 (rilis sebelumnya) — BIAYA TAMBAHAN ·
+     FIX MENU DOBEL · BACK NAVIGASI HP
+=====================================================
+[x] 1. TOMBOL TAMBAH BIAYA TAMBAHAN (detail pesanan):
+       • Tombol merah di bawah kartu Total → form
+         Nama Biaya + Jumlah Biaya → Simpan.
+       • Ikut total tagihan & tercetak di struk kasir
+         (baris "Biaya: <nama>"), bisa dihapus lagi
+         selama belum dibayar.
+[x] 2. FIX MENU SAMA KEPISAH: menu yang sama dipencet
+       2x di sheet tambah item sekarang digabung
+       (qty bertambah), tidak bikin baris baru.
+[x] 3. TOMBOL & SHEET JADI "TAMBAH PESANAN": label di
+       detail pesanan diganti + jumlah item tampil di
+       bawah tombol + (contoh: 2x).
+[x] 4. PRATINJAU NOTA 3 TAB: Nota Kasir · Nota Dapur ·
+       Nota Dapur-Tambahan.
+[x] 5. BACK NAVIGASI HP JALAN DI APP: detail pesanan →
+       daftar pesanan → Dashboard. Di Dashboard: back
+       pertama = pengingat "Tekan sekali lagi untuk
+       keluar aplikasi", back kedua = keluar. Back saat
+       dialog bayar = batalkan dialog.
+[x] 6. BAHASA BAKU: teks baru tetap bahasa Indonesia
+       baku (aturan owner).
+[x] 7. VERSI v2.19 + cache sw.js miapos-v2.19-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 8. COBA SENDIRI (2 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.19) — cek tulisan versi di app.
+       • Detail pesanan → Tambah Biaya Tambahan → isi
+         nama + jumlah → Simpan → Total naik & struk
+         kasir ada baris biayanya.
+       • Sheet Tambah Pesanan → pencet menu sama 2x →
+         jadi 1 baris qty 2, angka 2x muncul di bawah
+         tombol +.
+       • Back HP: dari detail → daftar pesanan →
+         Dashboard → back 2x → keluar (ada pengingat).
+
+=====================================================
+CATATAN v2.18 (rilis sebelumnya) — NO. ANTRIAN KASIH
+     JEDA 1 BARIS
 =====================================================
 [x] 1. JEDA SATU BARIS SEBELUM NO. ANTRIAN:
        • Nota dapur: daftar menu dulu, lalu satu
@@ -19,8 +102,8 @@ yang harus Anda lakukan sendiri (tinggal diklik/ketik).
        Indonesia baku (aturan owner).
 [x] 4. VERSI v2.18 + cache sw.js miapos-v2.18-r1
        (aturan tetap: tiap update versi terus naik).
-[ ] 5. COBA SENDIRI (1 menit):
-       • Timpa SEMUA file repo dengan isi zip ini →
+[x] 5. COBA SENDIRI (selesai di v2.18):
+       • Timpa SEMUA file repo dengan isi zip →
          push → tunggu deploy beres.
        • Buka app sampai penuh (biar cache keganti
          v2.18) — cek tulisan versi di app.
