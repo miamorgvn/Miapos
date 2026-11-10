@@ -1,0 +1,52 @@
+name: Build Miapos APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ambil Kode Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Cordova Global
+        run: npm install -g cordova
+
+      - name: Merakit Kerangka Aplikasi Android
+        run: |
+          cordova create miapos_build com.miapos.app Miapos
+          cd miapos_build
+          cordova platform add android
+          cordova plugin add cordova-plugin-inappbrowser
+          
+          # Bersihkan folder www bawaan dan pindahkan file kasir lu ke dalamnya
+          rm -rf www/*
+          cp -r ../* www/ 2>/dev/null || true
+          
+          # Inject script update otomatis ke index.html sebelum dirakit
+          sed -i '/<\/body>/i <script>const CURRENT_VERSION = "2.23.0"; const GITHUB_USER = "miamorgvn"; const GITHUB_REPO = "Miapos"; async function checkAppUpdate(){try{const r=await fetch(`https://github.com{GITHUB_USER}/${GITHUB_REPO}/releases/latest`);if(!r.ok)return;const d=await r.json(),l=d.tag_name.replace("v","");if(compareVersions(l,CURRENT_VERSION)>0)showUpdatePopup(d.tag_name,d.html_url)}catch(e){}}function compareVersions(v1,v2){const p1=v1.split(".").map(Number),p2=v2.split(".").map(Number);for(let i=0;i<3;i++){if(p1[i]>p2[i])return 1;if(p1[i]<p2[i])return-1}return 0}function showUpdatePopup(nV,dU){const p=document.createElement("div");p.style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:99999;font-family:sans-serif;padding:15px;box-sizing:border-box;";p.innerHTML=`<div style="background:#fff;padding:25px;border-radius:16px;width:100%;max-width:360px;text-align:center;box-shadow:0 10px 25px rgba(0,0,0,0.3);"><h3 style="margin:0 0 10px 0;color:#1f2937;font-size:18px;">Update Miapos Tersedia! 🚀</h3><p style="color:#4b5563;font-size:14px;line-height:1.5;margin:0 0 20px 0;">Versi baru <b>\${nV}</b> telah dirilis di GitHub. Silakan download untuk memperbarui sistem kasir lu.</p><div style="display:flex;gap:10px;justify-content:center;"><button id="btn-nanti" style="background:#e5e7eb;color:#374151;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;flex:1;">Nanti</button><button id="btn-update" style="background:#2563eb;color:#fff;border:none;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:bold;font-size:14px;flex:1;">Update</button></div></div>`;document.body.appendChild(p);document.getElementById("btn-nanti").onclick=()=>p.remove();document.getElementById("btn-update").onclick=()=>{window.open(dU,"_system")}}document.addEventListener("deviceready",checkAppUpdate,false);<\/script>' www/index.html
+
+          # Compile jadi APK Android Resmi
+          cordova build android --device
+
+      - name: Upload APK Hasil Rakitan
+        uses: actions/upload-artifact@v4
+        with:
+          name: Miapos-v2.23-APK
+          path: miapos_build/platforms/android/app/build/outputs/apk/debug/app-debug.apk

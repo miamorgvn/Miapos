@@ -1,14 +1,80 @@
 ================================================
-  MIAPOS v2.22 — TOMBOL "+ TAMBAH MENU" DI
-     KERANJANG DIHAPUS (NYEMPIL) · BIAYA
-     TAMBAHAN TETAP DI BAWAH DINE IN
-     (di atas: catatan nota di detail +
-     tambahan digabung tetap ditandain +
-     tombol biaya ikut tema + teks cuaca
-     santai + laporan urut antrian +
-     antrian auto-reset + fix menu dobel +
-     back navigasi HP + sinkron antar HP +
-     2 bahasa + 4 tema + backup cloud)
+  MIAPOS v2.23 — BACKUP CLOUD TANPA PASSWORD
+     (CUKUP LOGIN AKUN) · JAWABAN SOAL
+     ENGINE C++ · CORDOVA · PESANAN "HILANG"
+     (di atas: keranjang rapi + catatan nota +
+     tambahan ditandain + tombol biaya ikut
+     tema + teks cuaca santai + laporan urut
+     antrian + antrian auto-reset + back
+     navigasi HP + sinkron antar HP + 2 bahasa
+     + 4 tema + backup cloud)
+================================================
+
+APA YANG BARU DI v2.23 (backup bebas password)
+------------------------------------------------------------
+1. BACKUP CLOUD TANPA PASSWORD:
+   • Dulu buat nyalain backup otomatis ke GitHub
+     harus isi "password backup" (BACKUP_KEY)
+     di Pengaturan — ribet.
+   • Sekarang cukup LOGIN AKUN (no. HP + kata
+     sandi seperti biasa): backup otomatis jalan
+     sendiri (maks. 1x per 2 jam kalau data
+     berubah), tombol "Backup Sekarang" &
+     "Pulihkan" juga langsung jalan TANPA isi
+     password apa pun.
+   • Password backup (BACKUP_KEY di Vercel)
+     jadi OPSIONAL — cuma dipakai kalau belum
+     login / mau pakai kunci sendiri. Yang udah
+     pernah nge-key tetap jalan kayak biasa.
+2. UPDATE APP GAK PERLU LOGOUT — INGAT INI:
+   • Timpa file repo → push → tunggu deploy →
+     buka app: akun TETAP ke-login, data TETAP
+     ada. Gak perlu keluar-masuk akun lagi,
+     gak perlu sinkron ulang.
+   • Asal domain/URL-nya SAMA. Kalau pindah ke
+     domain baru, ya login sekali lagi — data
+     akun otomatis keunduh dari cloud.
+3. PESANAN KEMARIN "HILANG"? ENGGA — DIARSIP:
+   • Tiap ganti hari, pesanan hari sebelumnya
+     otomatis pindah ke arsip biar daftar
+     pesanan bersih cuma nampilin hari ini.
+   • Cek lagi di: LAPORAN → tab "Riwayat
+     Pesanan" → pilih tanggalnya. Omzet &
+     Laporan Pembayaran tetap ngitung semuanya.
+4. SOAL MAIN.PY + ENGINE C++ (jawaban):
+   • Dua-duanya GAK aktif sendiri & GAK wajib.
+     App web (index.html di Vercel) jalan
+     sendiri — sinkron antar HP pakai api/
+     sync.js yang aktif OTOMATIS begitu deploy
+     ke Vercel (butuh env GITHUB_TOKEN sekali
+     setel di Vercel).
+   • main.py = server OPSIONAL buat PC/Termux
+     (backup lokal + analytics) — baru jalan
+     kalau lu jalanin sendiri (python main.py
+     atau install.sh). Engine C++ ikut
+     dicompile sama main.py, bukan buat web.
+5. MAU JADI APLIKASI ANDROID (CORDOVA)?
+   • BISA — index.html DOANG cukup. App-nya
+     100% offline & tombol back HP udah jalan
+     (sama kaya sekarang).
+   • Tips: arahkan WebView ke URL Vercel lu
+     (bukan file index.html lokal) biar sinkron
+     & backup cloud tetap jalan di dalam APK.
+     Kalau index.html dibuka lokal di WebView,
+     app tetap jalan penuh tapi sinkron antar
+     HP mati (API /api/* gak ada di situ).
+6. VERSI NAIK:
+   • App v2.23 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.23-r1 ·
+     server main.py v2.23 · package.json
+     2.23.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.22 (rilis sebelumnya) — TOMBOL
+     "+ TAMBAH MENU" DI KERANJANG DIHAPUS
+     (NYEMPIL) · BIAYA TAMBAHAN TETAP
 ================================================
 
 APA YANG BARU DI v2.22 (keranjang dirapikan)

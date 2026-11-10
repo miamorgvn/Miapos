@@ -1,5 +1,5 @@
 /* ============================================================
-   MIAPOS v2.22 — API SINKRON OTOMATIS ANTAR HP (Vercel + GitHub)
+   MIAPOS v2.23 — API SINKRON OTOMATIS ANTAR HP (Vercel + GitHub)
    ------------------------------------------------------------
    MASALAH YANG DISELESAIKAN (permintaan owner):
    Dulu pindah data ke HP lain harus SCAN QR / tempel kode —

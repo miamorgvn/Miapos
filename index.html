@@ -1414,7 +1414,10 @@ function AppProvider({ children }) {
       var online = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
       if (!online) return;
       var key = localStorage.getItem('miapos-cloud-key') || '';
-      if (!key) return;
+      // v2.23: TANPA PASSWORD — backup jalan otomatis selama sudah login akun
+      // (auth pakai passHash akun). Password backup (kunci) jadi OPSIONAL.
+      var accAuthed = !!(state.account && state.account.phone && state.account.passHash);
+      if (!key && !accAuthed) return;
       var s = JSON.stringify(state);
       var h = 0;
       for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
@@ -1423,7 +1426,7 @@ function AppProvider({ children }) {
       if (String(h) === lastH) return; // data belum berubah sejak backup terakhir
       if (Date.now() - last < 2 * 60 * 60 * 1000) return; // throttle: 1x per 2 jam
       var t = setTimeout(function() {
-        fetch('/api/backup', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-backup-key': key }, body: s })
+        fetch('/api/backup', { method:'POST', headers: Object.assign({ 'Content-Type':'application/json' }, ServerBridge.keyHeaders()), body: s })
           .then(function(r) { return r.ok ? r.json() : null; })
           .then(function(res) {
             if (res && res.ok) {
@@ -2087,7 +2090,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.22')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.23')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -6978,7 +6981,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.22 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.23 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),
@@ -7329,7 +7332,23 @@ var ServerBridge = {
       .catch(function() { return null; });
     return this._ping;
   },
-  keyHeaders: function() { var k = CloudStore.getKey(); return k ? { 'x-backup-key': k } : {}; },
+  // v2.23: header auth backup — key backup (kalau diisi) + AUTH AKUN
+  // (x-miapos-acc + x-miapos-acc-pass). Selama sudah login akun, backup
+  // cloud & restore jalan TANPA mengisi password backup apa pun.
+  keyHeaders: function() {
+    var h = {};
+    try {
+      var k = CloudStore.getKey();
+      if (k) h['x-backup-key'] = k;
+      var st = null;
+      try { st = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { st = null; }
+      if (st && st.account && st.account.phone && st.account.passHash) {
+        h['x-miapos-acc'] = String(st.account.phone).replace(/[^0-9]/g, '');
+        h['x-miapos-acc-pass'] = String(st.account.passHash);
+      }
+    } catch (e) {}
+    return h;
+  },
   backup: function(data) {
     return fetch('/api/backup', {
       method:'POST',
@@ -7389,7 +7408,10 @@ function EngineCard() {
   });
   const modeCloud = checked && info && info.engine === 'cloud';
   const modeLocal = checked && info && info.engine !== 'cloud';
-  const cloudReady = modeCloud && hasKey && keyErr !== 'KEY_SALAH';
+  // v2.23: login akun = backup cloud langsung AKTIF tanpa password
+  const accAuthed = !!(state.account && state.account.phone && state.account.passHash);
+  const authed = hasKey || accAuthed;
+  const cloudReady = modeCloud && authed && keyErr !== 'KEY_SALAH';
   function refreshList() {
     return ServerBridge.listBackups().then(function(b) {
       if (b && b.ok) { setBackups(b.backups || []); setKeyErr(''); return true; }
@@ -7402,7 +7424,7 @@ function EngineCard() {
     ServerBridge.ping().then(function(p) {
       if (!alive) return;
       setInfo(p); setChecked(true);
-      if (p && CloudStore.getKey()) refreshList();
+      if (p && (CloudStore.getKey() || (state.account && state.account.phone && state.account.passHash))) refreshList();
     });
     return function() { alive = false; };
   }, []);
@@ -7463,11 +7485,11 @@ function EngineCard() {
   }
   var badge = null;
   if (!checked) badge = null;
-  else if (modeCloud && hasKey && keyErr === '') badge = React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
+  else if (modeCloud && authed && keyErr === '') badge = React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
     React.createElement('span', { className:'w-1.5 h-1.5 rounded-full bg-emerald-500', style:{ animation:'pulse-soft 1.6s infinite' } }), 'CLOUD AKTIF');
   else if (modeCloud && keyErr === 'KEY_SALAH') badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-red-50 border border-red-200 text-[10px] font-bold text-red-600' }, 'PASSWORD SALAH');
   else if (modeCloud && keyErr === 'SERVER_ERROR') badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700' }, 'SERVER CEK ENV');
-  else if (modeCloud) badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700' }, 'ISI PASSWORD');
+  else if (modeCloud && !authed) badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-[10px] font-bold text-amber-700' }, 'BELUM LOGIN / ISI PASSWORD');
   else if (modeLocal) badge = React.createElement('span', { className:'flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-700' },
     React.createElement('span', { className:'w-1.5 h-1.5 rounded-full bg-emerald-500', style:{ animation:'pulse-soft 1.6s infinite' } }), 'TERMUX AKTIF');
   else badge = React.createElement('span', { className:'px-2 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-500' }, 'STANDALONE');
@@ -7480,7 +7502,7 @@ function EngineCard() {
       badge
     ),
     React.createElement('p', { className:'text-xs text-slate-500 mb-3' },
-      modeCloud ? 'Backup otomatis ke repo GitHub (folder backups/) — tanpa Termux, tanpa perlu menjaga server.'
+      modeCloud ? 'Backup otomatis ke repo GitHub (folder backups/) — cukup LOGIN akun, TANPA password. Tanpa Termux, tanpa menjaga server.'
         : (modeLocal ? 'Python server + C++ native analytics yang berjalan di HP Anda sendiri (via Termux).'
           : 'Aplikasi berjalan 100% offline — semua data tersimpan aman di HP Anda.')),
     // ---- CLOUD: panel setup (belum isi password / password salah) ----
@@ -7488,7 +7510,7 @@ function EngineCard() {
       React.createElement('p', { className:'text-[11px] font-bold mb-1 ' + (keyErr === 'KEY_SALAH' ? 'text-red-700' : 'text-amber-700') },
         keyErr === 'KEY_SALAH' ? 'PASSWORD SALAH' : 'AKTIFKAN BACKUP CLOUD'),
       React.createElement('p', { className:'text-[11px] mb-2 text-slate-600' },
-        'Masukkan password backup — harus sama dengan BACKUP_KEY yang di-set di Vercel. Langkah lengkap: PANDUAN-BACKUP-CLOUD.txt.'),
+        'Password backup SIFATNYA OPSIONAL — kalau sudah login akun, backup otomatis aktif tanpa password. Isi di sini cuma kalau mau pakai kunci sendiri (harus sama dengan BACKUP_KEY di Vercel). Langkah lengkap: PANDUAN-BACKUP-CLOUD.txt.'),
       React.createElement('div', { className:'flex gap-2' },
         React.createElement('input', {
           type:'password', value: keyInput, placeholder:'Password backup cloud...',

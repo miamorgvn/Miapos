@@ -1,5 +1,5 @@
 /* ============================================================
-   MIAPOS v2.9 — API BACKUP CLOUD (Vercel Serverless + GitHub)
+   MIAPOS v2.23 — API BACKUP CLOUD (Vercel Serverless + GitHub)
    ------------------------------------------------------------
    BACKUP OTOMATIS TANPA TERMUX.
    Data dikirim app (HTTPS) → function ini commit file JSON ke
@@ -11,15 +11,19 @@
    - GET  /api/backup?file=NAMA    → isi backup     {ok,file,data}
    - POST /api/backup  (body=data) → simpan backup  {ok,file,total}
 
-   KEAMANAN:
-   - Semua akses WAJIB header  x-backup-key: <BACKUP_KEY>
-     (sama dengan env BACKUP_KEY yang di-set di Vercel).
+   KEAMANAN (v2.23 — BEBAS PASSWORD BAGI YANG SUDAH LOGIN):
+   Lolos kalau SALAH SATU benar:
+   1. Header x-backup-key = BACKUP_KEY env (jalur lama — opsional).
+   2. Header x-miapos-acc (no. HP akun) + x-miapos-acc-pass (passHash
+      akun) yang cocok dengan passHash tersimpan di file akun cloud
+      (sync/acc-<noHP>.json) — BARU. Efeknya: cukup LOGIN akun —
+      backup otomatis, Backup Sekarang & Pulihkan TANPA isi password.
    - Banding pakai timingSafeEqual (anti timing-attack).
 
    ENV WAJIB (di-set di Vercel → Settings → Environment Variables):
    - GITHUB_TOKEN : token GitHub (akses repo ini, Contents: Read&Write)
-   - BACKUP_KEY   : password backup bebas, dipakai juga di aplikasi
    ENV OPSIONAL:
+   - BACKUP_KEY   : password backup lama — sekarang opsional (v2.23)
    - GITHUB_BRANCH: default 'main' (kalau branch repo lu beda)
    Otomatis dari Vercel (tidak perlu di-set):
    - VERCEL_GIT_REPO_OWNER / VERCEL_GIT_REPO_SLUG
@@ -47,6 +51,31 @@ function keyOk(req) {
   const got = Buffer.from(String(req.headers['x-backup-key'] || ''));
   const want = Buffer.from(KEY);
   return got.length === want.length && crypto.timingSafeEqual(got, want);
+}
+
+// v2.23: header pass akun (passHash) + no. HP akun — dikirim app saat login
+function accPassHeader(req) {
+  return String(req.headers['x-miapos-acc-pass'] || '').replace(/[^a-zA-Z0-9-]/g, '').slice(0, 40);
+}
+function accPhoneHeader(req) {
+  const digits = String(req.headers['x-miapos-acc'] || '').replace(/[^0-9]/g, '').slice(0, 20);
+  return (digits && digits.length >= 8) ? digits : null;
+}
+// passHash akun cocok dengan passHash tersimpan di file akun cloud?
+// sumber: sync/acc-<noHP>.json (file yang ditulis api/sync.js saat app push)
+async function accPassOk(req) {
+  const got = accPassHeader(req);
+  const phone = accPhoneHeader(req);
+  if (!got || !phone || !TOKEN || !OWNER || !REPO) return false;
+  try {
+    const g = await gh('/repos/' + OWNER + '/' + REPO + '/contents/sync/acc-' + phone + '.json?ref=' + encodeURIComponent(BRANCH));
+    if (!g.ok || !g.body || !g.body.content) return false;
+    let f;
+    try { f = JSON.parse(Buffer.from(g.body.content, 'base64').toString('utf8')); } catch (e) { return false; }
+    const want = String((f && f.acc && f.acc.passHash) || '');
+    if (!want || got.length !== want.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(got), Buffer.from(want));
+  } catch (e) { return false; }
 }
 
 async function gh(path, opts) {
@@ -96,11 +125,16 @@ module.exports = async (req, res) => {
   try { url = new URL(req.url, 'http://x'); } catch (e) { return json(res, 400, { ok: false, error: 'BAD_URL' }); }
   const name = (url.searchParams.get('file') || '').replace(/[^a-zA-Z0-9._-]/g, '');
 
-  // --- proteksi env + key (semua operasi data) ---
-  if (!TOKEN || !KEY || !OWNER || !REPO) {
-    return json(res, 500, { ok: false, error: 'SERVER_BELUM_DISET (env GITHUB_TOKEN / BACKUP_KEY)' });
+  // --- proteksi env + auth (semua operasi data) ---
+  // v2.23: GITHUB_TOKEN wajib; BACKUP_KEY jadi OPSIONAL — selama app login
+  // akun, auth pakai passHash akun (tanpa password apa pun).
+  if (!TOKEN || !OWNER || !REPO) {
+    return json(res, 500, { ok: false, error: 'SERVER_BELUM_DISET (env GITHUB_TOKEN)' });
   }
-  if (!keyOk(req)) return json(res, 401, { ok: false, error: 'KEY_SALAH' });
+  const authed = keyOk(req) || (await accPassOk(req));
+  if (!authed) {
+    return json(res, 401, { ok: false, error: accPassHeader(req) ? 'ACC_PASS_SALAH' : (KEY ? 'KEY_SALAH' : 'PERLU_KEY') });
+  }
 
   const base = '/repos/' + OWNER + '/' + REPO + '/contents/' + DIR;
 

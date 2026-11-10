@@ -1,6 +1,6 @@
 {
   "name": "miapos",
-  "version": "2.22.0",
+  "version": "2.23.0",
   "private": true,
   "description": "Miapos F&B Suite — POS PWA (Vercel functions deps)",
   "dependencies": {},

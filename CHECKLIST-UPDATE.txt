@@ -1,12 +1,47 @@
 ================================================
-  MIAPOS v2.22 — CHECKLIST
+  MIAPOS v2.23 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.22 — TOMBOL "+ TAMBAH MENU" DI KERANJANG
-     DIHAPUS (NYEMPIL) · BIAYA TAMBAHAN TETAP DI SITU
+0. REVISI v2.23 — BACKUP CLOUD TANPA PASSWORD
+     (CUKUP LOGIN AKUN)
+=====================================================
+[x] 1. BACKUP CLOUD BEBAS PASSWORD:
+       • api/backup.js sekarang menerima auth akun
+         (no. HP + passHash, dicek ke file akun di
+         cloud) SELAIN BACKUP_KEY — sama kaya api/
+         sync.js sejak v2.15.
+       • App: selama sudah LOGIN akun, backup
+         otomatis (maks. 1x per 2 jam), tombol
+         "Backup Sekarang" & "Pulihkan" semuanya
+         jalan TANPA mengisi password.
+       • BACKUP_KEY jadi OPSIONAL — jalur lama
+         tetap jalan buat yang udah kebiasa.
+[x] 2. KARTU PENGATURAN DIPERBARUI: badge
+       "CLOUD AKTIF" (tanpa password) / "BELUM
+       LOGIN / ISI PASSWORD"; teksnya jelasin
+       bahwa password backup cuma opsional.
+[x] 3. VERSI v2.23 + cache sw.js miapos-v2.23-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 4. COBA SENDIRI (2 menit):
+       • Timpa SEMUA file repo dengan isi zip ini →
+         push → tunggu deploy beres.
+       • Buka app sampai penuh (biar cache keganti
+         v2.23) — cek tulisan versi di app.
+       • Pastikan sudah login akun → Pengaturan →
+         kartu Backup Cloud: badge "CLOUD AKTIF"
+         TANPA isi password apa pun → klik
+         "Backup Sekarang" → file backup baru
+         muncul di daftar.
+       • Pesanan kemarin? Laporan → tab "Riwayat
+         Pesanan" → pilih tanggalnya — bukan
+         hilang, cuma otomatis kearsip.
+
+=====================================================
+0. REVISI v2.22 (rilis sebelumnya) — TOMBOL "+ TAMBAH
+     MENU" DI KERANJANG DIHAPUS · BIAYA TAMBAHAN
 =====================================================
 [x] 1. KERANJANG — TOMBOL "+ TAMBAH MENU" DIHAPUS:
        • Dulu (v2.21) tombolnya nyempil di keranjang,
