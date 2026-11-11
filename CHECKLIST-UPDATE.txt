@@ -1,12 +1,119 @@
 ================================================
-  MIAPOS v2.23 — CHECKLIST
+  MIAPOS v2.25 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.23 — BACKUP CLOUD TANPA PASSWORD
-     (CUKUP LOGIN AKUN)
+0. REVISI v2.25 — PESANAN YANG DIBATALKAN BISA
+     DIBUKA LAGI (UBAH PESANAN) — GA PERLU BIKIN DARI NOL
+=====================================================
+[x] 1. TOMBOL "UBAH PESANAN" DI DETAIL PESANAN
+       BATAL:
+       • Buka menu Pesanan -> ketuk pesanan yang
+         ada badge merah "Dibatalkan" -> di bawah
+         ada tombol hijau "Ubah Pesanan".
+       • Ditekan -> SEMUA detail pesanan langsung
+         masuk keranjang & app pindah ke layar
+         Tambah Pesanan: menu + qty, biaya
+         tambahan (beserta qty & catatannya),
+         nama pelanggan, tempat/meja, catatan
+         dapur, sampai diskon.
+       • Kasir tinggal ubah yang perlu doang (mis.
+         pembayaran QRIS ganti tunai) -> bayar
+         seperti biasa. Gak perlu ketik ulang
+         menu satu-satu.
+       • Pesanan yang dibayar ulang jadi pesanan
+         sendiri (nomor baru); catatan yang lama
+         tetap ada sebagai "Dibatalkan" & tetap
+         gak dihitung omzet — angka laporan tetap
+         jujur.
+       • Cuma di menu Pesanan hari ini. Riwayat
+         tanggal lampau di Laporan cuma buat
+         dilihat.
+[x] 2. KONFIRMASI BATAL + DETAIL BATAL DIBERESIN:
+       • Teks konfirmasi "Batalkan Pesanan" sekarang
+         ngeingetin bahwa pesanan batal masih bisa
+         dibuka lagi (Ubah Pesanan).
+       • Di detail pesanan batal, tombol "+ Tambah
+         Pesanan" & "+ Tambah Biaya Tambahan"
+         disembunyiin — ubah isi pesanan lewat
+         Ubah Pesanan aja.
+[x] 3. VERSI v2.25 + cache sw.js miapos-v2.25-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 4. COBA SENDIRI (3 menit):
+       • Buat 1 pesanan -> bayar QRIS -> Batalkan
+         Pesanan -> Ya, Batalkan.
+       • Ketuk pesanan batalnya -> "Ubah Pesanan"
+         -> cek keranjang: menu, biaya, nama
+         pelanggan, meja semua keisi lagi.
+       • Ganti metode bayarnya jadi Tunai ->
+         Konfirmasi -> pesanan baru tercatat;
+         cek Dashboard: omzet nambah sekali doang
+         (pesanan batal tetap gak dihitung).
+
+=====================================================
+0. REVISI v2.24 (rilis sebelumnya) — BIAYA TAMBAHAN
+     JADI ITEM (QTY + CATATAN + HAPUS) · PESANAN
+     DONE BISA DIBATALKAN
+=====================================================
+[x] 1. BIAYA TAMBAHAN KAYA MENU:
+       • Di keranjang & di detail pesanan, tiap
+         biaya tambahan sekarang jadi kartu item:
+         ada QTY (+/-), kolom CATATAN, tombol
+         hapus, dan subtotal per baris - persis
+         kaya kartu menu di keranjang.
+       • "Jumlah Biaya" = harga SATUAN. Total
+         biaya = satuan x qty. Contoh: Packing
+         Rp2.800 x 3 = Rp8.400.
+       • Catatan per biaya ikut tercetak di
+         struk kasir (di bawah baris biayanya).
+       • Struk kasir: kalau qty > 1, barisnya
+         jadi "Biaya: 3x Packing ... 8.400".
+       • Biaya lama tanpa qty tetap kehitung
+         sebagai qty 1 - aman, angka gak berubah.
+[x] 2. PESANAN YANG UDH DONE (SUDAH BAYAR)
+       BISA DIBATALKAN:
+       • Tombol merah "Batalkan Pesanan" ada
+         di detail pesanan - buat semua pesanan,
+         termasuk yang sudah bayar, wajib lewat
+         konfirmasi dulu.
+       • Buat apa? Contoh nyata: pelanggan
+         konfirmasi QRIS tapi transaksinya
+         gagal, dia mau ganti tunai -> batalkan
+         pesanan QRIS-nya, terus bikin pesanan
+         baru bayar tunai.
+       • Pesanan batal dikasih badge merah
+         "Dibatalkan" (daftar, detail, riwayat)
+         & TIDAK DIHITUNG dalam omzet dan
+         semua laporan (dashboard, laporan
+         menu, laporan pembayaran, riwayat,
+         Owner Zone, export Excel).
+       • Bahan baku yang kepotong waktu pesanan
+         dibuat OTOMATIS KEMBALI ke stok -
+         tercatat di Riwayat Pergerakan Stok
+         dengan alasan "Pembatalan Pesanan".
+       • Meja yang nempel di pesanan batal
+         langsung lepas (status DIRTY).
+[x] 3. VERSI v2.24 + cache sw.js miapos-v2.24-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 4. COBA SENDIRI (3 menit):
+       • Tambah biaya tambahan di keranjang ->
+         naikin qty-nya, isi catatannya -> Bayar
+         -> cek struk kasir: baris "Biaya: 2x ..."
+         muncul beserta catatannya.
+       • Buka 1 pesanan yang sudah bayar ->
+         "Batalkan Pesanan" -> Ya, Batalkan ->
+         badge "Dibatalkan" muncul -> cek
+         Dashboard & Laporan: omzet tidak
+         nambah karena pesanan batal.
+       • Stok & Bahan -> Riwayat Pergerakan
+         Stok: ada catatan "Pembatalan
+         Pesanan" dengan angka +.
+
+=====================================================
+0. REVISI v2.23 (rilis sebelumnya) — BACKUP CLOUD
+     TANPA PASSWORD (CUKUP LOGIN AKUN)
 =====================================================
 [x] 1. BACKUP CLOUD BEBAS PASSWORD:
        • api/backup.js sekarang menerima auth akun

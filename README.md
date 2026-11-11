@@ -5,7 +5,7 @@
 **Aplikasi kasir (POS) yang berjalan 100% offline di HP.**
 Cocok untuk warung, kafe, kedai, hingga restoran — kasir, dapur, stok, laporan, semuanya tersedia. 🚀
 
-![versi](https://img.shields.io/badge/versi-2.23-10b981?style=flat-square&labelColor=0f172a)
+![versi](https://img.shields.io/badge/versi-2.25-10b981?style=flat-square&labelColor=0f172a)
 ![PWA](https://img.shields.io/badge/PWA-offline%20ready-5A0FC8?style=flat-square&labelColor=0f172a)
 ![teknologi](https://img.shields.io/badge/React%20%2B%20Tailwind-single%20file%20HTML-orange?style=flat-square&labelColor=0f172a)
 ![mesin](https://img.shields.io/badge/Python%20%2B%20C%2B%2B-engine-blue?style=flat-square&labelColor=0f172a)
@@ -50,6 +50,9 @@ Beberapa hal yang membedakannya:
 - Nama menu pada nota dicetak dengan huruf normal (bukan kapital semua) — lebih hemat kertas 👍
 - ✂️ **Garis `====` cukup satu (baru di v2.16!)** — sebelumnya nota kasir & nota dapur masing-masing memakai 2 garis `====`, kini cukup 1 garis di bawah header — kertas lebih hemat dan tidak tampak dobel
 - 💰 **Biaya Tambahan (v2.19)** — pada detail pesanan tersedia tombol **Tambah Biaya Tambahan**: isi Nama Biaya + Jumlah Biaya → Simpan. Biaya di luar menu (ongkos kirim, packing, dll.) ikut ke total tagihan, tercetak di struk kasir, dan bisa dihapus kembali sebelum pembayaran
+- 🧾 **Biaya Tambahan menjadi item lengkap (baru di v2.24!)** — setiap biaya tambahan kini tampil seperti menu: ada qty (+/−), kolom catatan, dan tombol hapus. "Jumlah Biaya" menjadi harga satuan (contoh: Packing Rp2.800 × 3 = Rp8.400); struk kasir mencetak "Biaya: 3x Packing" beserta catatannya. Biaya lama tanpa qty tetap dihitung sebagai qty 1
+- 🚫 **Pesanan yang sudah dibayar dapat dibatalkan (baru di v2.24!)** — tombol **Batalkan Pesanan** pada detail pesanan, lengkap dengan konfirmasi. Berguna saat pelanggan konfirmasi QRIS tetapi transaksi gagal dan ingin beralih ke tunai: batalkan pesanan QRIS, lalu buat pesanan baru dengan pembayaran tunai. Pesanan batal diberi badge **"Dibatalkan"**, tidak dihitung dalam omzet & seluruh laporan, bahan baku otomatis dikembalikan ke stok (tercatat "Pembatalan Pesanan" di Riwayat Pergerakan Stok), dan meja langsung dilepas
+- ✏️ **Pesanan batal bisa dibuka lagi (baru di v2.25!)** — tombol **Ubah Pesanan** pada detail pesanan yang dibatalkan: seluruh isinya dimuat kembali ke keranjang — menu beserta qty-nya, biaya tambahan lengkap dengan qty & catatannya, nama pelanggan, tempat/meja, catatan dapur, sampai diskon. Kasir cukup mengubah bagian yang perlu (misalnya mengganti QRIS menjadi tunai) lalu menerima pembayaran seperti biasa — **tidak perlu memasukkan ulang pesanan dari awal**. Catatan pesanan batal tetap tersimpan sebagai "Dibatalkan" (tidak dihitung dalam omzet & laporan); pesanan yang dibayar ulang menjadi pesanan baru dengan nomornya sendiri
 - 🧹 **Tombol "+ Tambah Menu" di keranjang dihapus (baru di v2.22!)** — sebelumnya (v2.21) tombol tersebut berada persis di bawah pilihan Dine In / Bawa Pulang sehingga terkesan sesak. Kini di bagian itu hanya ada tombol **Tambah Biaya Tambahan** (full-width, lebih rapi). Menambah menu tetap mudah: tutup keranjang → ketuk menunya pada layar Tambah Pesanan → qty otomatis bergabung ke keranjang
 - 📝 **Catatan Nota di detail pesanan (baru di v2.21!)** — tombol di bawah daftar item: tulis "Bungkus" / "Bawa Pulang" → masuk ke **header nota dapur** saat dicetak
 - 🏷️ **Menu yang sama ditambah lagi = digabung + diberi tanda (baru di v2.21!)** — qty tetap digabung, dan kini ada badge **"Tambahan +N"** pada baris tersebut; tombol + di detail pesanan juga dihitung sebagai tambahan; **Cetak Tambahan** hanya mencetak porsi yang ditambahkan (porsi yang sudah pernah tercetak tidak diulang); kartu pesanan menampilkan "Ada Tambahan"
@@ -141,9 +144,9 @@ Aplikasi ini memakai **Service Worker** dengan pola *network-first*:
 1. Timpa file lama dengan file baru di repo
 2. Pengguna membuka aplikasi (saat online) → otomatis mengambil versi terbaru
 3. Cache lama terhapus sendiri — nama cache di `sw.js` diganti setiap rilis
-   (mis. `miapos-v2.23-r1`), jadi jangan lupa menggantinya bila ikut merilis 🔁
+   (mis. `miapos-v2.25-r1`), jadi jangan lupa menggantinya bila ikut merilis 🔁
 
-> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.19 → 2.20 → 2.21 → 2.22 → 2.23 → ...).
+> 💡 Aturan project ini: **setiap update, versi selalu naik** (2.19 → 2.20 → 2.21 → 2.22 → 2.23 → 2.24 → 2.25 → ...).
 
 ---
 
@@ -194,6 +197,8 @@ Semua panduan ada di file teks, bahasanya santai & langkah demi langkah:
 
 | Versi | Yang baru |
 | --- | --- |
+| **v2.25** | ✏️ **pesanan batal bisa dibuka lagi**: tombol **Ubah Pesanan** pada detail pesanan yang dibatalkan — seluruh detail (menu & qty, biaya tambahan beserta qty & catatannya, nama pelanggan, tempat/meja, catatan dapur, diskon) dimuat kembali ke keranjang; kasir cukup mengubah bagian yang perlu (mis. ganti QRIS ke tunai) lalu menerima pembayaran lagi, tanpa mengetik ulang dari awal · catatan pesanan batal tetap tercatat "Dibatalkan" (tidak dihitung omzet/laporan) · konfirmasi pembatalan kini menyebutkan bahwa pesanan masih bisa dibuka lagi |
+| **v2.24** | 🧾 **Biaya Tambahan menjadi item lengkap**: qty (+/−), catatan, dan tombol hapus pada setiap biaya — harga satuan × qty, struk kasir mencetak "Biaya: 3x Packing" + catatan · 🚫 **pesanan done (sudah bayar) dapat dibatalkan**: tombol **Batalkan Pesanan** + konfirmasi; badge "Dibatalkan", tidak dihitung dalam omzet & seluruh laporan, bahan baku kembali ke stok, meja dilepas |
 | **v2.23** | ☁️ **Backup Cloud TANPA PASSWORD** — cukup login akun: backup otomatis, **Backup Sekarang** & **Pulihkan** berjalan tanpa mengisi password (autentikasi akun di api/backup.js, selaras dengan sinkronisasi v2.15; BACKUP_KEY menjadi opsional) · 🧠 kartu Pengaturan backup diperbarui: badge **CLOUD AKTIF** tanpa password / **BELUM LOGIN / ISI PASSWORD** |
 | **v2.22** | 🧹 **keranjang dirapikan**: tombol **"+ Tambah Menu"** yang berada di bawah pilihan Dine In / Bawa Pulang **dihapus sepenuhnya** (mobile & desktop) — di bagian itu sekarang hanya ada **Tambah Biaya Tambahan** (full-width). Menambah menu cukup lewat daftar menu pada layar Tambah Pesanan — qty otomatis bergabung ke keranjang |
 | **v2.21** | 🛒 **keranjang**: tombol **+ Tambah Menu** (di tengah) & **Tambah Biaya Tambahan** ditempatkan persis di bawah pilihan Dine In / Bawa Pulang — menambah menu/biaya tanpa menutup keranjang · 📝 **Catatan Nota** di detail pesanan (tulis "Bungkus"/"Bawa Pulang" → masuk ke header nota dapur) · 🏷️ menu yang sama ditambah lagi: qty **tetap digabung** tetapi kini ada badge **"Tambahan +N"** — tombol + di detail juga dihitung sebagai tambahan, **Cetak Tambahan** hanya mencetak porsi yang ditambahkan (yang sudah tercetak tidak diulang), kartu pesanan menampilkan "Ada Tambahan" |

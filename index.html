@@ -447,7 +447,10 @@ function orderItemsSum(o) { return (o && o.items ? o.items : []).reduce(function
 // Biaya di luar menu (contoh: ongkos kirim, packing, service) yang ikut
 // ke total tagihan & tercetak di struk kasir — permintaan owner (pict 1-2).
 function extraChargesOf(o) { return (o && o.extraCharges) ? o.extraCharges : []; }
-function extraChargesSum(o) { return extraChargesOf(o).reduce(function(s,c){ return s + (Number(c && c.amount) || 0); }, 0); }
+// v2.24: biaya tambahan kini jadi ITEM — ada qty, catatan & tombol hapus (kaya menu).
+// amount = harga SATUAN; baris = amount × qty. Data lama tanpa qty dianggap qty 1.
+function extraQtyOf(c) { return Math.max(1, Math.round(Number(c && c.quantity) || 1)); }
+function extraChargesSum(o) { return extraChargesOf(o).reduce(function(s,c){ return s + extraQtyOf(c) * (Number(c && c.amount) || 0); }, 0); }
 function orderSubtotalOf(o) {
   if (!o) return 0;
   var s = Number(o.subtotal);
@@ -603,7 +606,7 @@ var I18N_EN = {
     'Simpan - Bayar Nanti':'Save — Pay Later', 'Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)':'Integrated restaurant management system (POS, KDS, Inventory, Reports, Multi-Outlet)',
     'Stok & Bahan':'Stock & Ingredients', 'Stok & Resep':'Stock & Recipes',
     'Struk Kasir':'Cashier Receipt', 'Subtotal':'Subtotal',
-    'Sudah Bayar':'Paid', 'Tambah':'Add',
+    'Sudah Bayar':'Paid', 'Tambah':'Add', 'Kurangi':'Decrease',
     'Tambah Menu':'Add Menu', 'Tambah Pesanan':'New Order',
     // v2.19: biaya tambahan + tombol back navigasi HP (bahasa baku)
     'Biaya Tambahan':'Additional Charge', 'Tambah Biaya Tambahan':'Add Additional Charge',
@@ -612,6 +615,17 @@ var I18N_EN = {
     'Isi nama biaya terlebih dahulu':'Please fill in the charge name first', 'Jumlah biaya harus lebih dari nol':'Charge amount must be greater than zero',
     'Hapus biaya ini':'Remove this charge', 'Jumlah: ':'Amount: ',
     'Nota Dapur-Tambahan':'Kitchen Add-on Receipt',
+    // v2.24: biaya tambahan jadi item (qty + catatan + hapus) + batalkan pesanan lunas
+    'Catatan (opsional)':'Note (optional)',
+    'Batalkan Pesanan':'Cancel Order', 'Batalkan Pesanan #':'Cancel Order #',
+    'Pesanan yang sudah dibatalkan tidak dihitung dalam omzet dan laporan. Bahan baku yang sudah terpotong otomatis dikembalikan. Pesanan batal masih bisa dibuka lagi lewat tombol Ubah Pesanan. Tetap batalkan pesanan ini?':'Cancelled orders are excluded from revenue and reports. Deducted ingredient stock is returned automatically. A cancelled order can still be reopened via the Edit Order button. Cancel this order anyway?',
+    'Ya, Batalkan Pesanan':'Yes, Cancel Order', 'Kembali':'Go Back',
+    'Dibatalkan':'Cancelled', ' dibatalkan':' cancelled',
+    // v2.25: pesanan batal bisa dibuka lagi ke keranjang (Ubah Pesanan)
+    'Ubah Pesanan':'Edit Order',
+    ' dibuka lagi di keranjang. Ubah detailnya lalu bayar lagi.':' reopened in the cart. Edit the details, then pay again.',
+    'Pesanan tidak ditemukan':'Order not found',
+    'Pembatalan Pesanan':'Order Cancellation',
     'Biaya di luar menu yang ikut ke total tagihan (contoh: ongkos kirim, packing).':'Charges outside the menu that are added to the bill total (e.g. delivery fee, packing).',
     'contoh: Ongkos Kirim, Packing':'e.g. Delivery Fee, Packing',
     // v2.21: keranjang — tombol + menu & biaya tambahan, catatan nota, badge tambahan
@@ -1380,6 +1394,10 @@ function AppProvider({ children }) {
   const [cart, setCart] = React.useState([]);
   const [cartTableId, setCartTableId] = React.useState(undefined);
   const [cartOrderType, setCartOrderType] = React.useState('DINE_IN');
+  // v2.25: paket "Ubah Pesanan" — detail pesanan batal yang akan dimuat ke
+  // keranjang saat layar Tambah Pesanan dibuka (nama, tempat, catatan, biaya,
+  // diskon). Hanya untuk sesi aktif — tidak ikut disimpan/sinkron.
+  const [cartRestore, setCartRestore] = React.useState(null);
   // v2.14 SINKRON: ref data terkini buat mesin sinkron (push/pull di luar render)
   const stateRef = React.useRef(state);
   stateRef.current = state;
@@ -1484,7 +1502,7 @@ function AppProvider({ children }) {
   }, [state.settings.outletId]);
 
   const api = React.useMemo(() => ({
-    state, cart, cartTableId, cartOrderType,
+    state, cart, cartTableId, cartOrderType, cartRestore,
     setOutlet: (outletId) => { setState(s => ({ ...s, settings: { ...s.settings, outletId } })); setCart([]); setCartTableId(undefined); },
     setCashier: (cashierId) => setState(s => ({ ...s, settings: { ...s.settings, cashierId } })),
     toggleOnline: () => setState(s => ({ ...s, settings: { ...s.settings, online: !s.settings.online } })),
@@ -1518,8 +1536,9 @@ function AppProvider({ children }) {
       if (cart.length === 0) return null;
       discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
       // v2.21: biaya tambahan dari KERANJANG (ongkir, packing, dll) ikut ke order
-      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0) }));
-      const extrasSum = extras.reduce((acc, c) => acc + c.amount, 0);
+      // v2.24: kini membawa qty + catatan — biaya jadi item kaya menu
+      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0), quantity: extraQtyOf(c), notes: String(c.notes || '') }));
+      const extrasSum = extras.reduce((acc, c) => acc + c.amount * c.quantity, 0); // v2.24: × qty
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
@@ -1562,8 +1581,9 @@ function AppProvider({ children }) {
       if (cart.length === 0) return null;
       discount = Number(discount) || 0; // v2.10 FIX RpNaN: discount event/aneh dianggap 0
       // v2.21: biaya tambahan dari KERANJANG ikut ke pesanan yang disimpan
-      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0) }));
-      const extrasSum = extras.reduce((acc, c) => acc + c.amount, 0);
+      // v2.24: kini membawa qty + catatan — biaya jadi item kaya menu
+      const extras = (extraCharges || []).map(c => ({ id: c.id || uid(), name: String(c.name || '').trim() || 'Tambahan', amount: Math.round(Number(c.amount) || 0), quantity: extraQtyOf(c), notes: String(c.notes || '') }));
+      const extrasSum = extras.reduce((acc, c) => acc + c.amount * c.quantity, 0); // v2.24: × qty
       const outletId = state.settings.outletId;
       const cashier = state.employees.find(e => e.id === state.settings.cashierId);
       const table = cartTableId ? state.tables.find(t => t.id === cartTableId) : undefined;
@@ -1602,11 +1622,64 @@ function AppProvider({ children }) {
       if (bcRef.current) bcRef.current.postMessage({ type:'ORDER_NEW', outletId:order.outletId, payload:order });
       return order;
     },
-    cancelOrder: (orderId) => setState(s => ({
-      ...s,
-      orders: s.orders.map(o => o.id === orderId ? { ...o, status:'CANCELLED', updatedAt:new Date().toISOString() } : o),
-      tables: s.tables.map(t => t.currentOrderId === orderId ? { ...t, status:'DIRTY', currentOrderId:undefined } : t),
-    })),
+    // v2.24: batalkan pesanan — kini juga untuk pesanan yang SUDAH BAYAR (done).
+    // Kasus nyata: pelanggan konfirmasi QRIS tapi transaksinya gagal & mau ganti
+    // tunai — kasir batalkan pesanan QRIS, lalu buat pesanan baru bayar tunai.
+    // Pesanan batal tidak dihitung dalam omzet/laporan (status CANCELLED), bahan
+    // baku yang terpotong saat pesanan dibuat dikembalikan, dan meja dilepas.
+    cancelOrder: (orderId) => setState(s => {
+      const o = s.orders.find(x => x.id === orderId) || (s.archivedOrders || []).find(x => x.id === orderId);
+      if (!o || o.status === 'CANCELLED') return s;
+      const nowIso = new Date().toISOString();
+      const materials = [...s.materials];
+      const movements = [...s.movements];
+      (o.items || []).forEach(it => {
+        const p = s.products.find(pp => pp.id === it.productId);
+        if (!p) return;
+        (p.recipeItems || []).forEach(r => {
+          const idx = materials.findIndex(m => m.id === r.materialId);
+          if (idx < 0) return;
+          const back = r.quantity * it.quantity;
+          materials[idx] = { ...materials[idx], stock: materials[idx].stock + back };
+          movements.push({ id: uid(), materialId: r.materialId, materialName: materials[idx].name, quantity: back, reason: 'CANCEL', refOrderId: o.id, createdAt: nowIso });
+        });
+      });
+      return {
+        ...s,
+        orders: s.orders.map(x => x.id === orderId ? { ...x, status: 'CANCELLED', cancelledAt: nowIso, updatedAt: nowIso } : x),
+        archivedOrders: (s.archivedOrders || []).map(x => x.id === orderId ? { ...x, status: 'CANCELLED', cancelledAt: nowIso, updatedAt: nowIso } : x),
+        materials, movements,
+        tables: s.tables.map(t => t.currentOrderId === orderId ? { ...t, status: 'DIRTY', currentOrderId: undefined } : t),
+      };
+    }),
+    // v2.25: BUKA LAGI PESANAN BATAL KE KERANJANG (permintaan owner: "pesanan
+    // yg dibatal bisa diubah lagi kan detail pesanannya, maksudnya ga harus
+    // bkin lagi klo bkin lagi cape namanya"). Semua detail dimuat: menu + qty,
+    // biaya tambahan + qty + catatan, diskon, nama pelanggan, tempat/meja,
+    // catatan dapur & tipe pesanan. Kasir tinggal ubah (mis. ganti tunai) lalu
+    // bayar lagi — TIDAK perlu bikin pesanan dari nol. Catatan pesanan batal
+    // TETAP tersimpan (status CANCELLED, tidak dihitung omzet/laporan); pesanan
+    // baru yang dibuat dari keranjang ini jadi pesanan sendiri.
+    restoreOrderToCart: (orderId) => {
+      const o = state.orders.find(x => x.id === orderId) || (state.archivedOrders || []).find(x => x.id === orderId);
+      if (!o) return null;
+      setCart((o.items || []).map(it => ({
+        id: uid(), productId: it.productId, productName: it.productName, variantId: it.variantId, variantName: it.variantName, variantPriceMod: 0,
+        quantity: Math.max(1, Number(it.quantity) || 1), unitPrice: Number(it.price) || 0,
+        subtotal: Math.max(1, Number(it.quantity) || 1) * (Number(it.price) || 0), notes: it.notes || '',
+      })));
+      setCartTableId(o.tableId || undefined);
+      setCartOrderType(o.type === 'TAKEAWAY' ? 'TAKEAWAY' : 'DINE_IN');
+      setCartRestore({
+        customerName: o.customerName || '',
+        notes: o.notes || '',
+        tempat: (!o.tableId && o.tableNumber !== undefined && o.tableNumber !== null && o.tableNumber !== '') ? String(o.tableNumber) : '',
+        extraCharges: extraChargesOf(o).map(c => ({ id: c.id, name: c.name, amount: Number(c.amount) || 0, quantity: extraQtyOf(c), notes: c.notes || '' })),
+        discount: Number(o.discount) || 0,
+      });
+      return o;
+    },
+    consumeCartRestore: () => setCartRestore(null),
     markOrderPaid: (orderId, method, paid) => setState(s => {
       const order = s.orders.find(o => o.id === orderId);
       if (!order) return s;
@@ -1680,9 +1753,10 @@ function AppProvider({ children }) {
       ...s,
       orders: s.orders.map(o => {
         if (o.id !== orderId) return o;
-        const charges = [...extraChargesOf(o), { id: uid(), name: String(name || '').trim(), amount: Math.round(Number(amount) || 0) }];
+        // v2.24: biaya baru mulai dari qty 1, tanpa catatan — qty diatur di barisnya
+        const charges = [...extraChargesOf(o), { id: uid(), name: String(name || '').trim(), amount: Math.round(Number(amount) || 0), quantity: 1, notes: '' }];
         const subtotal = orderItemsSum(o);
-        const total = Math.max(0, subtotal - (o.discount || 0) + charges.reduce((acc, c) => acc + (Number(c.amount) || 0), 0));
+        const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum({ extraCharges: charges }));
         return { ...o, extraCharges: charges, subtotal, total, updatedAt: new Date().toISOString() };
       })
     })),
@@ -1692,9 +1766,25 @@ function AppProvider({ children }) {
         if (o.id !== orderId) return o;
         const charges = extraChargesOf(o).filter(c => c.id !== chargeId);
         const subtotal = orderItemsSum(o);
-        const total = Math.max(0, subtotal - (o.discount || 0) + charges.reduce((acc, c) => acc + (Number(c.amount) || 0), 0));
+        const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum({ extraCharges: charges }));
         return { ...o, extraCharges: charges, subtotal, total, updatedAt: new Date().toISOString() };
       })
+    })),
+    // v2.24: qty per biaya tambahan (kaya qty menu) — total ikut dihitung ulang
+    updateExtraChargeQty: (orderId, chargeId, qty) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => {
+        if (o.id !== orderId) return o;
+        const charges = extraChargesOf(o).map(c => c.id === chargeId ? { ...c, quantity: Math.max(1, Math.round(Number(qty) || 1)) } : c);
+        const subtotal = orderItemsSum(o);
+        const total = Math.max(0, subtotal - (o.discount || 0) + extraChargesSum({ extraCharges: charges }));
+        return { ...o, extraCharges: charges, subtotal, total, updatedAt: new Date().toISOString() };
+      })
+    })),
+    // v2.24: catatan per biaya tambahan — ikut tercetak di struk kasir
+    updateExtraChargeNotes: (orderId, chargeId, notes) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => o.id === orderId ? { ...o, extraCharges: extraChargesOf(o).map(c => c.id === chargeId ? { ...c, notes: notes || '' } : c), updatedAt: new Date().toISOString() } : o)
     })),
     updateOrderItemNotes: (orderId, itemId, notes) => setState(s => ({
       ...s,
@@ -2090,7 +2180,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.23')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.25')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -2412,7 +2502,8 @@ function DashboardView({ onNavigate }) {
   const { state } = useAppStore();
   const { settings, orders, products, materials, employees } = state;
   const outlet = state.outlets.find(o => o.id === settings.outletId);
-  const outletOrders = orders.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID');
+  // v2.24: pesanan batal tidak dihitung dalam omzet dashboard
+  const outletOrders = orders.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID' && o.status !== 'CANCELLED');
   const outletProducts = products.filter(p => p.outletId === settings.outletId);
   const outletMaterials = materials.filter(m => m.outletId === settings.outletId);
   const outletEmployees = employees.filter(e => e.outletId === settings.outletId || (!e.outletId && e.role === 'OWNER'));
@@ -2665,7 +2756,7 @@ console.log('Miapos: layout + dashboard ready');
 <script type="text/babel" data-presets="react">
 // ===== POS VIEW =====
 function POSView({ onBack }) {
-  const { state, cart, cartTableId, cartOrderType, addToCart, updateCartQty, updateCartItemNotes, removeFromCart, setCartTable, setCartOrderType, clearCart, checkout, saveUnpaidOrder, markKitchenPrinted } = useAppStore();
+  const { state, cart, cartTableId, cartOrderType, cartRestore, addToCart, updateCartQty, updateCartItemNotes, removeFromCart, setCartTable, setCartOrderType, clearCart, checkout, saveUnpaidOrder, markKitchenPrinted, consumeCartRestore } = useAppStore();
   const { settings, products, tables, employees } = state;
   const cashier = employees.find(e => e.id === settings.cashierId);
   const outletProducts = products.filter(p => p.outletId === settings.outletId && p.available);
@@ -2690,6 +2781,22 @@ function POSView({ onBack }) {
   const [extraAmount, setExtraAmount] = React.useState('');
   const { show } = useToast();
 
+  // v2.25: muat detail pesanan yang dibuka lagi (Ubah Pesanan dari pesanan
+  // batal) ke keranjang — nama pelanggan, tempat/meja, catatan dapur, biaya
+  // tambahan & diskon. Menu + qty sudah dimuat langsung ke keranjang di store.
+  // Diskon dititip ke PaymentDialog biar kolom Diskon terisi otomatis.
+  var restoreDiscountRef = React.useRef(0);
+  React.useEffect(function() {
+    if (!cartRestore) return;
+    setCustomerName(cartRestore.customerName || '');
+    setNotes(cartRestore.notes || '');
+    setTempat(cartRestore.tempat || '');
+    setCartExtras((cartRestore.extraCharges || []).map(function(c) {
+      return { id: c.id || uid(), name: c.name, amount: Number(c.amount) || 0, quantity: extraQtyOf(c), notes: c.notes || '' };
+    }));
+    restoreDiscountRef.current = Number(cartRestore.discount) || 0;
+    consumeCartRestore();
+  }, []);
   const filtered = outletProducts.filter(p => {
     if (activeCat !== 'ALL' && p.category !== activeCat) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -2698,19 +2805,28 @@ function POSView({ onBack }) {
   const cartCount = cart.reduce((s,c) => s+c.quantity, 0);
   const subtotal = cart.reduce((s,c) => s+c.subtotal, 0);
   // v2.21: total keranjang = menu + biaya tambahan (ongkir, packing, dll)
-  const extrasSum = cartExtras.reduce((s,c) => s + (Number(c.amount) || 0), 0);
+  // v2.24: biaya kini item (amount × qty)
+  const extrasSum = cartExtras.reduce((s,c) => s + extraQtyOf(c) * (Number(c.amount) || 0), 0);
 
   const total = subtotal + extrasSum;
   const selectedTable = tables.find(t => t.id === cartTableId);
   // v2.21: simpan Biaya Tambahan dari form keranjang (sama kaya di detail pesanan)
+  // v2.24: biaya baru mulai qty 1 — qty & catatan diatur di kartunya (kaya menu)
   function saveCartExtra() {
     var nm = (extraForm && extraForm.name ? String(extraForm.name) : '').trim();
     var amt = Math.round(Number(extraAmount) || 0);
     if (!nm) { show(t('Isi nama biaya terlebih dahulu'), 'error'); return; }
     if (amt <= 0) { show(t('Jumlah biaya harus lebih dari nol'), 'error'); return; }
-    setCartExtras(function(arr) { return [...arr, { id: uid(), name: nm, amount: amt }]; });
+    setCartExtras(function(arr) { return [...arr, { id: uid(), name: nm, amount: amt, quantity: 1, notes: '' }]; });
     setExtraForm(null); setExtraAmount('');
     show(t('Biaya tambahan ditambahkan'));
+  }
+  // v2.24: qty & catatan per biaya tambahan di keranjang (kaya qty menu)
+  function updateCartExtraQty(id, qty) {
+    setCartExtras(function(arr) { return arr.map(x => x.id === id ? { ...x, quantity: Math.max(1, Math.round(Number(qty) || 1)) } : x); });
+  }
+  function updateCartExtraNotes(id, notes) {
+    setCartExtras(function(arr) { return arr.map(x => x.id === id ? { ...x, notes: notes || '' } : x); });
   }
 
   // v2.22: tombol di bawah pilihan Dine In / Bawa Pulang CUMA [Tambah Biaya
@@ -2721,15 +2837,33 @@ function POSView({ onBack }) {
     React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
       React.createElement(Icon, { name:'plus-circle', className:'w-4 h-4' }), t('Tambah Biaya Tambahan'))
   );
-  // v2.21: daftar biaya yang udah diisi (tampil di atas Subtotal, bisa dihapus)
-  const cartExtrasList = cartExtras.length > 0 ? React.createElement('div', { className:'rounded-lg border border-slate-200 p-2' },
+  // v2.24: daftar biaya tambahan kini tampil KAYA MENU — tiap biaya jadi kartu
+  // dengan nama, harga satuan, tombol hapus, kolom catatan, dan qty (+/−) dengan
+  // subtotal per baris (permintaan owner: "ntar ada qty ada catatan ada buat
+  // hapusnya, ya sama ky menu lah"). Data lama tanpa qty tetap kehitung qty 1.
+  const cartExtrasList = cartExtras.length > 0 ? React.createElement('div', { className:'space-y-2' },
     cartExtras.map(function(c) {
-      return React.createElement('div', { key: c.id, className:'flex items-center justify-between text-sm py-0.5' },
-        React.createElement('span', { className:'text-slate-700 truncate min-w-0' }, c.name),
-        React.createElement('span', { className:'flex items-center gap-1.5 shrink-0' },
-          React.createElement('span', { className:'font-medium' }, formatRupiah(c.amount)),
-          React.createElement('button', { onClick: () => { setCartExtras(function(arr) { return arr.filter(x => x.id !== c.id); }); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'grid h-5 w-5 place-items-center rounded-full bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-600' },
-            React.createElement(Icon, { name:'x', className:'w-3 h-3' }))
+      var q = extraQtyOf(c);
+      return React.createElement('div', { key: c.id, className:'rounded-lg border border-sky-200 bg-sky-50/40 p-2.5' },
+        React.createElement('div', { className:'flex items-start justify-between gap-2' },
+          React.createElement('div', { className:'flex-1 min-w-0' },
+            React.createElement('p', { className:'text-sm font-medium truncate' }, c.name),
+            React.createElement('p', { className:'text-[10px] font-semibold text-sky-600 mt-0.5' }, t('Biaya Tambahan')),
+            React.createElement('p', { className:'text-xs font-semibold text-slate-900 mt-0.5' }, formatRupiah(c.amount))
+          ),
+          React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
+            React.createElement('button', { onClick: () => { setCartExtras(function(arr) { return arr.filter(x => x.id !== c.id); }); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'text-slate-400 hover:text-red-600 p-1' },
+              React.createElement(Icon, { name:'x', className:'w-3.5 h-3.5' }))
+          )
+        ),
+        React.createElement(Input, { value: c.notes || '', onChange: e => updateCartExtraNotes(c.id, e.target.value), placeholder: t('Catatan (opsional)'), className:'h-7 text-xs mt-1.5 border-sky-200/70 bg-white/70' }),
+        React.createElement('div', { className:'flex items-center justify-between mt-2' },
+          React.createElement('div', { className:'flex items-center gap-1' },
+            React.createElement(Button, { size:'icon', variant:'outline', className:'h-8 w-8', onClick: () => updateCartExtraQty(c.id, q-1) }, React.createElement(Icon, { name:'minus', className:'w-3 h-3' })),
+            React.createElement('span', { className:'w-9 text-center text-sm font-medium' }, q),
+            React.createElement(Button, { size:'icon', variant:'outline', className:'h-8 w-8', onClick: () => updateCartExtraQty(c.id, q+1) }, React.createElement(Icon, { name:'plus', className:'w-3 h-3' }))
+          ),
+          React.createElement('span', { className:'text-sm font-bold' }, formatRupiah(q * (Number(c.amount) || 0)))
         )
       );
     })
@@ -2986,7 +3120,7 @@ function POSView({ onBack }) {
     // Variant picker
     // Variant picker dihapus — semua menu langsung klik tanpa pilih varian
     // Payment dialog
-    React.createElement(PaymentDialog, { open: paymentDialog, onClose: () => setPaymentDialog(false), total, onConfirm: handleCheckout, onSaveOrder: handleSaveOrder }),
+    React.createElement(PaymentDialog, { open: paymentDialog, onClose: () => setPaymentDialog(false), total, onConfirm: handleCheckout, onSaveOrder: handleSaveOrder, initialDiscount: restoreDiscountRef.current }),
     // v2.21: form Biaya Tambahan dari keranjang (Nama Biaya + Jumlah Biaya + Simpan)
     extraForm && React.createElement(Modal, { open: true, onClose: () => setExtraForm(null), className:'sm:max-w-sm' },
       React.createElement('div', { className:'p-4' },
@@ -3474,10 +3608,13 @@ function formatReceiptESCPOS(receipt, type) {
     if (receipt.discount && receipt.discount > 0) lines.push(padLeft('Diskon', '-' + formatRupiah(receipt.discount).replace('Rp', '')));
     // v2.19: BIAYA TAMBAHAN — biaya di luar menu (ongkos kirim, packing, dll)
     // ikut tercetak supaya Total di struk selalu cocok dengan yang dibayarkan.
+    // v2.24: kini qty-aware (2x Packing) + catatan biaya ikut tercetak
     (receipt.extraCharges || []).forEach(function(c) {
-      var nm = 'Biaya: ' + (c.name || 'Tambahan');
+      var q = extraQtyOf(c);
+      var nm = 'Biaya: ' + (q > 1 ? q + 'x ' : '') + (c.name || 'Tambahan');
       if (nm.length > W - 7) nm = nm.slice(0, W - 7);
-      lines.push(padLeft(nm, formatRupiah(c.amount).replace('Rp', '')));
+      lines.push(padLeft(nm, formatRupiah(q * (Number(c.amount) || 0)).replace('Rp', '')));
+      if (c.notes) lines.push('  catatan: ' + c.notes);
     });
     lines.push(padLeft('Total', formatRupiah(receipt.total).replace('Rp', '')));
     lines.push('');
@@ -3777,12 +3914,17 @@ const CartSummary = ({ subtotal, total, cartOrderType, selectedTable, onSetOrder
   );
 };
 
-const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder }) => {
+const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder, initialDiscount }) => {
   const { state } = useAppStore();
   const qrisImg = (state.settings && state.settings.qrisImage) || '';
   const [method, setMethod] = React.useState('CASH');
   const [paidInput, setPaidInput] = React.useState('');
   const [discountInput, setDiscountInput] = React.useState('');
+  // v2.25: saat dialog dibuka, kolom Diskon terisi dari pesanan yang dibuka
+  // lagi (Ubah Pesanan) — sisanya tetap kosong seperti biasa
+  React.useEffect(function() {
+    if (open) setDiscountInput(Number(initialDiscount) > 0 ? String(Math.round(Number(initialDiscount))) : '');
+  }, [open, initialDiscount]);
   const discount = parseFloat(discountInput) || 0;
   const finalTotal = Math.max(0, total - discount);
   const paid = method === 'CASH' ? (parseFloat(paidInput) || 0) : finalTotal;
@@ -3902,7 +4044,7 @@ function useBackCloseModal() {
 }
 
 function OrdersView({ onNavigate, onBack }) {
-  const { state, updateOrderStatus, markOrderPaid } = useAppStore();
+  const { state, updateOrderStatus, markOrderPaid, restoreOrderToCart } = useAppStore();
   const { settings, orders } = state;
   // Rollover 24 jam: daftar ini HANYA pesanan hari ini. Pesanan kemarin otomatis
   // diarsipkan (applyRollover) — lihat kembali lewat Laporan > Riwayat per tanggal.
@@ -3983,20 +4125,21 @@ function OrdersView({ onNavigate, onBack }) {
         ),
         filtered.map(o => {
           const isUnpaid = o.paymentStatus === 'UNPAID';
+          const isCancelled = o.status === 'CANCELLED'; // v2.24
           const typeIcon = o.type === 'TAKEAWAY' ? 'shopping-bag' : o.type === 'DINE_IN' ? 'utensils' : 'shopping-bag';
           const typeEmoji = o.type === 'TAKEAWAY' ? '📦' : '🍽️';
           const typeLabel = t(ORDER_TYPE_LABELS[o.type]) || o.type;
           return React.createElement('div', {
             key: o.id,
             onClick: () => setSelectedOrder(o),
-            className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && 'border-red-200 bg-red-50/30')
+            className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && !isCancelled && 'border-red-200 bg-red-50/30', isCancelled && 'opacity-60')
           },
             React.createElement('div', { className:'flex items-start justify-between gap-2 mb-2' },
               React.createElement('div', { className:'min-w-0' },
                 React.createElement('p', { className:'font-bold text-sm text-slate-900' }, 'ORD' + String(o.number).padStart(9, '0').slice(-9)),
                 React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5' }, formatDateTime(o.createdAt))
               ),
-              React.createElement('span', { className: cn('text-xs font-bold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
+              React.createElement('span', { className: cn('text-xs font-bold whitespace-nowrap', isCancelled ? 'text-slate-400 line-through' : (isUnpaid ? 'text-red-600' : 'text-emerald-600')) }, formatRupiah(orderTotalOf(o)))
             ),
             React.createElement('div', { className:'flex items-center justify-between gap-2' },
               React.createElement('div', { className:'flex items-center gap-2 min-w-0 flex-1' },
@@ -4005,8 +4148,8 @@ function OrdersView({ onNavigate, onBack }) {
                 ),
                 React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName || '-')
               ),
-              React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') },
-                isUnpaid ? t('Belum Bayar') : t('Sudah Bayar')
+              React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isCancelled ? 'bg-red-100 text-red-700' : (isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700')) },
+                isCancelled ? t('Dibatalkan') : (isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
               )
             ),
             // Show item count
@@ -4027,6 +4170,16 @@ function OrdersView({ onNavigate, onBack }) {
       onClose: () => setSelectedOrder(null),
       onPay: () => { setPayOrder(selectedOrder); setSelectedOrder(null); },
       onCancel: () => setSelectedOrder(null),
+      // v2.25: Ubah Pesanan — detail pesanan batal dimuat ke keranjang, lalu
+      // langsung dibawa ke layar Tambah Pesanan biar bisa diubah & dibayar lagi
+      onEdit: function() {
+        var o = selectedOrder;
+        var restored = restoreOrderToCart(o.id);
+        setSelectedOrder(null);
+        if (!restored) { show(t('Pesanan tidak ditemukan'), 'error'); return; }
+        show(t('Pesanan #') + o.number + t(' dibuka lagi di keranjang. Ubah detailnya lalu bayar lagi.'));
+        onNavigate('pos');
+      },
     }),
     payOrder && React.createElement(PayOrderDialog, {
       order: payOrder,
@@ -4127,8 +4280,8 @@ function AddItemsSheet({ order, products, onClose, onAdd, qtyOf, title, subtitle
 }
 
 // ===== ORDER DETAIL MODAL =====
-function OrderDetailModal({ order, onClose, onPay, onCancel }) {
-  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, updateOrderNotes, markKitchenPrinted, addExtraCharge, removeExtraCharge } = useAppStore();
+function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
+  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, updateOrderNotes, markKitchenPrinted, addExtraCharge, removeExtraCharge, updateExtraChargeQty, updateExtraChargeNotes, cancelOrder } = useAppStore();
   const { products, settings } = state;
   // v2.10: sheet tambah menu + menu cetak (dapur/tambahan) yang buka ke atas
   const [sheetOpen, setSheetOpen] = React.useState(false);
@@ -4137,6 +4290,8 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
   // v2.19: form Biaya Tambahan (pict 2 — Nama Biaya + Jumlah Biaya + Simpan)
   const [extraForm, setExtraForm] = React.useState(null); // { name, amount }
   const [extraAmount, setExtraAmount] = React.useState('');
+  // v2.24: konfirmasi batalkan pesanan (termasuk yang sudah bayar/done)
+  const [confirmCancel, setConfirmCancel] = React.useState(false);
   // v2.21: form Catatan Nota (catatan di header nota dapur — contoh: Bungkus)
   const [noteEdit, setNoteEdit] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState('');
@@ -4146,6 +4301,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
   // Get fresh order from state (in case it was updated)
   const currentOrder = state.orders.find(o => o.id === order.id) || (state.archivedOrders || []).find(o => o.id === order.id) || order;
   const isUnpaid = currentOrder.paymentStatus === 'UNPAID';
+  const isCancelled = currentOrder.status === 'CANCELLED'; // v2.24
   const typeEmoji = currentOrder.type === 'TAKEAWAY' ? '📦' : '🍽️';
   const outletProducts = products.filter(p => p.outletId === settings.outletId && p.available);
   const { show } = useToast();
@@ -4210,7 +4366,9 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           typeEmoji, ORDER_TYPE_LABELS[currentOrder.type] || currentOrder.type
         ),
         currentOrder.tableNumber && React.createElement('span', { className:'inline-flex items-center rounded-full bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-medium' }, t('Meja ') + currentOrder.tableNumber),
-        React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
+        React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') },
+          isCancelled ? t('Dibatalkan') : (isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
+        )
       ),
       // Customer info
       React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 mb-3 space-y-1 text-sm' },
@@ -4223,7 +4381,9 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       React.createElement('div', { className:'rounded-lg border p-3 mb-3' },
         React.createElement('div', { className:'flex items-center justify-between mb-2' },
           React.createElement('p', { className:'text-xs font-semibold text-slate-700' }, t('Item Pesanan')),
-          React.createElement('button', { onClick: () => setSheetOpen(true), className:'text-xs text-emerald-600 font-medium hover:underline inline-flex items-center gap-1' },
+          // v2.25: pesanan batal = tertutup — tambah menu lewat tombol Ubah Pesanan
+          // (detail dimuat ke keranjang), bukan lewat sheet ini
+          !isCancelled && React.createElement('button', { onClick: () => setSheetOpen(true), className:'text-xs text-emerald-600 font-medium hover:underline inline-flex items-center gap-1' },
             React.createElement(Icon, { name:'plus', className:'w-3.5 h-3.5' }), t('Tambah Pesanan')
           )
         ),
@@ -4239,21 +4399,26 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
               itemHasTambahan(currentOrder, it) && React.createElement('span', { className:'ml-1.5 inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-1.5 py-0.5 text-[9px] font-bold whitespace-nowrap align-middle' }, itemAddedQty(it) > 0 ? (t('Tambahan') + ' +' + itemAddedQty(it)) : t('Tambahan'))
             ),
             React.createElement('div', { className:'flex items-center gap-1 shrink-0' },
-              React.createElement('button', { onClick: () => setEditItemNotes(it.id), className: cn('p-1 rounded', it.notes ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'), title:'Catatan item' }, React.createElement(Icon, { name:'pencil', className:'w-3 h-3' })),
-              React.createElement('button', { onClick: () => updateOrderItemQty(currentOrder.id, it.id, it.quantity - 1), className:'grid h-6 w-6 place-items-center rounded border text-xs' }, React.createElement(Icon, { name:'minus', className:'w-2.5 h-2.5' })),
+              // v2.25: pesanan batal = baca saja — qty/catatan diubah lewat Ubah Pesanan
+              !isCancelled && React.createElement('button', { onClick: () => setEditItemNotes(it.id), className: cn('p-1 rounded', it.notes ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'), title:'Catatan item' }, React.createElement(Icon, { name:'pencil', className:'w-3 h-3' })),
+              !isCancelled && React.createElement('button', { onClick: () => updateOrderItemQty(currentOrder.id, it.id, it.quantity - 1), className:'grid h-6 w-6 place-items-center rounded border text-xs' }, React.createElement(Icon, { name:'minus', className:'w-2.5 h-2.5' })),
               React.createElement('span', { className:'w-6 text-center text-sm font-medium' }, it.quantity),
-              React.createElement('button', { onClick: () => updateOrderItemQty(currentOrder.id, it.id, it.quantity + 1), className:'grid h-6 w-6 place-items-center rounded border text-xs' }, React.createElement(Icon, { name:'plus', className:'w-2.5 h-2.5' })),
+              !isCancelled && React.createElement('button', { onClick: () => updateOrderItemQty(currentOrder.id, it.id, it.quantity + 1), className:'grid h-6 w-6 place-items-center rounded border text-xs' }, React.createElement(Icon, { name:'plus', className:'w-2.5 h-2.5' })),
               React.createElement('span', { className:'font-medium text-sm ml-1' }, formatRupiah(it.quantity * it.price))
             )
           ),
           // v2.13: kolom catatan per item — bisa diisi walau pesanan sudah masuk
-          React.createElement(Input, { value: it.notes || '', onChange: e => updateOrderItemNote(currentOrder.id, it.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' })
+          // v2.25: di pesanan batal tampil sebagai teks biasa (baca saja)
+          !isCancelled
+            ? React.createElement(Input, { value: it.notes || '', onChange: e => updateOrderItemNote(currentOrder.id, it.id, e.target.value), placeholder: t('Catatan dapur (contoh: pedas, tanpa es)'), className: 'h-7 text-xs mt-1.5 border-amber-200/70 bg-amber-50/40' })
+            : (it.notes ? React.createElement('p', { className:'text-[11px] text-amber-700 italic mt-1' }, t('Catatan: ') + it.notes) : null)
         ))
       ),
       // v2.21: tombol CATATAN NOTA — catatan di HEADER nota (kaya kolom "Catatan
       // untuk Dapur" waktu bikin pesanan). Buat pesanan tambahan yang maunya
       // dibungkus: ketuk di sini, tulis "Bungkus" / "Bawa Pulang" → ikut ke nota
-      React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 mb-3', onClick: () => { setNoteDraft(currentOrder.notes || ''); setNoteEdit(true); } },
+      // v2.25: disembunyiin di pesanan batal — ubah lewat Ubah Pesanan
+      !isCancelled && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 mb-3', onClick: () => { setNoteDraft(currentOrder.notes || ''); setNoteEdit(true); } },
         React.createElement(Icon, { name:'pencil', className:'w-4 h-4' }), t('Catatan Nota')
       ),
       // Total
@@ -4266,15 +4431,26 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           React.createElement('span', { className:'text-emerald-100' }, t('Diskon')),
           React.createElement('span', null, '-' + formatRupiah(currentOrder.discount))
         ),
-        // v2.19: baris Biaya Tambahan — tiap biaya tampil dengan tombol hapus
+        // v2.19: baris Biaya Tambahan — v2.24: kini jadi item kaya menu, ada qty
+        // (+/−), catatan & hapus (kayanya cuma saat belum dibayar). Data lama tanpa
+        // qty tetap kehitung qty 1.
         extraChargesOf(currentOrder).map(function(c) {
-          return React.createElement('div', { key: c.id, className:'flex justify-between text-sm mt-1' },
-            React.createElement('span', { className:'text-emerald-100 inline-flex items-center gap-1.5 min-w-0' },
-              React.createElement('span', { className:'truncate' }, c.name),
-              isUnpaid && React.createElement('button', { onClick: () => { removeExtraCharge(currentOrder.id, c.id); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'grid h-4 w-4 shrink-0 place-items-center rounded-full bg-white/20 hover:bg-white/40' },
-                React.createElement(Icon, { name:'x', className:'w-2.5 h-2.5' }))
+          var q = extraQtyOf(c);
+          return React.createElement('div', { key: c.id, className:'mt-1' },
+            React.createElement('div', { className:'flex justify-between text-sm' },
+              React.createElement('span', { className:'text-emerald-100 inline-flex items-center gap-1.5 min-w-0' },
+                React.createElement('span', { className:'truncate' }, c.name),
+                isUnpaid && !isCancelled && React.createElement('span', { className:'inline-flex items-center gap-0.5 shrink-0' },
+                  React.createElement('button', { onClick: () => updateExtraChargeQty(currentOrder.id, c.id, q-1), className:'grid h-4 w-4 place-items-center rounded bg-white/20 hover:bg-white/40', title:t('Kurangi') }, React.createElement(Icon, { name:'minus', className:'w-2 h-2' })),
+                  React.createElement('span', { className:'w-4 text-center text-xs font-bold text-white' }, q),
+                  React.createElement('button', { onClick: () => updateExtraChargeQty(currentOrder.id, c.id, q+1), className:'grid h-4 w-4 place-items-center rounded bg-white/20 hover:bg-white/40', title:t('Tambah') }, React.createElement(Icon, { name:'plus', className:'w-2 h-2' }))
+                ),
+                isUnpaid && !isCancelled && React.createElement('button', { onClick: () => { removeExtraCharge(currentOrder.id, c.id); show(t('Biaya tambahan dihapus')); }, title: t('Hapus biaya ini'), className:'grid h-4 w-4 shrink-0 place-items-center rounded-full bg-white/20 hover:bg-red-500/70' },
+                  React.createElement(Icon, { name:'x', className:'w-2.5 h-2.5' }))
+              ),
+              React.createElement('span', null, formatRupiah(q * (Number(c.amount) || 0)))
             ),
-            React.createElement('span', null, formatRupiah(c.amount))
+            isUnpaid && !isCancelled && React.createElement(Input, { value: c.notes || '', onChange: e => updateExtraChargeNotes(currentOrder.id, c.id, e.target.value), placeholder: t('Catatan (opsional)'), className:'h-6 text-[10px] mt-1 bg-white/10 border-white/25 text-white placeholder:text-white/40' })
           );
         }),
         React.createElement('div', { className:'flex justify-between font-bold text-lg mt-2 pt-2 border-t border-white/20' },
@@ -4287,7 +4463,7 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
       // v2.20: warna ikut TEMA aktif (bukan merah tetap — permintaan owner:
       // "jgn warna merah tetap, kan ada warna tema, semua tombol menyesuaikan").
       // Kelas emerald-* diarahkan ke CSS var tema, jadi ganti tema = warna ikut.
-      isUnpaid && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 mb-3', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
+      isUnpaid && !isCancelled && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 mb-3', onClick: () => { setExtraForm({ name: '' }); setExtraAmount(''); } },
         React.createElement(Icon, { name:'plus', className:'w-4 h-4' }), t('Tambah Biaya Tambahan')
       ),
       // Print buttons — v2.10: tombol Cetak Dapur sekarang punya menu yang BUKA KE ATAS
@@ -4322,11 +4498,44 @@ function OrderDetailModal({ order, onClose, onPay, onCancel }) {
           )
         )
       ),
+      // v2.24: BATALKAN PESANAN — kini juga untuk pesanan yang sudah done/sudah
+      // bayar (kasus nyata: pelanggan konfirmasi QRIS tapi transaksinya gagal &
+      // mau ganti tunai). Pesanan batal = tidak dihitung dalam omzet/laporan,
+      // bahan baku dikembalikan. v2.25: pesanan batal TETAP muncul di daftar
+      // (badge "Dibatalkan") & bisa dibuka lagi lewat tombol Ubah Pesanan.
+      !isCancelled && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-red-200 text-red-600 hover:bg-red-50 mb-3', onClick: () => setConfirmCancel(true) },
+        React.createElement(Icon, { name:'ban', className:'w-4 h-4' }), t('Batalkan Pesanan')),
       // Action buttons
       React.createElement('div', { className:'flex gap-2' },
         React.createElement(Button, { variant:'outline', className:'flex-1', onClick: onCancel }, t('Tutup')),
-        isUnpaid && React.createElement(Button, { className:'md-cta flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
+        isUnpaid && !isCancelled && React.createElement(Button, { className:'md-cta flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: onPay },
           React.createElement(Icon, { name:'banknote', className:'w-4 h-4' }), 'Bayar Sekarang'
+        ),
+        // v2.25: UBAH PESANAN — pesanan batal dibuka lagi ke keranjang: semua
+        // detail ikut (menu+qty, biaya, catatan, pelanggan, meja, diskon), kasir
+        // tinggal ubah & bayar lagi tanpa bikin pesanan dari nol (permintaan
+        // owner: "ga harus bkin lagi klo bkin lagi cape namanya"). Cuma tampil
+        // kalau halaman ini ngasih aksi onEdit (menu Pesanan) — di Laporan/
+        // Riwayat tombolnya tidak ada (read-only).
+        isCancelled && onEdit && React.createElement(Button, { className:'md-cta flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: onEdit },
+          React.createElement(Icon, { name:'pencil', className:'w-4 h-4' }), t('Ubah Pesanan')
+        )
+      ),
+      // v2.24: KONFIRMASI BATALKAN PESANAN — bahasa baku, jelas akibatnya apa aja
+      confirmCancel && React.createElement(Modal, { open: true, onClose: () => setConfirmCancel(false), className:'sm:max-w-sm' },
+        React.createElement('div', { className:'p-4' },
+          React.createElement('h2', { className:'text-base font-bold mb-1' }, t('Batalkan Pesanan #') + currentOrder.number),
+          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Pesanan yang sudah dibatalkan tidak dihitung dalam omzet dan laporan. Bahan baku yang sudah terpotong otomatis dikembalikan. Pesanan batal masih bisa dibuka lagi lewat tombol Ubah Pesanan. Tetap batalkan pesanan ini?')),
+          React.createElement('div', { className:'flex gap-2' },
+            React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setConfirmCancel(false) }, t('Kembali')),
+            React.createElement(Button, { className:'flex-1 bg-red-600 hover:bg-red-700', onClick: function() {
+              cancelOrder(currentOrder.id);
+              setConfirmCancel(false);
+              show(t('Pesanan #') + currentOrder.number + t(' dibatalkan'));
+              onClose();
+            } },
+              React.createElement(Icon, { name:'ban', className:'w-4 h-4' }), t('Ya, Batalkan Pesanan'))
+          )
         )
       ),
       // v2.10: sheet Tambah Menu (tampilan kaya layar Tambah Pesanan, kotak drag-handle)
@@ -4469,7 +4678,8 @@ function MenuSalesView({ onBack }) {
   // minggu lalu, dst tetap keliatan (arsip dibikin tiap hari lewat rollover).
   const allPaid = React.useMemo(function() {
     var all = [...orders, ...(state.archivedOrders || [])];
-    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID');
+    // v2.24: pesanan batal tidak dihitung dalam laporan menu
+    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID' && o.status !== 'CANCELLED');
   }, [orders, state.archivedOrders, settings.outletId]);
   const paidSel = allPaid.filter(o => (o.createdAt || '').slice(0, 10) === selectedDate);
   const map = new Map();
@@ -4582,7 +4792,8 @@ function PaymentReportView({ onBack }) {
   // tetap kelihatan.
   const allPaid = React.useMemo(function() {
     var all = [...state.orders, ...(state.archivedOrders || [])];
-    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID');
+    // v2.24: pesanan batal tidak dihitung dalam laporan pembayaran
+    return all.filter(o => o.outletId === settings.outletId && o.paymentStatus === 'PAID' && o.status !== 'CANCELLED');
   }, [state.orders, state.archivedOrders, settings.outletId]);
   // Yang dihitung: WAKTU BAYAR-nya (paidAt), bukan waktu pesanan dibuat —
   // biar sama dengan arti "org pada bayar hari ini".
@@ -4857,7 +5068,7 @@ function InventoryView({ onBack }) {
               ),
               React.createElement('div', { className:'flex-1 min-w-0' },
                 React.createElement('p', { className:'text-sm font-medium truncate' }, m.materialName),
-                React.createElement('p', { className:'text-xs text-slate-500' }, m.reason + ' · ' + formatDateTime(m.createdAt))
+                React.createElement('p', { className:'text-xs text-slate-500' }, (m.reason === 'CANCEL' ? t('Pembatalan Pesanan') : m.reason) + ' · ' + formatDateTime(m.createdAt))
               ),
               React.createElement('span', { className: cn('font-bold text-sm', m.quantity > 0 ? 'text-emerald-600' : 'text-emerald-600') }, (m.quantity > 0 ? '+' : '') + m.quantity.toFixed(2))
             ))
@@ -4960,7 +5171,8 @@ function ReportsView({ onBack }) {
   const hpp = !!settings.fiturHPP;
   const { show } = useToast();
   const outletOrdersAll = orders.filter(o => o.outletId === settings.outletId);
-  const outletOrders = outletOrdersAll.filter(o => o.paymentStatus === 'PAID');
+  // v2.24: pesanan batal tidak dihitung dalam omzet & statistik laporan
+  const outletOrders = outletOrdersAll.filter(o => o.paymentStatus === 'PAID' && o.status !== 'CANCELLED');
   const outletProducts = products.filter(p => p.outletId === settings.outletId);
   const outlet = state.outlets.find(o => o.id === settings.outletId);
   const today = new Date().toISOString().slice(0, 10);
@@ -5133,24 +5345,25 @@ function ReportsView({ onBack }) {
           : React.createElement('div', { className:'space-y-2' },
               dayAllOrders.map(function(o) {
                 const isUnpaid = o.paymentStatus === 'UNPAID';
+                const isCancelled = o.status === 'CANCELLED'; // v2.24
                 const typeEmoji = o.type === 'TAKEAWAY' ? '\ud83d\udce6' : '\ud83c\udf7d\ufe0f';
                 return React.createElement('div', {
                   key: o.id, onClick: () => setSelectedOrder(o),
-                  className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && 'border-red-200 bg-red-50/30')
+                  className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && !isCancelled && 'border-red-200 bg-red-50/30', isCancelled && 'opacity-60')
                 },
                   React.createElement('div', { className:'flex items-start justify-between gap-2 mb-1' },
                     React.createElement('div', { className:'min-w-0' },
                       React.createElement('p', { className:'font-bold text-sm text-slate-900' }, '#' + o.number, React.createElement('span', { className:'ml-1.5 text-[11px] font-medium text-slate-400' }, formatTime(o.createdAt))),
                       React.createElement('p', { className:'text-[11px] text-slate-500 mt-0.5 truncate' }, o.items.map(it => it.quantity + '\u00d7 ' + it.productName).join(', '))
                     ),
-                    React.createElement('span', { className: cn('text-sm font-extrabold whitespace-nowrap', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
+                    React.createElement('span', { className: cn('text-sm font-extrabold whitespace-nowrap', isCancelled ? 'text-slate-400 line-through' : (isUnpaid ? 'text-red-600' : 'text-emerald-600')) }, formatRupiah(orderTotalOf(o)))
                   ),
                   React.createElement('div', { className:'flex items-center justify-between gap-2' },
                     React.createElement('div', { className:'flex items-center gap-1.5 min-w-0 flex-1' },
                       React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, t(ORDER_TYPE_LABELS[o.type]) || o.type),
                       o.customerName && React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName)
                     ),
-                    React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : payMethodLabel(o.paymentMethod))
+                    React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isCancelled ? 'bg-red-100 text-red-700' : (isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700')) }, isCancelled ? t('Dibatalkan') : (isUnpaid ? t('Belum Bayar') : payMethodLabel(o.paymentMethod)))
                   )
                 );
               })
@@ -5273,9 +5486,10 @@ function RiwayatPesananTab({ state }) {
     .filter(o => o.outletId === settings.outletId && o.createdAt.slice(0, 10) === selectedDate)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  const dayRevenue = dayOrders.filter(o => o.paymentStatus === 'PAID').reduce((s, o) => s + orderTotalOf(o), 0);
-  const dayPaidCount = dayOrders.filter(o => o.paymentStatus === 'PAID').length;
-  const dayUnpaidCount = dayOrders.filter(o => o.paymentStatus === 'UNPAID').length;
+  const dayRevenue = dayOrders.filter(o => o.paymentStatus === 'PAID' && o.status !== 'CANCELLED').reduce((s, o) => s + orderTotalOf(o), 0); // v2.24: batal tidak dihitung
+  const dayPaidCount = dayOrders.filter(o => o.paymentStatus === 'PAID' && o.status !== 'CANCELLED').length; // v2.24
+  const dayUnpaidCount = dayOrders.filter(o => o.paymentStatus === 'UNPAID' && o.status !== 'CANCELLED').length; // v2.24
+  const dayCancelledCount = dayOrders.filter(o => o.status === 'CANCELLED').length; // v2.24
   const dayItems = dayOrders.reduce((s, o) => s + o.items.reduce((q, i) => q + i.quantity, 0), 0);
 
   return React.createElement('div', { className:'space-y-4' },
@@ -5303,7 +5517,8 @@ function RiwayatPesananTab({ state }) {
         ),
         React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 text-center' },
           React.createElement('p', { className:'text-xs text-slate-500' }, 'Total Pesanan'),
-          React.createElement('p', { className:'text-base font-bold' }, dayOrders.length)
+          React.createElement('p', { className:'text-base font-bold' }, dayOrders.length),
+          dayCancelledCount > 0 && React.createElement('p', { className:'text-[10px] text-red-500' }, dayCancelledCount + ' ' + t('Dibatalkan'))
         ),
         React.createElement('div', { className:'rounded-lg bg-slate-50 p-3 text-center' },
           React.createElement('p', { className:'text-xs text-slate-500' }, t('Sudah Bayar')),
@@ -5323,24 +5538,25 @@ function RiwayatPesananTab({ state }) {
         : React.createElement('div', { className:'space-y-2 max-h-[600px] overflow-y-auto' },
             dayOrders.map(o => {
               const isUnpaid = o.paymentStatus === 'UNPAID';
+              const isCancelled = o.status === 'CANCELLED'; // v2.24
               const typeEmoji = o.type === 'TAKEAWAY' ? '📦' : '🍽️';
               return React.createElement('div', {
                 key: o.id, onClick: () => setSelectedOrder(o),
-                className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && 'border-red-200 bg-red-50/30')
+                className: cn('rounded-xl border bg-white p-3 cursor-pointer transition-all hover:border-emerald-400 hover:shadow-md', isUnpaid && !isCancelled && 'border-red-200 bg-red-50/30', isCancelled && 'opacity-60')
               },
                 React.createElement('div', { className:'flex items-start justify-between gap-2 mb-1' },
                   React.createElement('div', null,
                     React.createElement('p', { className:'font-bold text-sm' }, 'ORD' + String(o.number).padStart(9, '0').slice(-9)),
                     React.createElement('p', { className:'text-[11px] text-slate-500' }, formatTime(o.createdAt))
                   ),
-                  React.createElement('span', { className: cn('text-xs font-bold', isUnpaid ? 'text-red-600' : 'text-emerald-600') }, formatRupiah(orderTotalOf(o)))
+                  React.createElement('span', { className: cn('text-xs font-bold', isCancelled ? 'text-slate-400 line-through' : (isUnpaid ? 'text-red-600' : 'text-emerald-600')) }, formatRupiah(orderTotalOf(o)))
                 ),
                 React.createElement('div', { className:'flex items-center justify-between gap-2' },
                   React.createElement('div', { className:'flex items-center gap-2 min-w-0 flex-1' },
                     React.createElement('span', { className:'inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[10px] font-medium shrink-0' }, typeEmoji, t(ORDER_TYPE_LABELS[o.type]) || o.type),
                     React.createElement('span', { className:'text-xs text-slate-600 truncate' }, o.customerName || '-')
                   ),
-                  React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700') }, isUnpaid ? t('Belum Bayar') : t('Sudah Bayar'))
+                  React.createElement('span', { className: cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0', isCancelled ? 'bg-red-100 text-red-700' : (isUnpaid ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700')) }, isCancelled ? t('Dibatalkan') : (isUnpaid ? t('Belum Bayar') : t('Sudah Bayar')))
                 ),
                 React.createElement('div', { className:'mt-2 pt-2 border-t border-slate-100 text-[11px] text-slate-500' },
                   o.items.length + ' item · ' + o.items.reduce((s, it) => s + it.quantity, 0) + ' porsi',
@@ -5887,7 +6103,8 @@ function OutletsView({ onBack }) {
   const [filterOutlet, setFilterOutlet] = React.useState('ALL');
   const filteredEmployees = employees.filter(e => filterOutlet === 'ALL' || e.outletId === filterOutlet);
   const stats = outlets.map(o => {
-    const oOrders = orders.filter(x => x.outletId === o.id && x.paymentStatus === 'PAID');
+    // v2.24: pesanan batal tidak dihitung dalam omzet outlet (Owner Zone)
+    const oOrders = orders.filter(x => x.outletId === o.id && x.paymentStatus === 'PAID' && x.status !== 'CANCELLED');
     return { outlet: o, revenue: oOrders.reduce((s,x) => s+x.total, 0), orderCount: oOrders.length, staffCount: employees.filter(e => e.outletId === o.id).length, activeStaff: employees.filter(e => e.outletId === o.id && e.active).length, productCount: products.filter(p => p.outletId === o.id).length, lowStockCount: materials.filter(m => m.outletId === o.id && m.stock <= m.minStock).length, stockValue: materials.filter(m => m.outletId === o.id).reduce((s,m) => s+m.stock*m.cost, 0) };
   });
   const totalRevenue = stats.reduce((s, x) => s+x.revenue, 0);
@@ -5900,7 +6117,7 @@ function OutletsView({ onBack }) {
       ),
       tab === 'outlets' && React.createElement('div', { className:'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3' },
         outlets.map(o => {
-          const revenue = orders.filter(x => x.outletId === o.id && x.paymentStatus === 'PAID').reduce((s,x) => s+x.total, 0);
+          const revenue = orders.filter(x => x.outletId === o.id && x.paymentStatus === 'PAID' && x.status !== 'CANCELLED').reduce((s,x) => s+x.total, 0); // v2.24
           const staff = employees.filter(e => e.outletId === o.id).length;
           return React.createElement(Card, { key: o.id },
             React.createElement('div', { className:'p-4' },
@@ -5966,7 +6183,7 @@ function OutletsView({ onBack }) {
               React.createElement('div', null,
                 React.createElement('p', { className:'text-sm text-slate-500' }, 'Total Omzet Seluruh Outlet'),
                 React.createElement('p', { className:'text-3xl font-bold' }, formatRupiah(totalRevenue)),
-                React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, outlets.length + ' outlet · ' + orders.filter(o => o.paymentStatus === 'PAID').length + ' transaksi total')
+                React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, outlets.length + ' outlet · ' + orders.filter(o => o.paymentStatus === 'PAID' && o.status !== 'CANCELLED').length + ' transaksi total') // v2.24
               ),
               React.createElement('div', { className:'grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br from-emerald-500/15 to-cyan-500/15 animate-mp-float' }, React.createElement(Icon, { name:'trending-up', className:'w-7 h-7 text-emerald-600' }))
             )
@@ -6981,7 +7198,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.23 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.25 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

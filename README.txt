@@ -1,13 +1,134 @@
 ================================================
-  MIAPOS v2.23 — BACKUP CLOUD TANPA PASSWORD
-     (CUKUP LOGIN AKUN) · JAWABAN SOAL
-     ENGINE C++ · CORDOVA · PESANAN "HILANG"
-     (di atas: keranjang rapi + catatan nota +
-     tambahan ditandain + tombol biaya ikut
-     tema + teks cuaca santai + laporan urut
-     antrian + antrian auto-reset + back
-     navigasi HP + sinkron antar HP + 2 bahasa
-     + 4 tema + backup cloud)
+  MIAPOS v2.25 — PESANAN YANG DIBATALKAN
+     BISA DIBUKA LAGI (UBAH PESANAN) —
+     GA PERLU BIKIN DARI NOL
+     (di bawah: biaya tambahan jadi item +
+     pesanan udh done bisa dibatalkan +
+     backup cloud tanpa password + keranjang
+     rapi + catatan nota + tambahan
+     ditandain + tombol biaya ikut tema + teks
+     cuaca santai + laporan urut antrian +
+     antrian auto-reset + back navigasi HP +
+     sinkron antar HP + 2 bahasa + 4 tema)
+================================================
+
+APA YANG BARU DI v2.25 (pesanan batal bisa diubah lagi)
+------------------------------------------------------------
+1. PESANAN YANG UDH DIBATALKAN BISA DIBUKA
+   LAGI — TOMBOL "UBAH PESANAN":
+   • Ini nyambung sama fitur kemarin (pesanan
+     done bisa dibatalin). Kemarin kasirnya
+     batalkan pesanan QRIS terus bikin lagi
+     dari nol buat bayar tunai — capek, menu
+     satu-satunya harus diketik ulang.
+   • Sekarang: buka pesanan yang dibatalkan
+     (yang ada badge merah "Dibatalkan") ->
+     di bawah ada tombol hijau "Ubah
+     Pesanan" -> SEMUA detailnya langsung
+     masuk keranjang: menu + qty, biaya
+     tambahan (qty & catatannya juga), nama
+     pelanggan, tempat/meja, catatan dapur,
+     sampai diskon.
+   • Tinggal ubah yang perlu doang (misal
+     pembayarannya ganti tunai) -> bayar
+     seperti biasa. Gak perlu ngetik ulang
+     dari awal.
+   • Pesanan yang dibayar ulang jadi
+     pesanan sendiri (nomor baru) — catatan
+     yang lama tetap ada sebagai
+     "Dibatalkan" & tetap gak dihitung
+     omzet, jadi angka laporan tetap jujur
+     (omzet kehitung sekali doang).
+   • Cuma muncul di menu PESANAN hari ini —
+     riwayat tanggal lampau di Laporan cuma
+     buat dilihat, bukan diubah.
+2. KONFIRMASI BATAL MAKIN JELAS:
+   • Teks konfirmasi "Batalkan Pesanan"
+     sekarang ngeingetin: pesanan yang
+     dibatal MASIH BISA dibuka lagi lewat
+     tombol Ubah Pesanan — jadi gak takut
+     salah pencet, kebalik lagi mah gampang.
+3. DETAIL PESANAN BATAL = BACA SAJA:
+   • Di pesanan yang udah dibatal, tombol
+     "+ Tambah Pesanan" & "+ Tambah Biaya
+     Tambahan" disembunyiin — mau ubah isi
+     pesanannya lewat tombol Ubah Pesanan
+     aja, biar alurnya satu & gak nutupin
+     catatan batal.
+4. VERSI NAIK:
+   • App v2.25 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.25-r1 ·
+     server main.py v2.25 · package.json
+     2.25.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.24 (rilis sebelumnya) — BIAYA
+     TAMBAHAN JADI ITEM (QTY + CATATAN +
+     HAPUS) · PESANAN YANG UDH DONE BISA
+     DIBATALKAN
+================================================
+
+APA YANG BARU DI v2.24 (biaya kaya menu + batalkan pesanan)
+------------------------------------------------------------
+1. BIAYA TAMBAHAN SEKARANG KAYA MENU:
+   • Di keranjang & di detail pesanan, tiap
+     biaya tambahan jadi KARTU ITEM sendiri:
+     ada QTY (+/-), kolom CATATAN, tombol
+     hapus, dan subtotal per baris - persis
+     kaya kartu menu di keranjang.
+   • "Jumlah Biaya" sekarang artinya HARGA
+     SATUAN. Total biayanya = satuan x qty.
+     Contoh: Packing Rp2.800 x 3 = Rp8.400.
+   • Catatan per biaya juga bisa - ikut
+     tercetak di struk kasir (di bawah
+     baris biayanya).
+   • Di struk kasir, kalau qty lebih dari 1,
+     barisnya jadi "Biaya: 3x Packing".
+   • Biaya lama yang belum punya qty tetap
+     dihitung qty 1 - gak ada angka yang
+     berubah sendiri.
+2. PESANAN YANG UDH DONE (SUDAH BAYAR) BISA
+   DIBATALKAN:
+   • Ini buat keluhan kemarin: pelanggan
+     konfirmasi QRIS, ternyata transaksinya
+     gagal, dia mau ganti tunai. Dulu
+     pesanan udah kecatat bayar QRIS &
+     masuk omzet - bingung mau apain.
+   • Sekarang: buka detail pesanannya ->
+     tombol merah "Batalkan Pesanan" ->
+     konfirmasi dulu (biar gak kepencet) ->
+     beres. Terus bikin pesanan baru, bayar
+     tunai. Cuma beda 2x klik.
+   • Pesanan yang dibatalkan dikasih badge
+     merah "Dibatalkan" di daftar pesanan,
+     detail, & riwayat - catatannya tetap
+     ada, gak dihapus.
+   • Omzet & SEMUA laporan (dashboard,
+     laporan menu, laporan pembayaran,
+     riwayat pesanan, Owner Zone, export
+     Excel) otomatis TIDAK menghitung
+     pesanan batal - angka tetap jujur.
+   • Bahan baku yang kepotong waktu pesanan
+     dibuat OTOMATIS BALIK ke stok, tercatat
+     di Riwayat Pergerakan Stok dengan
+     alasan "Pembatalan Pesanan" (+ angka).
+   • Meja yang nempel di pesanan batal juga
+     langsung lepas.
+3. VERSI NAIK:
+   • App v2.24 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.24-r1 ·
+     server main.py v2.24 · package.json
+     2.24.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.23 (rilis sebelumnya) — BACKUP
+     CLOUD TANPA PASSWORD (CUKUP LOGIN AKUN)
+     · JAWABAN SOAL ENGINE C++ · CORDOVA ·
+     PESANAN "HILANG"
 ================================================
 
 APA YANG BARU DI v2.23 (backup bebas password)
