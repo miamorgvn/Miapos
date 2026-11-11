@@ -1,11 +1,70 @@
 ================================================
-  MIAPOS v2.26 — CHECKLIST
+  MIAPOS v2.27 — CHECKLIST
 ================================================
 Cara baca: [x] = sudah jadi di versi ini. [ ] = langkah
 yang harus Anda lakukan sendiri (tinggal diklik/ketik).
 
 =====================================================
-0. REVISI v2.26 — PESANAN LUNAS BISA DIUBAH:
+0. REVISI v2.27 — DIALOG UBAH METODE
+     PEMBAYARAN KAYA LAYAR BAYAR PERTAMA &
+     DETAIL PESANAN LUNAS TINGGAL 1 TOMBOL
+=====================================================
+[x] 1. DIALOG "UBAH METODE PEMBAYARAN"
+       DIROMBAK:
+       • Buka detail pesanan yang "Sudah Bayar"
+         -> tombol "Ubah Metode Pembayaran"
+         langsung tersedia (gak perlu lewat menu
+         panah ke atas lagi).
+       • Tampilannya kaya dialog "Pembayaran"
+         waktu nerima bayar pertama kali: 3
+         pilihan metode + rincian Total Awal/
+         Bayar.
+       • Pilih TUNAI -> muncul kolom "Uang
+         Diterima" + 4 tombol cepat (Uang Pas,
+         50.000, 100.000, 150.000) + kembalian
+         kehitung otomatis. Uang kurang dari
+         total -> tombol mati ("Uang tidak
+         cukup").
+       • Pilih QRIS/Transfer -> tampil gambar
+         QRIS resto/info transfer, sama kaya
+         layar bayar pertama kali.
+       • Uang diterima & kembalian yang diisi
+         ikut TERSIMPAN di pesanan - struk
+         berikutnya kecetak sesuai itu.
+[x] 2. DETAIL PESANAN LUNAS DIRAPIKIN:
+       • Pilihan "Ubah Pesanan" di pesanan yang
+         udah dibayar DIHAPUS - di bawah detail
+         pesanan lunas tinggal tombol "Ubah
+         Metode Pembayaran" doang.
+       • Pesanan belum bayar tetap kaya biasa
+         (gak dapet tombol ini); pesanan batal
+         tetap pakai tombol hijau "Ubah Pesanan"
+         (v2.25); tombol merah "Batalkan
+         Pesanan" tetap ada buat semua pesanan.
+[x] 3. PERBAIKAN LAMA TETAP JALAN:
+       • Pesanan batal gak dihitung "Belum Bayar"
+         (fix v2.26).
+       • Biaya tambahan tetap berbentuk item
+         (qty + catatan + hapus, v2.24).
+[x] 4. VERSI v2.27 + cache sw.js miapos-v2.27-r1
+       (aturan tetap: tiap update versi terus naik).
+[ ] 5. COBA SENDIRI (3 menit):
+       • Buat pesanan -> bayar QRIS -> buka
+         detailnya -> Ubah Metode Pembayaran
+         -> pilih Tunai -> ketik 100.000 -> cek
+         kembalian -> Konfirmasi -> kartu
+         pesanan & badge nulis Tunai, status
+         tetap Sudah Bayar.
+       • Buka lagi detailnya -> Ubah Metode
+         Pembayaran -> kolom Uang Diterima
+         udah keisi & kembalian bener.
+       • Cek pesanan batal masih bisa dibuka
+         lewat "Ubah Pesanan"; pesanan belum
+         bayar gak punya tombol "Ubah Metode
+         Pembayaran".
+
+=====================================================
+0. REVISI v2.26 (rilis sebelumnya) — PESANAN LUNAS BISA DIUBAH:
      TOMBOL "UBAH" (PANAH KE ATAS) BERISI
      UBAH PESANAN & UBAH METODE PEMBAYARAN
 =====================================================

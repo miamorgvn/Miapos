@@ -624,12 +624,10 @@ var I18N_EN = {
     // v2.25: pesanan batal bisa dibuka lagi ke keranjang (Ubah Pesanan)
     'Ubah Pesanan':'Edit Order',
     ' dibuka lagi di keranjang. Ubah detailnya lalu bayar lagi.':' reopened in the cart. Edit the details, then pay again.',
-    // v2.26: menu Ubah (buka ke atas) — Ubah Pesanan + Ubah Metode Pembayaran
-    // khusus pesanan lunas; pesanan batal tak dihitung "Belum Bayar"
-    'Ubah':'Edit',
+    // v2.27: tombol Ubah Metode Pembayaran khusus pesanan lunas — panah ke atas
+    // dilepas karena isinya tinggal satu (permintaan owner); pesanan batal tak
+    // dihitung "Belum Bayar"
     'Ubah Metode Pembayaran':'Change Payment Method',
-    'Buka lagi ke keranjang untuk diubah':'Reopen in the cart to edit',
-    'Ganti Tunai, QRIS, atau Transfer':'Switch between Cash, QRIS, and Transfer',
     'Perbaiki metode bayar pesanan yang sudah lunas — contoh: tadinya tercatat QRIS, ternyata tunai.':'Fix the payment method of a paid order — e.g. it was recorded as QRIS but was actually cash.',
     'Metode pembayaran diubah':'Payment method updated',
     ' dibuka lagi di keranjang. Pesanan lunas aslinya otomatis dibatalkan — ubah detailnya lalu bayar lagi.':' reopened in the cart. The original paid order was cancelled automatically — edit the details, then pay again.',
@@ -1697,20 +1695,20 @@ function AppProvider({ children }) {
       const tables = s.tables.map(t => t.currentOrderId === orderId ? { ...t, status:'DIRTY', currentOrderId:undefined } : t);
       return { ...s, orders, tables };
     }),
-    // v2.26: UBAH METODE PEMBAYARAN pesanan lunas TANPA membatalkannya —
+    // v2.27: UBAH METODE PEMBAYARAN pesanan lunas TANPA membatalkannya —
     // kasus nyata: pelanggan sempat konfirmasi QRIS lalu ternyata bayar tunai
     // (atau sebaliknya). Status tetap SUDAH BAYAR; yang diganti cuma metodenya
-    // (Tunai/QRIS/Transfer). Uang tunai yang dicatat ikut disesuaikan: metode
-    // non-tunai selalu pas total (kembalian 0), metode tunai memakai catatan
-    // uang yang sudah ada bila ada.
-    updateOrderPaymentMethod: (orderId, method) => setState(s => {
+    // (Tunai/QRIS/Transfer). v2.27: tunai kini pakai input uang diterima kaya
+    // dialog bayar pertama kali (cashPaid) — kembalian ikut dihitung ulang;
+    // metode non-tunai selalu pas total (kembalian 0).
+    updateOrderPaymentMethod: (orderId, method, cashPaid) => setState(s => {
       const src = s.orders.find(x => x.id === orderId) || (s.archivedOrders || []).find(x => x.id === orderId);
       if (!src) return s;
       const total = orderTotalOf(src);
-      // Non-tunai: uang diterima selalu pas total (kembalian 0). Tunai: pakai
+      // Tunai: pakai uang diterima dari dialog (cashPaid); kalau kosong, pakai
       // catatan uang yang sudah ada bila ada, kalau tidak ada anggap pas total.
-      const paid = method === 'CASH' ? (Number(src.paid) || total) : total;
-      const change = method === 'CASH' ? (Number(src.change) || 0) : 0;
+      const paid = method === 'CASH' ? (cashPaid != null && Number(cashPaid) > 0 ? Number(cashPaid) : (Number(src.paid) || total)) : total;
+      const change = method === 'CASH' ? Math.max(0, paid - total) : 0;
       const patch = { paymentMethod: method, paid: paid, change: change, updatedAt: new Date().toISOString() };
       return {
         ...s,
@@ -2210,7 +2208,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.26')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.27')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -4205,9 +4203,10 @@ function OrdersView({ onNavigate, onBack }) {
       onCancel: () => setSelectedOrder(null),
       // v2.25: Ubah Pesanan — detail pesanan batal dimuat ke keranjang, lalu
       // langsung dibawa ke layar Tambah Pesanan biar bisa diubah & dibayar lagi
-      // v2.26: kalau pesanannya LUNAS, aslinya otomatis dibatalkan dulu supaya
-      // omzet tidak terhitung ganda (pesanan batal tidak masuk laporan) —
-      // detailnya tetap dimuat ke keranjang untuk diedit & dibayar lagi.
+      // v2.27: jalur "Ubah Pesanan" untuk pesanan LUNAS dihapus dari detail —
+      // kini tombol ini cuma untuk pesanan batal. Penanganan wasPaid di bawah
+      // dibiarkan sebagai pengaman: pesanan lunas otomatis dibatalkan dulu
+      // supaya omzet tidak terhitung ganda, detailnya tetap dimuat ke keranjang.
       onEdit: function() {
         var o = selectedOrder;
         var wasPaid = o.paymentStatus === 'PAID' && o.status !== 'CANCELLED';
@@ -4335,17 +4334,25 @@ function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
   // v2.21: form Catatan Nota (catatan di header nota dapur — contoh: Bungkus)
   const [noteEdit, setNoteEdit] = React.useState(false);
   const [noteDraft, setNoteDraft] = React.useState('');
-  // v2.26: menu UBAH buka ke atas (kaya menu Cetak Dapur) berisi Ubah Pesanan
-  // + Ubah Metode Pembayaran, khusus pesanan lunas — biar tombolnya gak
-  // menuh-menuhin detail pesanan (permintaan owner).
-  const [editMenuOpen, setEditMenuOpen] = React.useState(false);
+  // v2.27: tombol Ubah Metode Pembayaran pesanan lunas — langsung 1 tombol
+  // tanpa menu panah karena isinya tinggal satu (permintaan owner).
+  // pmMethod = metode yang dipilih di dialog, pmPaidInput = uang tunai yang
+  // diterima (tampilannya kaya dialog bayar pertama kali: ada kembalian).
   const [payMethodEdit, setPayMethodEdit] = React.useState(false);
-  const [payMethodDraft, setPayMethodDraft] = React.useState('');
+  const [pmMethod, setPmMethod] = React.useState('CASH');
+  const [pmPaidInput, setPmPaidInput] = React.useState('');
   // v2.19: tombol back navigasi HP = tutup detail pesanan (kembali ke daftar)
   const backCloseRef = useBackCloseModal();
   backCloseRef.current = onClose;
   // Get fresh order from state (in case it was updated)
   const currentOrder = state.orders.find(o => o.id === order.id) || (state.archivedOrders || []).find(o => o.id === order.id) || order;
+  // v2.27: nilai turunan dialog Ubah Metode — pola sama kaya PaymentDialog:
+  // total tetap (pesanan lunas), uang diterima & kembalian dihitung ulang saat
+  // metode Tunai dipilih.
+  const qrisImg = (state.settings && state.settings.qrisImage) || '';
+  const pmTotal = orderTotalOf(currentOrder);
+  const pmPaid = pmMethod === 'CASH' ? (parseFloat(pmPaidInput) || 0) : pmTotal;
+  const pmChange = pmMethod === 'CASH' ? Math.max(0, pmPaid - pmTotal) : 0;
   const isUnpaid = currentOrder.paymentStatus === 'UNPAID';
   const isCancelled = currentOrder.status === 'CANCELLED'; // v2.24
   const isPaid = !isUnpaid && !isCancelled; // v2.26: lunas & tidak batal
@@ -4545,37 +4552,21 @@ function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
           )
         )
       ),
-      // v2.26: MENU UBAH buka ke atas (pola sama kaya menu Cetak Dapur — panah
-      // ke atas biar gak menuh-menuhin detail pesanan, permintaan owner). Khusus
-      // pesanan LUNAS: isinya Ubah Pesanan (detail dimuat lagi ke keranjang)
-      // & Ubah Metode Pembayaran (ganti Tunai/QRIS/Transfer tanpa membatalkan).
-      // Pesanan belum bayar TIDAK dapat menu ini — cukup Batalkan Pesanan;
-      // pesanan batal tetap pakai tombol Ubah Pesanan yang sudah ada.
-      isPaid && React.createElement('div', { className:'relative z-20 mb-3' },
-        editMenuOpen && React.createElement('div', { className:'absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-slate-900 text-white shadow-2xl overflow-hidden animate-mp-pop ring-1 ring-black/20' },
-          [
-            onEdit && { k:'order', icon:'pencil', title:t('Ubah Pesanan'), desc: t('Buka lagi ke keranjang untuk diubah') },
-            { k:'method', icon:'banknote', title:t('Ubah Metode Pembayaran'), desc: t('Ganti Tunai, QRIS, atau Transfer') },
-          ].filter(Boolean).map(function(opt) {
-            return React.createElement('button', { key: opt.k, onClick: function() {
-              setEditMenuOpen(false);
-              if (opt.k === 'order') { if (onEdit) onEdit(); }
-              else { setPayMethodDraft(currentOrder.paymentMethod || 'CASH'); setPayMethodEdit(true); }
-            },
-              className:'w-full flex items-center gap-2.5 px-3 py-3 text-left hover:bg-slate-800 active:bg-slate-800 transition-colors border-b border-white/10 last:border-0' },
-              React.createElement(Icon, { name: opt.icon, className:'w-5 h-5 text-emerald-400 shrink-0' }),
-              React.createElement('span', { className:'min-w-0' },
-                React.createElement('span', { className:'block text-sm font-bold' }, opt.title),
-                React.createElement('span', { className:'block text-[10px] text-slate-400' }, opt.desc))
-            );
-          })
-        ),
-        React.createElement(Button, { variant:'outline', className:'w-full justify-between gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50', onClick: () => setEditMenuOpen(!editMenuOpen) },
-          React.createElement('span', { className:'flex items-center gap-1.5 min-w-0' },
-            React.createElement(Icon, { name:'pencil', className:'w-4 h-4 shrink-0' }),
-            React.createElement('span', { className:'truncate' }, t('Ubah'))),
-          React.createElement(Icon, { name: editMenuOpen ? 'chevron-down' : 'chevron-up', className:'w-4 h-4 shrink-0' })
-        )
+      // v2.27: UBAH METODE PEMBAYARAN — pesanan lunas kini cukup 1 tombol
+      // langsung tanpa menu panah (isinya tinggal satu, permintaan owner:
+      // "ubah jadi cmn metode pembayaran aja, ubah pesanannya diilangin").
+      // Dialognya tampilannya kaya dialog bayar pertama kali: ada input uang
+      // tunai, tombol cepat & kembalian. Pesanan belum bayar TIDAK dapat
+      // tombol ini — cukup Batalkan Pesanan; pesanan batal tetap pakai tombol
+      // Ubah Pesanan yang sudah ada.
+      isPaid && React.createElement(Button, { variant:'outline', className:'w-full gap-1.5 border-slate-200 text-slate-700 hover:bg-slate-50 mb-3', onClick: function() {
+        setPmMethod(currentOrder.paymentMethod || 'CASH');
+        // Kalau pesanan asalnya tunai, isi ulang uang yang sudah tercatat biar
+        // kembalian di dialog langsung benar; selain itu mulai kosong (pas total).
+        setPmPaidInput(currentOrder.paymentMethod === 'CASH' && Number(currentOrder.paid) > 0 ? String(Math.round(Number(currentOrder.paid))) : '');
+        setPayMethodEdit(true);
+      } },
+        React.createElement(Icon, { name:'banknote', className:'w-4 h-4' }), t('Ubah Metode Pembayaran')
       ),
       // v2.24: BATALKAN PESANAN — kini juga untuk pesanan yang sudah done/sudah
       // bayar (kasus nyata: pelanggan konfirmasi QRIS tapi transaksinya gagal &
@@ -4617,34 +4608,59 @@ function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
           )
         )
       ),
-      // v2.26: MODAL UBAH METODE PEMBAYARAN — perbaiki catatan metode bayar
-      // pesanan lunas (mis. tadinya tercatat QRIS, ternyata tunai) TANPA
-      // membatalkan pesanan. Status tetap Sudah Bayar; struk berikutnya ikut
-      // mencetak metode yang baru.
-      payMethodEdit && React.createElement(Modal, { open: true, onClose: () => setPayMethodEdit(false), className:'sm:max-w-sm' },
+      // v2.27: MODAL UBAH METODE PEMBAYARAN — tampilannya disamain kaya dialog
+      // bayar pertama kali (permintaan owner: "samain aja tampilannya kaya gitu
+      // jgn kaya pict pertama"): pilih metode, kalau Tunai ada input Uang
+      // Diterima + tombol cepat (Uang Pas / 50rb / 100rb / 150rb) + kembalian.
+      // Status pesanan tetap Sudah Bayar; struk berikutnya ikut mencetak metode
+      // & kembalian yang baru.
+      payMethodEdit && React.createElement(Modal, { open: true, onClose: () => setPayMethodEdit(false), className:'sm:max-w-full max-h-[90vh] overflow-y-auto' },
         React.createElement('div', { className:'p-4' },
-          React.createElement('h2', { className:'text-base font-bold mb-1' }, t('Ubah Metode Pembayaran')),
-          React.createElement('p', { className:'text-xs text-slate-500 mb-3' }, t('Perbaiki metode bayar pesanan yang sudah lunas — contoh: tadinya tercatat QRIS, ternyata tunai.')),
-          React.createElement('div', { className:'grid grid-cols-3 gap-2' },
-            [
-              { m:'CASH', label:t('Tunai'), icon:'banknote' },
-              { m:'QRIS', label:'QRIS', icon:'qr-code' },
-              { m:'TRANSFER', label:'Transfer', icon:'landmark' },
-            ].map(function(md) {
-              return React.createElement('button', { key: md.m, onClick: () => setPayMethodDraft(md.m), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', payMethodDraft === md.m ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
-                React.createElement(Icon, { name: md.icon, className:'w-6 h-6 text-emerald-600' }),
-                React.createElement('span', { className:'text-sm font-medium' }, md.label)
-              );
-            })
-          ),
-          React.createElement('div', { className:'flex gap-2 mt-4' },
-            React.createElement(Button, { variant:'outline', className:'flex-1', onClick: () => setPayMethodEdit(false) }, t('Batal')),
-            React.createElement(Button, { className:'flex-1 bg-emerald-500 hover:bg-emerald-600', onClick: function() {
-              updateOrderPaymentMethod(currentOrder.id, payMethodDraft);
+          React.createElement('h2', { className:'text-lg font-bold mb-1' }, t('Ubah Metode Pembayaran')),
+          React.createElement('p', { className:'text-sm text-slate-500 mb-4' }, t('Perbaiki metode bayar pesanan yang sudah lunas — contoh: tadinya tercatat QRIS, ternyata tunai.')),
+          React.createElement('div', { className:'space-y-4' },
+            React.createElement('div', { className:'grid grid-cols-3 gap-2' },
+              [
+                { m:'CASH', label:t('Tunai'), icon:'banknote' },
+                { m:'QRIS', label:'QRIS', icon:'qr-code' },
+                { m:'TRANSFER', label:'Transfer', icon:'landmark' },
+              ].map(function(md) {
+                return React.createElement('button', { key: md.m, onClick: () => setPmMethod(md.m), className: cn('flex flex-col items-center gap-2 rounded-xl border p-4 transition-all min-h-[88px]', pmMethod === md.m ? 'border-emerald-500 bg-emerald-50/60 ring-1 ring-emerald-500/30 scale-[1.02]' : 'hover:bg-slate-50') },
+                  React.createElement(Icon, { name: md.icon, className:'w-6 h-6' }),
+                  React.createElement('span', { className:'text-sm font-medium' }, md.label)
+                );
+              })
+            ),
+            pmMethod === 'QRIS' && React.createElement('div', { className:'rounded-lg border bg-slate-50 p-4 text-center' },
+              React.createElement('div', { className:'mx-auto w-40 h-40 grid place-items-center bg-white rounded-lg p-2' },
+                qrisImg
+                  ? React.createElement('img', { src: qrisImg, alt:'QRIS Resto', className:'w-full h-full object-contain' })
+                  : React.createElement(QRPattern, null)),
+              React.createElement('p', { className:'text-xs text-slate-500 mt-2' }, qrisImg ? t('Scan QRIS restoran Anda untuk membayar') : t('Scan QRIS untuk membayar — (gambar QRIS belum diatur, unggah di Pengaturan → Owner Zone → QRIS Resto)'))
+            ),
+            pmMethod === 'TRANSFER' && React.createElement('div', { className:'rounded-lg border bg-emerald-50/60 p-4 text-center' },
+              React.createElement(Icon, { name:'landmark', className:'w-8 h-8 mx-auto text-emerald-600 mb-1' }),
+              React.createElement('p', { className:'text-sm font-semibold' }, t('Transfer Bank')),
+              React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, t('Konfirmasi setelah transfer diterima'))
+            ),
+            React.createElement('div', { className:'rounded-lg border p-3 space-y-1 text-sm' },
+              React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Total Awal'), React.createElement('span', null, formatRupiah(orderSubtotalOf(currentOrder)))),
+              currentOrder.discount > 0 && React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Diskon'), React.createElement('span', null, '- ' + formatRupiah(currentOrder.discount))),
+              React.createElement('div', { className:'border-t my-1' }),
+              React.createElement('div', { className:'flex justify-between font-bold text-base' }, React.createElement('span', null, 'Bayar'), React.createElement('span', { className:'text-slate-900' }, formatRupiah(pmTotal)))
+            ),
+            pmMethod === 'CASH' && React.createElement(React.Fragment, null,
+              React.createElement('div', null, React.createElement(Label, null, t('Uang Diterima')), React.createElement(Input, { type:'number', placeholder: String(pmTotal), value: pmPaidInput, onChange: e => setPmPaidInput(e.target.value) })),
+              React.createElement('div', { className:'grid grid-cols-4 gap-2' },
+                [pmTotal, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPmPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? t('Uang Pas') : formatRupiah(amt).replace('Rp','').trim()))
+              ),
+              React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Kembalian')), React.createElement('span', { className:'font-bold' }, formatRupiah(pmChange)))
+            ),
+            React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: pmMethod === 'CASH' && pmPaid < pmTotal, onClick: function() {
+              updateOrderPaymentMethod(currentOrder.id, pmMethod, pmMethod === 'CASH' ? pmPaid : null);
               setPayMethodEdit(false);
-              show(t('Metode pembayaran diubah') + ' — ' + (payMethodDraft === 'CASH' ? t('Tunai') : payMethodDraft === 'QRIS' ? 'QRIS' : 'Transfer'));
-            } },
-              React.createElement(Icon, { name:'check', className:'w-4 h-4' }), t('Simpan'))
+              show(t('Metode pembayaran diubah') + ' — ' + (pmMethod === 'CASH' ? t('Tunai') : pmMethod === 'QRIS' ? 'QRIS' : 'Transfer'));
+            } }, pmMethod === 'CASH' && pmPaid < pmTotal ? t('Uang tidak cukup') : t('Konfirmasi ') + formatRupiah(pmTotal))
           )
         )
       ),
@@ -7308,7 +7324,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.26 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.27 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),

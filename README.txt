@@ -1,7 +1,10 @@
 ================================================
-  MIAPOS v2.26 — PESANAN LUNAS BISA DIUBAH:
-     TOMBOL "UBAH" (PANAH KE ATAS) BERISI
-     UBAH PESANAN & UBAH METODE PEMBAYARAN
+  MIAPOS v2.27 — DIALOG UBAH METODE
+     PEMBAYARAN DISEMAININ KAYA LAYAR BAYAR
+     PERTAMA KALI (ADA INPUT UANG DITERIMA +
+     TOMBOL CEPAT + KEMBALIAN) &
+     DETAIL PESANAN LUNAS TINGGAL 1 TOMBOL
+     (UBAH PESANAN DIHAPUS)
      (di bawah: pesanan batal gak lagi
      dihitung "Belum Bayar" + pesanan batal
      bisa dibuka lagi + biaya tambahan jadi
@@ -12,6 +15,69 @@
      cuaca santai + laporan urut antrian +
      antrian auto-reset + back navigasi HP +
      sinkron antar HP + 2 bahasa + 4 tema)
+================================================
+
+APA YANG BARU DI v2.27 (dialog ubah metode kaya layar bayar)
+------------------------------------------------------------
+1. DIALOG "UBAH METODE PEMBAYARAN" DIROMBAK
+   - SEKARANG KAYA LAYAR BAYAR PERTAMA
+   KALI:
+   • Kemarin dialognya cuma pilih Tunai/
+     QRIS/Transfer terus Simpan. Sekarang
+     tampilannya PERSIS kaya dialog
+     "Pembayaran" waktu kasir nerima bayar
+     pertama kali (yang ada pilihan uangnya
+     itu loh).
+   • Kalau pilih TUNAI: ada kolom "Uang
+     Diterima" + 4 tombol cepat (Uang Pas,
+     50.000, 100.000, 150.000) + baris
+     "Kembalian" yang kehitung sendiri.
+     Contoh: total 77.000, diisi 100.000 ->
+     kembalian 23.000.
+   • Kalau uangnya kurang dari total,
+     tombolnya mati & tulisannya "Uang
+     tidak cukup" - gak bisa salah simpan.
+   • Pilih QRIS -> tampil gambar QRIS resto;
+     pilih Transfer -> tampil info transfer.
+     Sama kaya layar bayar pertama kali.
+   • Uang diterima & kembalian yang diisi
+     ikut TERSIMPAN di pesanan - catatan
+     tunainya bener, struk yang dicetak
+     berikutnya kecetak sesuai itu.
+2. DETAIL PESANAN LUNAS TINGGAL 1 TOMBOL:
+   • Pilihan "Ubah Pesanan" di pesanan yang
+     udah dibayar DIHAPUS ("ubah jadi cmn
+     metode pembayaran aja, ubah pesanannya
+     diilangin"). Di detail pesanan lunas
+     sekarang cuma ada tombol "Ubah Metode
+     Pembayaran" - langsung kebuka, gak
+     perlu lewat menu panah ke atas lagi.
+   • Pesanan BELUM bayar tetap kaya biasa
+     (gak dapet tombol ini) - cukup
+     Batalkan Pesanan + Bayar Sekarang.
+   • Pesanan batal tetap bisa dibuka lagi
+     lewat tombol hijau "Ubah Pesanan"
+     (fitur v2.25) - gak berubah.
+   • Tombol merah "Batalkan Pesanan" tetap
+     ada buat semua pesanan.
+3. PERBAIKAN LAMA TETAP JALAN:
+   • Pesanan batal gak lagi dihitung di chip
+     "Belum Bayar" (fix v2.26).
+   • Biaya tambahan tetap berbentuk item
+     (qty + catatan + hapus, v2.24).
+4. VERSI NAIK:
+   • App v2.27 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.27-r1 ·
+     server main.py v2.27 · package.json
+     2.27.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.26 (rilis sebelumnya) — PESANAN
+     LUNAS BISA DIUBAH: TOMBOL "UBAH" (PANAH
+     KE ATAS) BERISI UBAH PESANAN & UBAH
+     METODE PEMBAYARAN
 ================================================
 
 APA YANG BARU DI v2.26 (pesanan lunas bisa diubah — tombol panah ke atas)
