@@ -1,15 +1,93 @@
 ================================================
-  MIAPOS v2.25 — PESANAN YANG DIBATALKAN
-     BISA DIBUKA LAGI (UBAH PESANAN) —
-     GA PERLU BIKIN DARI NOL
-     (di bawah: biaya tambahan jadi item +
-     pesanan udh done bisa dibatalkan +
+  MIAPOS v2.26 — PESANAN LUNAS BISA DIUBAH:
+     TOMBOL "UBAH" (PANAH KE ATAS) BERISI
+     UBAH PESANAN & UBAH METODE PEMBAYARAN
+     (di bawah: pesanan batal gak lagi
+     dihitung "Belum Bayar" + pesanan batal
+     bisa dibuka lagi + biaya tambahan jadi
+     item + pesanan udh done bisa dibatalkan +
      backup cloud tanpa password + keranjang
      rapi + catatan nota + tambahan
      ditandain + tombol biaya ikut tema + teks
      cuaca santai + laporan urut antrian +
      antrian auto-reset + back navigasi HP +
      sinkron antar HP + 2 bahasa + 4 tema)
+================================================
+
+APA YANG BARU DI v2.26 (pesanan lunas bisa diubah — tombol panah ke atas)
+------------------------------------------------------------
+1. TOMBOL "UBAH" (PANAH KE ATAS) DI PESANAN
+   YANG UDH DIBAYAR:
+   • Pesanan yang udah done (sudah bayar)
+     sekarang punya tombol "Ubah" dengan
+     panah ke atas - polanya persis kaya
+     tombol "Cetak Dapur" yang menu-nya buka
+     ke atas. Dipencet -> muncul menu gelap
+     ke atas berisi 2 pilihan. Tujuannya
+     biar detail pesanan gak penuhin tombol.
+   • Isinya: "Ubah Pesanan" & "Ubah Metode
+     Pembayaran".
+   • Tombol merah "Batalkan Pesanan" tetap
+     ada - buat pesanan lunas maupun yang
+     belum bayar.
+   • Pesanan yang BELUM bayar gak dapet
+     menu ini - tampilannya masih kaya
+     biasa (Tambah Biaya Tambahan, Cetak
+     Struk/Dapur, Batalkan Pesanan, Bayar
+     Sekarang). Pesanan batal tetap pakai
+     tombol hijau "Ubah Pesanan" yang lama.
+   • Di Riwayat/Laporan (tanggal lampau),
+     menu Ubah cuma berisi Ubah Metode
+     Pembayaran - isi pesanan tanggal lampau
+     memang buat dilihat aja.
+2. UBAH METODE PEMBAYARAN (GANTI CARA BAYAR
+   TANPA BATALKAN):
+   • Ini buat keluhan kemarin: pelanggan
+     konfirmasi QRIS pas udah "done", eh
+     ternyata dia bayar tunai. Sekarang gak
+     perlu batal-bikin-lagi: buka detail
+     pesanannya -> Ubah -> Ubah Metode
+     Pembayaran -> pilih Tunai/QRIS/Transfer
+     -> Simpan. Beres.
+   • Pesanan tetap tercatat SUDAH BAYAR &
+     omzet gak berubah - jumlahnya sama,
+     cuma metodenya yang keganti.
+   • Struk kasir yang dicetak berikutnya
+     otomatis pakai metode yang baru.
+3. UBAH PESANAN DI PESANAN YANG UDH DIBAYAR:
+   • Pilihan "Ubah Pesanan" di pesanan lunas
+     kerjanya kaya di pesanan batal: SEMUA
+     detail dimuat ke keranjang (menu + qty,
+     biaya tambahan, pelanggan, meja,
+     catatan, diskon) -> ubah yang perlu ->
+     bayar lagi.
+   • Pesanan lunas yang aslinya OTOMATIS
+     dibatalkan dulu (badge Dibatalkan, gak
+     dihitung omzet, bahan baku balik ke
+     stok) - biar omzet gak kehitung DOBEL.
+     Notifikasinya juga nyebutin ini.
+4. PESANAN BATAL GAK LAGI DIHITUNG "BELUM
+   BAYAR" (FIX):
+   • Bug kemarin: di daftar Pesanan, pesanan
+     yang udah dibatal masih kehitung di
+     chip "Belum Bayar (1)" & di tulisan
+     "1 belum bayar" di atas - padahal
+     badgenya udah Dibatalkan.
+   • Sekarang pesanan batal cuma tampil di
+     "Semua Status"; filter Belum Bayar &
+     Sudah Bayar plus hitungannya udah bener.
+5. VERSI NAIK:
+   • App v2.26 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.26-r1 ·
+     server main.py v2.26 · package.json
+     2.26.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.25 (rilis sebelumnya) — PESANAN
+     YANG DIBATALKAN BISA DIBUKA LAGI
+     (UBAH PESANAN) — GA PERLU BIKIN DARI NOL
 ================================================
 
 APA YANG BARU DI v2.25 (pesanan batal bisa diubah lagi)
