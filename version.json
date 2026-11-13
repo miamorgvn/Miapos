@@ -1,0 +1,6 @@
+{
+  "version": "2.0.0",
+  "name": "miamotion-app",
+  "updated": "2026-10-31",
+  "notes": "Neon cyber redesign, live stats dashboard (bar + donut + feed), Python server, C++ launcher, auto-update via GitHub"
+}
