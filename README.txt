@@ -1,11 +1,12 @@
 ================================================
-  MIAPOS v2.27 — DIALOG UBAH METODE
-     PEMBAYARAN DISEMAININ KAYA LAYAR BAYAR
-     PERTAMA KALI (ADA INPUT UANG DITERIMA +
-     TOMBOL CEPAT + KEMBALIAN) &
-     DETAIL PESANAN LUNAS TINGGAL 1 TOMBOL
-     (UBAH PESANAN DIHAPUS)
-     (di bawah: pesanan batal gak lagi
+  MIAPOS v2.28 — KOLOM DISKON DI DETAIL
+     PESANAN BELUM BAYAR (LANGSUNG TERSIMPAN
+     KE PESANAN) & DI DIALOG BAYAR PESANAN
+     (KAYA LAYAR BAYAR LANGSUNG: ADA
+     TOTAL AWAL / DISKON / BAYAR)
+     (di bawah: dialog ubah metode kaya layar
+     bayar pertama kali + detail pesanan lunas
+     tinggal 1 tombol + pesanan batal gak lagi
      dihitung "Belum Bayar" + pesanan batal
      bisa dibuka lagi + biaya tambahan jadi
      item + pesanan udh done bisa dibatalkan +
@@ -15,6 +16,73 @@
      cuaca santai + laporan urut antrian +
      antrian auto-reset + back navigasi HP +
      sinkron antar HP + 2 bahasa + 4 tema)
+================================================
+
+APA YANG BARU DI v2.28 (kolom diskon pesanan belum bayar)
+------------------------------------------------------------
+1. KOLOM DISKON DI DETAIL PESANAN BELUM
+   BAYAR:
+   • Layar detail pesanan "Belum Bayar"
+     sekarang ada kolom "Diskon (opsional)"
+     - letaknya persis di bawah kartu total.
+   • Isi angkanya (contoh 5000) -> LANGSUNG
+     TERSIMPAN ke pesanan (gak perlu pencet
+     simpan dulu): kartu total di atas
+     langsung nampilin baris "Diskon" &
+     totalnya turun. Contoh: total 32.000,
+     diisi diskon 5.000 -> total jadi 27.000.
+   • Total di kartu daftar pesanan ikut
+     turun juga - detail & daftar angkanya
+     sama.
+   • Isinya masuk ke SIMPAN PESANAN. Ditutup
+     dulu, dibuka lagi besok - diskonnya
+     masih nempel, soalnya pesanannya kan
+     belum dibayar.
+   • Pesanan lunas & pesanan batal gak
+     dapet kolom ini (diskon cuma buat
+     pesanan yang belum dibayar).
+2. DIALOG "BAYAR PESANAN" KINI KAYA LAYAR
+   BAYAR LANGSUNG:
+   • Dialog bayar buat pesanan yang
+     disimpan dulu sebelumnya gak punya
+     kolom diskon - beda sama dialog bayar
+     langsung dari keranjang yang udah ada
+     kolomnya. Sekarang SAMA: ada kolom
+     "Diskon (opsional)" + kotak rincian
+     Total Awal / Diskon / Bayar.
+   • Diskon yang udah disimpan di pesanan
+     otomatis keisi di kolomnya - masih
+     bisa diubah juga di situ.
+   • Tombol cepat (Uang Pas, 50.000,
+     100.000, 150.000) & kembalian semuanya
+     ngitung dari angka SETELAH diskon.
+     Contoh: tagihan 32.000, diskon 5.000 ->
+     Uang Pas = 27.000, bayar 27.000 ->
+     kembalian 0.
+   • Diskon yang diisi di dialog ikut
+     TERSIMPAN ke pesanan pas konfirmasi -
+     struk kasir kecetak baris diskonnya &
+     total sesuai angka setelah diskon.
+3. PERBAIKAN LAMA TETAP JALAN:
+   • Dialog Ubah Metode Pembayaran tetap
+     kaya layar bayar pertama kali (v2.27).
+   • Detail pesanan lunas tetap tinggal 1
+     tombol (v2.27); pesanan batal tetap
+     bisa dibuka lagi lewat Ubah Pesanan
+     (v2.25).
+4. VERSI NAIK:
+   • App v2.28 (footer sidebar + kartu
+     Pengaturan) · cache sw.js miapos-v2.28-r1 ·
+     server main.py v2.28 · package.json
+     2.28.0.
+   • Ingat aturannya: tiap update versi SELALU
+     naik.
+
+================================================
+  CATATAN v2.27 (rilis sebelumnya) — DIALOG
+     UBAH METODE PEMBAYARAN DISEMAININ KAYA
+     LAYAR BAYAR PERTAMA KALI & DETAIL
+     PESANAN LUNAS TINGGAL 1 TOMBOL
 ================================================
 
 APA YANG BARU DI v2.27 (dialog ubah metode kaya layar bayar)
@@ -1422,4 +1490,4 @@ UPDATE VERSI BARU: cukup timpa file ke repo GitHub →
 app auto-update sendiri di semua HP (sw.js). Tanpa
 internet tetap jalan dari cache.
 
-SELAMAT PAKAI! — Miapos v2.15
+SELAMAT PAKAI! — Miapos v2.28

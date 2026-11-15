@@ -545,7 +545,7 @@ var I18N_EN = {
     'Dashboard':'Dashboard', 'Data Lokal':'Local Data',
     'Data awal bersih: 0 transaksi · menu siap Anda isi sendiri':'Clean start: 0 transactions · fill in your own menu', 'Data direset ke awal':'Data has been reset',
     'Dibayar':'Paid', 'Dine In':'Dine In',
-    'Diskon':'Discount', 'Emerald & Slate':'Emerald & Slate',
+    'Diskon':'Discount', 'Diskon (opsional)':'Discount (optional)', 'Emerald & Slate':'Emerald & Slate',
     'Fokus & kesuksesan transaksi':'Focus & transaction success', 'Gagal print: ':'Print failed: ',
     'Ganti header nota + sambung printer kasir & dapur':'Change receipt header + connect cashier & kitchen printers', 'Hangat, ramah & penuh semangat':'Warm, friendly & energetic',
     'Hanya menu tambahan':'Additions only', 'Hapus Semua Data Lokal':'Delete All Local Data',
@@ -1775,6 +1775,20 @@ function AppProvider({ children }) {
       orders: s.orders.map(o => o.id === orderId ? { ...o, notes: notes || '', updatedAt: new Date().toISOString() } : o),
       archivedOrders: (s.archivedOrders || []).map(o => o.id === orderId ? { ...o, notes: notes || '', updatedAt: new Date().toISOString() } : o),
     })),
+    // v2.28: KOLOM DISKON di detail pesanan belum bayar — diskon LANGSUNG
+    // disimpan ke pesanan (masuk ke simpan pesanan) & total dihitung ulang =
+    // subtotal - diskon + biaya tambahan (pola sama kaya addExtraCharge dll).
+    // Cuma menyentuh pesanan aktif, pesanan lunas di arsip tidak diganggu.
+    updateOrderDiscount: (orderId, discount) => setState(s => ({
+      ...s,
+      orders: s.orders.map(o => {
+        if (o.id !== orderId) return o;
+        const disc = Math.max(0, Math.round(Number(discount) || 0));
+        const subtotal = orderItemsSum(o);
+        const total = Math.max(0, subtotal - disc + extraChargesSum(o));
+        return { ...o, discount: disc, subtotal, total, updatedAt: new Date().toISOString() };
+      }),
+    })),
     // v2.19: BIAYA TAMBAHAN — tambah/hapus biaya di luar menu (nama + jumlah).
     // Ikut menghitung ulang total = subtotal - diskon + biaya tambahan.
     addExtraCharge: (orderId, name, amount) => setState(s => ({
@@ -2208,7 +2222,7 @@ function Sidebar({ active, onChange }) {
         ),
         React.createElement('div', null,
           React.createElement('span', { className:'text-sm font-bold text-white' }, 'Miapos'),
-          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.27')
+          React.createElement('p', { className:'text-[10px] text-slate-400' }, 'F&B Suite v2.28')
         )
       ),
       NAV.map(item => React.createElement(React.Fragment, { key: item.key },
@@ -3990,7 +4004,7 @@ const PaymentDialog = ({ open, onClose, total, onConfirm, onSaveOrder, initialDi
           React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, t('Konfirmasi setelah transfer diterima'))
         ),
         React.createElement('div', null,
-          React.createElement(Label, null, 'Diskon (opsional)'),
+          React.createElement(Label, null, t('Diskon (opsional)')),
           React.createElement(Input, { type:'number', placeholder:'0', value: discountInput, onChange: e => setDiscountInput(e.target.value) })
         ),
         React.createElement('div', { className:'rounded-lg border p-3 space-y-1 text-sm' },
@@ -4072,7 +4086,7 @@ function useBackCloseModal() {
 }
 
 function OrdersView({ onNavigate, onBack }) {
-  const { state, updateOrderStatus, markOrderPaid, restoreOrderToCart, cancelOrder } = useAppStore();
+  const { state, updateOrderStatus, markOrderPaid, updateOrderDiscount, restoreOrderToCart, cancelOrder } = useAppStore();
   const { settings, orders } = state;
   // Rollover 24 jam: daftar ini HANYA pesanan hari ini. Pesanan kemarin otomatis
   // diarsipkan (applyRollover) — lihat kembali lewat Laporan > Riwayat per tanggal.
@@ -4223,14 +4237,19 @@ function OrdersView({ onNavigate, onBack }) {
     payOrder && React.createElement(PayOrderDialog, {
       order: payOrder,
       onClose: () => setPayOrder(null),
-      onConfirm: (method, paid) => {
-        // Update order status & payment
+      onConfirm: (method, paid, discount) => {
+        // v2.28: diskon di dialog bayar ikut DISIMPAN ke pesanan (masuk ke simpan
+        // pesanan) sebelum ditandai lunas — total, kembalian & struk semuanya
+        // memakai angka setelah diskon.
+        const disc = Math.max(0, Math.round(Number(discount) || 0));
+        const payTotal = Math.max(0, Math.round(orderSubtotalOf(payOrder) + extraChargesSum(payOrder) - disc));
+        updateOrderDiscount(payOrder.id, disc);
         markOrderPaid(payOrder.id, method, paid);
         const newReceipt = {
-          id: payOrder.id, number: payOrder.number, total: orderTotalOf(payOrder), paid, change: Math.max(0, paid - orderTotalOf(payOrder)), method,
+          id: payOrder.id, number: payOrder.number, total: payTotal, paid, change: Math.max(0, paid - payTotal), method,
           items: payOrder.items.map(it => ({ name: it.productName, variantName: it.variantName, qty: it.quantity, price: it.price })),
           customerName: payOrder.customerName, notes: payOrder.notes, orderType: payOrder.type, queueNumber: payOrder.queueNumber,
-          createdAt: payOrder.createdAt, serviceCharge: payOrder.serviceCharge, discount: payOrder.discount || 0, cashierName: payOrder.cashierName,
+          createdAt: payOrder.createdAt, serviceCharge: payOrder.serviceCharge, discount: disc, cashierName: payOrder.cashierName,
           extraCharges: extraChargesOf(payOrder),
         };
         setPayOrder(null);
@@ -4320,7 +4339,7 @@ function AddItemsSheet({ order, products, onClose, onAdd, qtyOf, title, subtitle
 
 // ===== ORDER DETAIL MODAL =====
 function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
-  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, updateOrderNotes, markKitchenPrinted, addExtraCharge, removeExtraCharge, updateExtraChargeQty, updateExtraChargeNotes, cancelOrder, updateOrderPaymentMethod } = useAppStore();
+  const { state, addOrderItem, updateOrderItemQty, updateOrderItemNotes: updateOrderItemNote, updateOrderNotes, updateOrderDiscount, markKitchenPrinted, addExtraCharge, removeExtraCharge, updateExtraChargeQty, updateExtraChargeNotes, cancelOrder, updateOrderPaymentMethod } = useAppStore();
   const { products, settings } = state;
   // v2.10: sheet tambah menu + menu cetak (dapur/tambahan) yang buka ke atas
   const [sheetOpen, setSheetOpen] = React.useState(false);
@@ -4511,6 +4530,14 @@ function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
           React.createElement('span', null, t('Total')),
           React.createElement('span', null, formatRupiah(orderTotalOf(currentOrder)))
         )
+      ),
+      // v2.28: KOLOM DISKON — pesanan belum bayar bisa langsung dikasih diskon
+      // dari layar detail, sama kaya kolom Diskon di dialog bayar langsung
+      // (PaymentDialog). Nilainya LANGSUNG disimpan ke pesanan (masuk ke simpan
+      // pesanan) & total di kartu di atas ikut turun seketika.
+      isUnpaid && !isCancelled && React.createElement('div', { className:'mb-3' },
+        React.createElement(Label, null, t('Diskon (opsional)')),
+        React.createElement(Input, { type:'number', min:'0', placeholder:'0', value: currentOrder.discount > 0 ? String(Math.round(Number(currentOrder.discount))) : '', onChange: e => updateOrderDiscount(currentOrder.id, e.target.value) })
       ),
       // v2.19: tombol Tambah Biaya Tambahan (pict 1) — biaya di luar menu yang
       // tetap dihitung ke total & tercetak di struk kasir
@@ -4717,18 +4744,28 @@ function OrderDetailModal({ order, onClose, onPay, onCancel, onEdit }) {
 }
 
 // ===== PAY ORDER DIALOG (untuk pesanan belum bayar) =====
+// v2.28: ada kolom DISKON kaya dialog bayar langsung (PaymentDialog) — permintaan
+// owner ("yg 1 nya kan beda klo langsung bayar dia ada kolom diskon"). Isinya
+// otomatis dari diskon yang sudah disimpan di pesanan; kalau diubah di sini,
+// pas konfirmasi angkanya ikut disimpan ke pesanan & struk memakai total
+// setelah diskon. Total Awal dihitung SEBELUM diskon biar gak dobel potong.
 function PayOrderDialog({ order, onClose, onConfirm }) {
   const { state } = useAppStore();
   const qrisImg = (state.settings && state.settings.qrisImage) || '';
   const [method, setMethod] = React.useState('CASH');
   const [paidInput, setPaidInput] = React.useState('');
+  const [discountInput, setDiscountInput] = React.useState(Number(order.discount) > 0 ? String(Math.round(Number(order.discount))) : '');
   // v2.19: tombol back navigasi HP = batalkan dialog bayar (kembali ke daftar)
   const backCloseRef = useBackCloseModal();
   var doClose = function() { reset(); onClose(); };
   backCloseRef.current = doClose;
-  const total = orderTotalOf(order); // v2.10: anti-NaN
-  const paid = method === 'CASH' ? (parseFloat(paidInput) || 0) : total;
-  const change = method === 'CASH' ? Math.max(0, paid - total) : 0;
+  // v2.28: Total Awal = subtotal menu + biaya tambahan (SEBELUM diskon) —
+  // diskon jadi baris sendiri, yang dibayar tinggal selisihnya (anti-NaN).
+  const baseTotal = Math.max(0, Math.round(orderSubtotalOf(order) + extraChargesSum(order)));
+  const discount = Math.max(0, Math.round(parseFloat(discountInput) || 0));
+  const finalTotal = Math.max(0, baseTotal - discount);
+  const paid = method === 'CASH' ? (parseFloat(paidInput) || 0) : finalTotal;
+  const change = method === 'CASH' ? Math.max(0, paid - finalTotal) : 0;
   function reset() { setPaidInput(''); setMethod('CASH'); }
   return React.createElement(Modal, { open: true, onClose: () => { reset(); onClose(); }, className:'sm:max-w-full max-h-[90vh] overflow-y-auto' },
     React.createElement('div', { className:'p-4' },
@@ -4737,7 +4774,7 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
       React.createElement('div', { className:'rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-500 to-emerald-700 text-white p-3 mb-3 shadow-lg shadow-emerald-500/20' },
         React.createElement('div', { className:'flex justify-between font-bold text-lg' },
           React.createElement('span', null, t('Total Tagihan')),
-          React.createElement('span', null, formatRupiah(total))
+          React.createElement('span', null, formatRupiah(finalTotal))
         )
       ),
       React.createElement('div', { className:'space-y-3' },
@@ -4767,17 +4804,29 @@ function PayOrderDialog({ order, onClose, onConfirm }) {
           React.createElement('p', { className:'text-sm font-semibold' }, t('Transfer Bank')),
           React.createElement('p', { className:'text-xs text-slate-500 mt-1' }, t('Konfirmasi setelah transfer diterima'))
         ),
+        // v2.28: kolom diskon + rincian — tampilannya persis kaya dialog bayar
+        // langsung (Total Awal → Diskon → Bayar), isinya tersimpan ke pesanan.
+        React.createElement('div', null,
+          React.createElement(Label, null, t('Diskon (opsional)')),
+          React.createElement(Input, { type:'number', min:'0', placeholder:'0', value: discountInput, onChange: e => setDiscountInput(e.target.value) })
+        ),
+        React.createElement('div', { className:'rounded-lg border p-3 space-y-1 text-sm' },
+          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Total Awal'), React.createElement('span', null, formatRupiah(baseTotal))),
+          React.createElement('div', { className:'flex justify-between' }, React.createElement('span', { className:'text-slate-500' }, 'Diskon'), React.createElement('span', null, '- ' + formatRupiah(discount))),
+          React.createElement(Separator, null),
+          React.createElement('div', { className:'flex justify-between font-bold text-base' }, React.createElement('span', null, 'Bayar'), React.createElement('span', { className:'text-slate-900' }, formatRupiah(finalTotal)))
+        ),
         method === 'CASH' && React.createElement(React.Fragment, null,
           React.createElement('div', null,
             React.createElement(Label, null, t('Uang Diterima')),
-            React.createElement(Input, { type:'number', placeholder: String(total), value: paidInput, onChange: e => setPaidInput(e.target.value), autoFocus: true })
+            React.createElement(Input, { type:'number', placeholder: String(finalTotal), value: paidInput, onChange: e => setPaidInput(e.target.value), autoFocus: true })
           ),
           React.createElement('div', { className:'grid grid-cols-4 gap-2' },
-            [total, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? t('Uang Pas') : formatRupiah(amt).replace('Rp','').trim()))
+            [finalTotal, 50000, 100000, 150000].map((amt, i) => React.createElement(Button, { key: i, size:'sm', variant:'outline', onClick: () => setPaidInput(String(amt)), className:'text-xs h-9' }, i === 0 ? t('Uang Pas') : formatRupiah(amt).replace('Rp','').trim()))
           ),
           React.createElement('div', { className:'flex justify-between text-sm' }, React.createElement('span', { className:'text-slate-500' }, t('Kembalian')), React.createElement('span', { className:'font-bold' }, formatRupiah(change)))
         ),
-        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < total, onClick: () => { onConfirm(method, method === 'CASH' ? paid : total); reset(); } }, method === 'CASH' && paid < total ? t('Uang tidak cukup') : t('Konfirmasi Pembayaran'))
+        React.createElement(Button, { className:'md-cta w-full h-12 text-base', disabled: method === 'CASH' && paid < finalTotal, onClick: () => { onConfirm(method, paid, discount); reset(); } }, method === 'CASH' && paid < finalTotal ? t('Uang tidak cukup') : t('Konfirmasi Pembayaran'))
       )
     )
   );
@@ -7324,7 +7373,7 @@ function SettingsView({ onBack }) {
         )
       ),
       React.createElement('div', { className:'rounded-2xl bg-white border p-4 text-center text-xs text-slate-500 shadow-sm' },
-        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.27 · Python + C++ Engine'),
+        React.createElement('p', { className:'font-semibold text-slate-900' }, 'Miapos F&B Suite v2.28 · Python + C++ Engine'),
         React.createElement('p', { className:'mt-1' }, t('Sistem manajemen restoran terintegrasi (POS, KDS, Inventory, Reports, Multi-Outlet)')),
         React.createElement('p', { className:'mt-2' }, t('Data awal bersih: 0 transaksi · menu siap Anda isi sendiri'))
       ),
